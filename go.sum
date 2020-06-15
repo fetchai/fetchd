@@ -9,20 +9,6 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200102211924-4bcbc698314f h1:4O1om+UVU+Hfcihr1timk8YNXHxzZWgCo7ofnrZRApw=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200102211924-4bcbc698314f/go.mod h1:URdX5+vg25ts3aCh8H5IFZybJYKWhJHYMTnf+ULtoC4=
-github.com/CosmWasm/go-cosmwasm v0.7.3-0.20200506091810-b5d72f383001 h1:QvYlAMha7Wcmjn2e/D0Vk1/EFqHcnH3I01laQrSKIgk=
-github.com/CosmWasm/go-cosmwasm v0.7.3-0.20200506091810-b5d72f383001/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2 h1:CRITYzG25XuBFfoft+zuRKtJk37/PxNXXKXAje7iv1Q=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200518132754-acf959da37ac h1:8iIQdsex6lXfwxGf/ju82M0VoYu6apmclJAuAtRUCzc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200518132754-acf959da37ac/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200518133220-76a4987de98b h1:AKCZCqgZAQnmJdCh4mnk23NoLzoyKQIowckBLnhrLlM=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200518133220-76a4987de98b/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200519190110-12d4e604d491 h1:nyFnbmORZp79X7NTJluPqr/ZL8+2julXqbnDzRWDTA4=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200519190110-12d4e604d491/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200519190609-972a954b9b43 h1:K+yLK6FsvVnY+FPu/SYx/WOtDUfLrSbHCA7G9ZvKsCI=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha2.0.20200519190609-972a954b9b43/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha3 h1:pa1gVDCGvM+5TBYepUhP1JHnpfOXwpBbFNSzYcXGXOU=
-github.com/CosmWasm/go-cosmwasm v0.8.0-alpha3/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
 github.com/CosmWasm/go-cosmwasm v0.8.0 h1:xoufklhgJQ7Sy6xwZw9hRbnXl79ylvxlpGJDcPz9Ipo=
 github.com/CosmWasm/go-cosmwasm v0.8.0/go.mod h1:gAFCwllx97ejI+m9SqJQrmd2SBW7HA0fOjvWWJjM2uc=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -80,8 +66,6 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=
-github.com/confio/cosmos-sdk v0.38.7 h1:soa3c5ZZaYEnT8sZtwkSW7F6IykbpaVumtObIIkAp2w=
-github.com/confio/cosmos-sdk v0.38.7/go.mod h1:bltscsRmNMNThQcnIF3JV0iUNEdLa7GIU7r80W12CL8=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -127,6 +111,8 @@ github.com/facebookgo/stack v0.0.0-20160209184415-751773369052/go.mod h1:UbMTZqL
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 h1:E2s37DuLxFhQDg5gKsWoLBOB0n+ZW8s599zru8FJ2/Y=
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+neXqOorC30/tWg0LCSkrqj/AR6gu8yY8/fpw1q0=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
+github.com/fetchai/cosmos-sdk v0.0.0-20200615102542-b5da8aaf4cc5 h1:Q7J96Qdfn+/kvUXodVxuc3/izzN1eYLwmmA+5AaYf2A=
+github.com/fetchai/cosmos-sdk v0.0.0-20200615102542-b5da8aaf4cc5/go.mod h1:rzWOofbKfRt3wxiylmYWEFHnxxGj0coyqgWl2I9obAw=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVBjqR7JHJk0brhHOZYGmfBYOrK0ZhYMEtBr4=
@@ -189,8 +175,6 @@ github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 h1:EGx4pi6eqNxGaHF6qqu48+N2wcFQ5qg5FXgOdqsJ5d8=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
-github.com/gorilla/handlers v1.4.2 h1:0QniY0USkHQ1RGCLfKxeNHK9bkDHGRYGNDFBCS+YARg=
-github.com/gorilla/handlers v1.4.2/go.mod h1:Qkdc/uu4tH4g6mTK6auzZ766c4CA0Ng8+o/OAirnOIQ=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.3 h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
