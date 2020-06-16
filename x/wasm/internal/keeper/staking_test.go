@@ -91,13 +91,16 @@ func TestInitializeStaking(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, tempDir, SupportedFeatures, nil, nil)
 	accKeeper, stakingKeeper, keeper := keepers.AccountKeeper, keepers.StakingKeeper, keepers.WasmKeeper
 
-	valAddr := addValidator(ctx, stakingKeeper, accKeeper, sdk.NewInt64Coin("stake", 1234567))
+	valAddr := addValidator(ctx, stakingKeeper, accKeeper, sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(1234567)))
 	ctx = nextBlock(ctx, stakingKeeper)
 	v, found := stakingKeeper.GetValidator(ctx, valAddr)
 	assert.True(t, found)
-	assert.Equal(t, v.GetDelegatorShares(), sdk.NewDec(1234567))
+	assert.Equal(t, v.GetDelegatorShares(), sdk.NewDecFromInt(sdk.TokensFromConsensusPower(1234567)))
 
-	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000), sdk.NewInt64Coin("stake", 500000))
+	deposit := sdk.NewCoins(
+		sdk.NewInt64Coin("denom", 100000),
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(500000)),
+	)
 	creator := createFakeFundedAccount(ctx, accKeeper, deposit)
 
 	// upload staking derivates code
@@ -144,7 +147,7 @@ func TestInitializeStaking(t *testing.T) {
 
 	// no changes to bonding shares
 	val, _ := stakingKeeper.GetValidator(ctx, valAddr)
-	assert.Equal(t, val.GetDelegatorShares(), sdk.NewDec(1234567))
+	assert.Equal(t, val.GetDelegatorShares(), sdk.NewDecFromInt(sdk.TokensFromConsensusPower(1234567)))
 }
 
 type initInfo struct {
