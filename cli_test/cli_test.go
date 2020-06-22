@@ -184,7 +184,7 @@ func TestGaiaCLIFeesDeduction(t *testing.T) {
 
 	// ensure state didn't change
 	fooAcc = f.QueryAccount(fooAddr)
-	require.Equal(t, fooAmt.Int64(), fooAcc.GetCoins().AmountOf(fooDenom).Int64())
+	require.Equal(t, fooAmt, fooAcc.GetCoins().AmountOf(fooDenom))
 
 	// insufficient funds (coins + fees) tx fails
 	largeCoins := sdk.TokensFromConsensusPower(10000000)
@@ -199,7 +199,7 @@ func TestGaiaCLIFeesDeduction(t *testing.T) {
 
 	// ensure state didn't change
 	fooAcc = f.QueryAccount(fooAddr)
-	require.Equal(t, fooAmt.Int64(), fooAcc.GetCoins().AmountOf(fooDenom).Int64())
+	require.Equal(t, fooAmt, fooAcc.GetCoins().AmountOf(fooDenom))
 
 	// test success (transfer = coins + fees)
 	success, _, _ = f.TxSend(
@@ -455,6 +455,11 @@ func TestGaiaCLIQuerySupply(t *testing.T) {
 
 	totalSupply := f.QueryTotalSupply()
 	totalSupplyOf := f.QueryTotalSupplyOf(fooDenom)
+
+	fmt.Println(totalSupply)
+	fmt.Println(totalCoins)
+	fmt.Println(totalSupplyOf)
+	fmt.Println(totalCoins.AmountOf(fooDenom))
 
 	require.Equal(t, totalCoins, totalSupply)
 	require.True(sdk.IntEq(t, totalCoins.AmountOf(fooDenom), totalSupplyOf))
