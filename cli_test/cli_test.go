@@ -456,11 +456,6 @@ func TestGaiaCLIQuerySupply(t *testing.T) {
 	totalSupply := f.QueryTotalSupply()
 	totalSupplyOf := f.QueryTotalSupplyOf(fooDenom)
 
-	fmt.Println(totalSupply)
-	fmt.Println(totalCoins)
-	fmt.Println(totalSupplyOf)
-	fmt.Println(totalCoins.AmountOf(fooDenom))
-
 	require.Equal(t, totalCoins, totalSupply)
 	require.True(sdk.IntEq(t, totalCoins.AmountOf(fooDenom), totalSupplyOf))
 
