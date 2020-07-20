@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	tmBytes "github.com/tendermint/tendermint/libs/bytes"
 
 	wasmTypes "github.com/CosmWasm/go-cosmwasm/types"
@@ -19,12 +21,35 @@ type Model struct {
 	Value []byte `json:"val"`
 }
 
+func (m Model) ValidateBasic() error {
+	if len(m.Key) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "key")
+	}
+	return nil
+}
+
 // CodeInfo is data for the uploaded contract WASM code
 type CodeInfo struct {
 	CodeHash []byte         `json:"code_hash"`
 	Creator  sdk.AccAddress `json:"creator"`
 	Source   string         `json:"source"`
 	Builder  string         `json:"builder"`
+}
+
+func (c CodeInfo) ValidateBasic() error {
+	if len(c.CodeHash) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "code hash")
+	}
+	if err := sdk.VerifyAddressFormat(c.Creator); err != nil {
+		return sdkerrors.Wrap(err, "creator")
+	}
+	if err := validateSourceURL(c.Source); err != nil {
+		return sdkerrors.Wrap(err, "source")
+	}
+	if err := validateBuilder(c.Builder); err != nil {
+		return sdkerrors.Wrap(err, "builder")
+	}
+	return nil
 }
 
 // NewCodeInfo fills a new Contract struct
@@ -41,15 +66,51 @@ func NewCodeInfo(codeHash []byte, creator sdk.AccAddress, source string, builder
 type ContractInfo struct {
 	CodeID  uint64          `json:"code_id"`
 	Creator sdk.AccAddress  `json:"creator"`
+	Admin   sdk.AccAddress  `json:"admin,omitempty"`
 	Label   string          `json:"label"`
 	InitMsg json.RawMessage `json:"init_msg,omitempty"`
 	// never show this in query results, just use for sorting
 	// (Note: when using json tag "-" amino refused to serialize it...)
-	Created *CreatedAt `json:"created,omitempty"`
+	Created        *AbsoluteTxPosition `json:"created,omitempty"`
+	LastUpdated    *AbsoluteTxPosition `json:"last_updated,omitempty"`
+	PreviousCodeID uint64              `json:"previous_code_id,omitempty"`
 }
 
-// CreatedAt can be used to sort contracts
-type CreatedAt struct {
+func (c *ContractInfo) UpdateCodeID(ctx sdk.Context, newCodeID uint64) {
+	c.PreviousCodeID = c.CodeID
+	c.CodeID = newCodeID
+	c.LastUpdated = NewCreatedAt(ctx)
+}
+
+func (c *ContractInfo) ValidateBasic() error {
+	if c.CodeID == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "code id")
+	}
+	if err := sdk.VerifyAddressFormat(c.Creator); err != nil {
+		return sdkerrors.Wrap(err, "creator")
+	}
+	if c.Admin != nil {
+		if err := sdk.VerifyAddressFormat(c.Admin); err != nil {
+			return sdkerrors.Wrap(err, "admin")
+		}
+	}
+	if err := validateLabel(c.Label); err != nil {
+		return sdkerrors.Wrap(err, "label")
+	}
+	if c.Created == nil {
+		return sdkerrors.Wrap(ErrEmpty, "created")
+	}
+	if err := c.Created.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "created")
+	}
+	if err := c.LastUpdated.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "last updated")
+	}
+	return nil
+}
+
+// AbsoluteTxPosition can be used to sort contracts
+type AbsoluteTxPosition struct {
 	// BlockHeight is the block the contract was created at
 	BlockHeight int64
 	// TxIndex is a monotonic counter within the block (actual transaction index, or gas consumed)
@@ -57,7 +118,7 @@ type CreatedAt struct {
 }
 
 // LessThan can be used to sort
-func (a *CreatedAt) LessThan(b *CreatedAt) bool {
+func (a *AbsoluteTxPosition) LessThan(b *AbsoluteTxPosition) bool {
 	if a == nil {
 		return true
 	}
@@ -67,25 +128,36 @@ func (a *CreatedAt) LessThan(b *CreatedAt) bool {
 	return a.BlockHeight < b.BlockHeight || (a.BlockHeight == b.BlockHeight && a.TxIndex < b.TxIndex)
 }
 
+func (a *AbsoluteTxPosition) ValidateBasic() error {
+	if a == nil {
+		return nil
+	}
+	if a.BlockHeight < 0 {
+		return sdkerrors.Wrap(ErrInvalid, "height")
+	}
+	return nil
+}
+
 // NewCreatedAt gets a timestamp from the context
-func NewCreatedAt(ctx sdk.Context) *CreatedAt {
+func NewCreatedAt(ctx sdk.Context) *AbsoluteTxPosition {
 	// we must safely handle nil gas meters
 	var index uint64
 	meter := ctx.BlockGasMeter()
 	if meter != nil {
 		index = meter.GasConsumed()
 	}
-	return &CreatedAt{
+	return &AbsoluteTxPosition{
 		BlockHeight: ctx.BlockHeight(),
 		TxIndex:     index,
 	}
 }
 
 // NewContractInfo creates a new instance of a given WASM contract info
-func NewContractInfo(codeID uint64, creator sdk.AccAddress, initMsg []byte, label string, createdAt *CreatedAt) ContractInfo {
+func NewContractInfo(codeID uint64, creator, admin sdk.AccAddress, initMsg []byte, label string, createdAt *AbsoluteTxPosition) ContractInfo {
 	return ContractInfo{
 		CodeID:  codeID,
 		Creator: creator,
+		Admin:   admin,
 		InitMsg: initMsg,
 		Label:   label,
 		Created: createdAt,
@@ -133,25 +205,21 @@ func NewWasmCoins(cosmosCoins sdk.Coins) (wasmCoins []wasmTypes.Coin) {
 const CustomEventType = "wasm"
 const AttributeKeyContractAddr = "contract_address"
 
-// CosmosResult converts from a Wasm Result type
-func CosmosResult(wasmResult wasmTypes.Result, contractAddr sdk.AccAddress) sdk.Result {
-	var events []sdk.Event
-	if len(wasmResult.Log) > 0 {
-		// we always tag with the contract address issuing this event
-		attrs := []sdk.Attribute{sdk.NewAttribute(AttributeKeyContractAddr, contractAddr.String())}
-		for _, l := range wasmResult.Log {
-			// and reserve the contract_address key for our use (not contract)
-			if l.Key != AttributeKeyContractAddr {
-				attr := sdk.NewAttribute(l.Key, l.Value)
-				attrs = append(attrs, attr)
-			}
+// ParseEvents converts wasm LogAttributes into an sdk.Events (with 0 or 1 elements)
+func ParseEvents(logs []wasmTypes.LogAttribute, contractAddr sdk.AccAddress) sdk.Events {
+	if len(logs) == 0 {
+		return nil
+	}
+	// we always tag with the contract address issuing this event
+	attrs := []sdk.Attribute{sdk.NewAttribute(AttributeKeyContractAddr, contractAddr.String())}
+	for _, l := range logs {
+		// and reserve the contract_address key for our use (not contract)
+		if l.Key != AttributeKeyContractAddr {
+			attr := sdk.NewAttribute(l.Key, l.Value)
+			attrs = append(attrs, attr)
 		}
-		events = []sdk.Event{sdk.NewEvent(CustomEventType, attrs...)}
 	}
-	return sdk.Result{
-		Data:   []byte(wasmResult.Data),
-		Events: events,
-	}
+	return sdk.Events{sdk.NewEvent(CustomEventType, attrs...)}
 }
 
 // WasmConfig is the extra config required for wasm
