@@ -34,6 +34,21 @@ func NewHandler(k Keeper) sdk.Handler {
 		case *MsgExecuteContract:
 			return handleExecute(ctx, k, msg)
 
+		case *MsgMigrateContract:
+			return handleMigration(ctx, k, msg)
+		case MsgMigrateContract:
+			return handleMigration(ctx, k, &msg)
+
+		case *MsgUpdateAdmin:
+			return handleUpdateContractAdmin(ctx, k, msg)
+		case MsgUpdateAdmin:
+			return handleUpdateContractAdmin(ctx, k, &msg)
+
+		case *MsgClearAdmin:
+			return handleClearContractAdmin(ctx, k, msg)
+		case MsgClearAdmin:
+			return handleClearContractAdmin(ctx, k, &msg)
+
 		default:
 			errMsg := fmt.Sprintf("unrecognized wasm message type: %T", msg)
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
@@ -80,7 +95,7 @@ func handleStoreCode(ctx sdk.Context, k Keeper, msg *MsgStoreCode) (*sdk.Result,
 }
 
 func handleInstantiate(ctx sdk.Context, k Keeper, msg *MsgInstantiateContract) (*sdk.Result, error) {
-	contractAddr, err := k.Instantiate(ctx, msg.Code, msg.Sender, msg.InitMsg, msg.Label, msg.InitFunds)
+	contractAddr, err := k.Instantiate(ctx, msg.Code, msg.Sender, msg.Admin, msg.InitMsg, msg.Label, msg.InitFunds)
 	if err != nil {
 		return nil, err
 	}
@@ -115,5 +130,54 @@ func handleExecute(ctx sdk.Context, k Keeper, msg *MsgExecuteContract) (*sdk.Res
 	)
 
 	res.Events = append(events, ourEvent)
-	return &res, nil
+	return res, nil
+}
+
+func handleMigration(ctx sdk.Context, k Keeper, msg *MsgMigrateContract) (*sdk.Result, error) {
+	res, err := k.Migrate(ctx, msg.Contract, msg.Sender, msg.Code, msg.MigrateMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	events := filterMessageEvents(ctx.EventManager())
+	ourEvent := sdk.NewEvent(
+		sdk.EventTypeMessage,
+		sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+		sdk.NewAttribute(AttributeSigner, msg.Sender.String()),
+		sdk.NewAttribute(AttributeKeyContract, msg.Contract.String()),
+	)
+	res.Events = append(events, ourEvent)
+	return res, nil
+}
+
+func handleUpdateContractAdmin(ctx sdk.Context, k Keeper, msg *MsgUpdateAdmin) (*sdk.Result, error) {
+	if err := k.UpdateContractAdmin(ctx, msg.Contract, msg.Sender, msg.NewAdmin); err != nil {
+		return nil, err
+	}
+	events := ctx.EventManager().Events()
+	ourEvent := sdk.NewEvent(
+		sdk.EventTypeMessage,
+		sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+		sdk.NewAttribute(AttributeSigner, msg.Sender.String()),
+		sdk.NewAttribute(AttributeKeyContract, msg.Contract.String()),
+	)
+	return &sdk.Result{
+		Events: append(events, ourEvent),
+	}, nil
+}
+
+func handleClearContractAdmin(ctx sdk.Context, k Keeper, msg *MsgClearAdmin) (*sdk.Result, error) {
+	if err := k.ClearContractAdmin(ctx, msg.Contract, msg.Sender); err != nil {
+		return nil, err
+	}
+	events := ctx.EventManager().Events()
+	ourEvent := sdk.NewEvent(
+		sdk.EventTypeMessage,
+		sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+		sdk.NewAttribute(AttributeSigner, msg.Sender.String()),
+		sdk.NewAttribute(AttributeKeyContract, msg.Contract.String()),
+	)
+	return &sdk.Result{
+		Events: append(events, ourEvent),
+	}, nil
 }

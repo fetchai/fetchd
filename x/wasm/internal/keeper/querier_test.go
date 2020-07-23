@@ -41,14 +41,14 @@ func TestQueryContractState(t *testing.T) {
 	initMsgBz, err := json.Marshal(initMsg)
 	require.NoError(t, err)
 
-	addr, err := keeper.Instantiate(ctx, contractID, creator, initMsgBz, "demo contract to query", deposit)
+	addr, err := keeper.Instantiate(ctx, contractID, creator, nil, initMsgBz, "demo contract to query", deposit)
 	require.NoError(t, err)
 
 	contractModel := []types.Model{
 		{Key: []byte("foo"), Value: []byte(`"bar"`)},
 		{Key: []byte{0x0, 0x1}, Value: []byte(`{"count":8}`)},
 	}
-	keeper.setContractState(ctx, addr, contractModel)
+	keeper.importContractState(ctx, addr, contractModel)
 
 	// this gets us full error, not redacted sdk.Error
 	q := NewQuerier(keeper)
@@ -187,7 +187,7 @@ func TestListContractByCodeOrdering(t *testing.T) {
 			ctx = setBlock(ctx, h)
 			h++
 		}
-		_, err = keeper.Instantiate(ctx, codeID, creator, initMsgBz, fmt.Sprintf("contract %d", i), topUp)
+		_, err = keeper.Instantiate(ctx, codeID, creator, nil, initMsgBz, fmt.Sprintf("contract %d", i), topUp)
 		require.NoError(t, err)
 	}
 
