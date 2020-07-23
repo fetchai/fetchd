@@ -46,7 +46,7 @@ var (
 	NewContractInfo           = types.NewContractInfo
 	NewEnv                    = types.NewEnv
 	NewWasmCoins              = types.NewWasmCoins
-	CosmosResult              = types.CosmosResult
+	ParseEvents               = types.ParseEvents
 	DefaultWasmConfig         = types.DefaultWasmConfig
 	InitGenesis               = keeper.InitGenesis
 	ExportGenesis             = keeper.ExportGenesis
@@ -93,10 +93,13 @@ type (
 	MsgStoreCode            = types.MsgStoreCode
 	MsgInstantiateContract  = types.MsgInstantiateContract
 	MsgExecuteContract      = types.MsgExecuteContract
+	MsgMigrateContract      = types.MsgMigrateContract
+	MsgUpdateAdmin          = types.MsgUpdateAdmin
+	MsgClearAdmin           = types.MsgClearAdmin
 	Model                   = types.Model
 	CodeInfo                = types.CodeInfo
 	ContractInfo            = types.ContractInfo
-	CreatedAt               = types.CreatedAt
+	CreatedAt               = types.AbsoluteTxPosition
 	WasmConfig              = types.WasmConfig
 	MessageHandler          = keeper.MessageHandler
 	BankEncoder             = keeper.BankEncoder
