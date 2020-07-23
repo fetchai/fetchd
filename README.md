@@ -1,8 +1,8 @@
 # Fetch.ai Wasmd Fork
 
-This repository is the fork from the original [wasmd](https://github.com/CosmWasm/wasmd) which is the first implementation of a cosmos zone with wasm smart contracts enabled. It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
+This repository is the fork from the original [wasmd](https://github.com/CosmWasm/wasmd). It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
 
-This code was forked from the `cosmos/gaia` repository and the majority of the codebase is the same as `gaia`.
+This code was originally from the `cosmos/gaia` repository and the majority of the codebase is the same as `gaia`.
 
 **Note**: Requires [Go 1.13+](https://golang.org/dl/)
 
