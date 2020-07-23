@@ -1,13 +1,6 @@
-# Wasm Zone
+# Fetch.ai Wasmd Fork
 
-[![CircleCI](https://circleci.com/gh/cosmwasm/wasmd/tree/master.svg?style=shield)](https://circleci.com/gh/cosmwasm/wasmd/tree/master)
-[![codecov](https://codecov.io/gh/cosmwasm/wasmd/branch/master/graph/badge.svg)](https://codecov.io/gh/cosmwasm/wasmd)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cosmwasm/wasmd)](https://goreportcard.com/report/github.com/cosmwasm/wasmd)
-[![license](https://img.shields.io/github/license/cosmwasm/wasmd.svg)](https://github.com/cosmwasm/wasmd/blob/master/LICENSE)
-[![LoC](https://tokei.rs/b1/github/cosmwasm/wasmd)](https://github.com/cosmwasm/wasmd)
-<!-- [![GolangCI](https://golangci.com/badges/github.com/cosmwasm/wasmd.svg)](https://golangci.com/r/github.com/cosmwasm/wasmd) -->
-
-This repository hosts `Wasmd`, the first implementation of a cosmos zone with wasm smart contracts enabled.
+This repository is the fork from the original [wasmd](https://github.com/CosmWasm/wasmd) which is the first implementation of a cosmos zone with wasm smart contracts enabled. It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
 
 This code was forked from the `cosmos/gaia` repository and the majority of the codebase is the same as `gaia`.
 
@@ -112,26 +105,4 @@ docker run --rm -it \
     cosmwasm/wasmd-demo:latest ./logs.sh
 ```
 
-## Contributors
 
-Much thanks to all who have contributed to this project, from this app, to the `cosmwasm` framework, to example contracts and documentation.
-Or even testing the app and bringing up critical issues. The following have helped bring this project to life:
-
-* Ethan Frey [ethanfrey](https://github.com/ethanfrey)
-* Simon Warta [webmaster128](https://github.com/webmaster128)
-* Alex Peters [alpe](https://github.com/alpe)
-* Aaron Craelius [aaronc](https://github.com/aaronc)
-* Sunny Aggarwal [sunnya97](https://github.com/sunnya97)
-* Cory Levinson [clevinson](https://github.com/clevinson)
-* Sahith Narahari [sahith-narahari](https://github.com/sahith-narahari)
-* Jehan Tremback [jtremback](https://github.com/jtremback)
-* Shane [shanev](https://github.com/shanev)
-* Billy Rennekamp [okwme](https://github.com/okwme)
-* Westaking [westaking](https://github.com/westaking)
-* Marko [marbar3778](https://github.com/marbar3778)
-* JayB [kogisin](https://github.com/kogisin)
-* Rick Dudley [AFDudley](https://github.com/AFDudley)
-* KamiD [KamiD](https://github.com/KamiD)
-* Valery Litvin [litvintech](https://github.com/litvintech)
-
-Sorry if I forgot you from this list, just contact me or add yourself in a PR :)
