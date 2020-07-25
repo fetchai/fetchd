@@ -3,8 +3,6 @@ on:
   push:
     tags:
       - '*'
-    branches:
-      - '*'
 
 env:
   REGISTRY: gcr.io/fetch-ai-images
