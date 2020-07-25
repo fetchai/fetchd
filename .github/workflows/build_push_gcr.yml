@@ -1,0 +1,36 @@
+name: Build and push image to GCR
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - '*'
+
+env:
+  REGISTRY: gcr.io/fetch-ai-images
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get tag name
+        id: tag_name
+        run: |
+          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
+          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
+          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+      - name: Setup GCloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCLOUD_KEY_IMAGES }}
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker
+      - name: Build and push
+        run: |
+          docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr .
+          docker push $REGISTRY/cosmos-wasmd:$SOURCE_TAG
+        env:
+          SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
