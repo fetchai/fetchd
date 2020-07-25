@@ -10,7 +10,7 @@ env:
   REGISTRY: gcr.io/fetch-ai-images
 
 jobs:
-  build-and-test:
+  build-and-push:
     runs-on: ubuntu-20.04
 
     steps:
