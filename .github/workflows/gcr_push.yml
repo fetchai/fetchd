@@ -3,6 +3,10 @@ on:
   push:
     tags:
       - '*'
+  pull_request:
+    branches:
+      - master
+      - release/*
 
 env:
   REGISTRY: gcr.io/fetch-ai-images
@@ -28,7 +32,7 @@ jobs:
           gcloud auth configure-docker
       - name: Build and push
         run: |
-          docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr .
-          docker push $REGISTRY/cosmos-wasmd:$SOURCE_TAG
+          docker build -t $REGISTRY/cosmos-wasmd:test-tag -f Dockerfile.gcr .
+          docker push $REGISTRY/cosmos-wasmd:test-tag
         env:
           SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
