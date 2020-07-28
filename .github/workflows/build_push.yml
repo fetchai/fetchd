@@ -8,7 +8,7 @@ on:
       - master
       - release/*  
 env:
-  GCRREGISTRY: gcr.io/fetch-ai-images
+  REGISTRY: gcr.io/fetch-ai-images
 
 jobs:
   build-and-push:
