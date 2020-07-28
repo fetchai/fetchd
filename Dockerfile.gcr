@@ -1,33 +1,5 @@
-FROM golang:1.14-buster as builder
-
-# Set up dependencies
-ENV PACKAGES wget git make gcc
-
-RUN apt update && \
-    apt install -y $PACKAGES && \
-    apt clean
-
-WORKDIR /cosmwasm
-COPY . .
-RUN make install
-# ##################################
-FROM debian:buster
-
-# Set up dependencies
-ENV PACKAGES jq curl
-
-RUN apt update && \
-    apt install -y $PACKAGES && \
-    apt clean
-
-COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@v*/api/libgo_cosmwasm.so /usr/lib/libgo_cosmwasm.so
-COPY --from=builder /go/bin/wasmcli /usr/bin/wasmcli
-COPY --from=builder /go/bin/wasmd /usr/bin/wasmd
+ARG VERSION
+FROM fetchai/cosmos-wasmd:${VERSION}
 
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
 COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
-
-EXPOSE 1317
-EXPOSE 26656
-EXPOSE 26657
-STOPSIGNAL SIGTERM

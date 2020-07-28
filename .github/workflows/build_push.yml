@@ -47,7 +47,7 @@ jobs:
         run: |
           SOURCE_TAG="v0.1.1"
           SHORTVERSION=${SOURCE_TAG%.*}
-          docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr .
+          docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr . --build-arg VERSION=$SOURCE_TAG
           docker push $REGISTRY/cosmos-wasmd:$SOURCE_TAG
           docker tag $REGISTRY/cosmos-wasmd:$SOURCE_TAG $REGISTRY/cosmos-wasmd:$SHORTVERSION
           docker push $REGISTRY/cosmos-wasmd:$SHORTVERSION
