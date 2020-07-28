@@ -7,6 +7,9 @@ on:
     branches:
       - master
       - release/*  
+env:
+  GCRREGISTRY: gcr.io/fetch-ai-images
+  HUBREGISTRY: fetchai/wasmd
 
 jobs:
   build-and-push:
@@ -25,7 +28,9 @@ jobs:
       - name: Login to Docker hub
         run: |
           docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
-
+          docker push $HUBREGISTRY:$SOURCE_TAG
+        env:
+          SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_BRANCH }}
 
       # - name: Setup GCloud
       #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
