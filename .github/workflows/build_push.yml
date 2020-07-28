@@ -28,7 +28,7 @@ jobs:
       - name: Login to Docker hub, build and push
         run: |
           docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
-          docker build -t HUBREGISTRY:test -f Dockerfile.hub .
+          docker build -t $HUBREGISTRY:test -f Dockerfile.hub .
           docker push $HUBREGISTRY:test
         env:
           SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
