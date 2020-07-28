@@ -9,7 +9,6 @@ on:
       - release/*  
 env:
   GCRREGISTRY: gcr.io/fetch-ai-images
-  HUBREGISTRY: fetchai/wasmd
 
 jobs:
   build-and-push:
@@ -37,16 +36,20 @@ jobs:
         # env:
         #   SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
 
-      # - name: Setup GCloud
-      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #   with:
-      #     service_account_key: ${{ secrets.GCLOUD_KEY_IMAGES }}
-      # - name: Configure Docker
-      #   run: |
-      #     gcloud auth configure-docker
-      # - name: Build and push
-      #   run: |
-      #     docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr .
-      #     docker push $REGISTRY/cosmos-wasmd:$SOURCE_TAG
+      - name: Setup GCloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCLOUD_KEY_IMAGES }}
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker
+      - name: Build and push
+        run: |
+          SOURCE_TAG="v0.1.1"
+          SHORTVERSION=${SOURCE_TAG%.*}
+          docker build -t $REGISTRY/cosmos-wasmd:$SOURCE_TAG -f Dockerfile.gcr .
+          docker push $REGISTRY/cosmos-wasmd:$SOURCE_TAG
+          docker tag $REGISTRY/cosmos-wasmd:$SOURCE_TAG $REGISTRY/cosmos-wasmd:$SHORTVERSION
+          docker push $REGISTRY/cosmos-wasmd:$SHORTVERSION
       #   env:
       #     SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
