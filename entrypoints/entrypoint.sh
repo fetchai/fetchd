@@ -4,7 +4,9 @@ if [ ! $BOOTSTRAP == "" ];
 then
   echo "Fetching configuration for $BOOTSTRAP network"
   sleep 5
-  source <(curl -s https://raw.githubusercontent.com/fetchai/networks-agentland/master/bootstrap.sh)
+  bootstrapurl="https://raw.githubusercontent.com/fetchai/networks-$BOOTSTRAP/master/bootstrap/boostrap.json"
+  export CHAINID=$(curl -sS $bootstrapurl  | (jq -r .chainid))
+  export ARGS=$(curl -sS $bootstrapurl  | (jq -r .args))
 fi
 
 CHECK_FILE="/root/secret-temp-config/config/config.toml"
