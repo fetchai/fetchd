@@ -9,6 +9,7 @@ then
   mkdir /root/.wasmd
   cp -R /root/secret-temp-config/* /root/.wasmd/
   curl https://rpc-${CHAINID}.fetch.ai/genesis? | jq .result.genesis > ~/.wasmd/config/genesis.json
+  sed -i  's/allow_duplicate_ip = false/allow_duplicate_ip = true/' ~/.wasmd/config/config.toml
   wasmd start --p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657 ${ARGS}
 else
   echo "Node configuration files have not been provided"
