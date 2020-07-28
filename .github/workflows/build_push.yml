@@ -43,7 +43,7 @@ jobs:
       - name: Configure Docker
         run: |
           gcloud auth configure-docker
-      - name: Build and push
+      - name: Build and push to GCR
         run: |
           SOURCE_TAG="v0.1.1"
           SHORTVERSION=${SOURCE_TAG%.*}
