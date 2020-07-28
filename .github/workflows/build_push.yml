@@ -1,11 +1,10 @@
-name: Build and push image to GCR
+name: Build and push images
 on:
   push:
     tags:
       - '*'
-  pull_request:
     branches:
-      - master  
+      - '*'      
 
 env:
   REGISTRY: gcr.io/fetch-ai-images
