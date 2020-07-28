@@ -32,8 +32,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: Dockerfile.hub
           repository: fetchai/wasmd
-          tag_with_ref: true
-
+          tags: $SOURCE_TAG
+        env:
+          SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_BRANCH }}
       # - name: Setup GCloud
       #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       #   with:
