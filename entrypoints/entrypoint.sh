@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [ ! $BOOTSTRAP == "" ];
+then
+  echo "Fetching configuration for $BOOTSTRAP network"
+  sleep 5
+  source <(curl -s https://raw.githubusercontent.com/fetchai/networks-agentland/feature/add-bootstrap/bootstrap/bootstrap.sh)
+fi
+
 CHECK_FILE="/root/secret-temp-config/config/config.toml"
 
 if [ -f "$CHECK_FILE" ];
