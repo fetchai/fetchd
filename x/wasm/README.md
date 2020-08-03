@@ -39,7 +39,7 @@ was sent:
         },
         {
             "key": "signer",
-            "value": "cosmos1vx8knpllrj7n963p9ttd80w47kpacrhuts497x"
+            "value": "fetch1vx8knpllrj7n963p9ttd80w47kpacrhucdupu3"
         },
         {
             "key": "code_id",
@@ -47,7 +47,7 @@ was sent:
         },
         {
             "key": "contract_address",
-            "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+            "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
         }
     ]
 }
@@ -64,11 +64,11 @@ provide a initial balance in the same `MsgInstantiateContract`. We see the follo
         "Attr": [
             {
                 "key": "recipient",
-                "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+                "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
             },
             {
                 "key": "sender",
-                "value": "cosmos1ffnqn02ft2psvyv4dyr56nnv6plllf9pm2kpmv"
+                "value": "fetch1ffnqn02ft2psvyv4dyr56nnv6plllf9pghl9em"
             },
             {
                 "key": "amount",
@@ -91,7 +91,7 @@ Here is an example from the escrow contract successfully releasing funds to the 
     "Attr": [
         {
             "key": "contract_address",
-            "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+            "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
         },
         {
             "key": "action",
@@ -99,7 +99,7 @@ Here is an example from the escrow contract successfully releasing funds to the 
         },
         {
             "key": "destination",
-            "value": "cosmos14k7v7ms4jxkk2etmg9gljxjm4ru3qjdugfsflq"
+            "value": "fetch14k7v7ms4jxkk2etmg9gljxjm4ru3qjdum5edah"
         }
     ]
 }
@@ -125,11 +125,11 @@ was executed (which always appears, while 2 is optional and has information as r
         "Attr": [
             {
                 "key": "recipient",
-                "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+                "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
             },
             {
                 "key": "sender",
-                "value": "cosmos1zm074khx32hqy20hlshlsd423n07pwlu9cpt37"
+                "value": "fetch1zm074khx32hqy20hlshlsd423n07pwluk9g0nf"
             },
             {
                 "key": "amount",
@@ -142,7 +142,7 @@ was executed (which always appears, while 2 is optional and has information as r
         "Attr": [
             {
                 "key": "contract_address",
-                "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+                "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
             },
             {
                 "key": "action",
@@ -150,7 +150,7 @@ was executed (which always appears, while 2 is optional and has information as r
             },
             {
                 "key": "destination",
-                "value": "cosmos14k7v7ms4jxkk2etmg9gljxjm4ru3qjdugfsflq"
+                "value": "fetch14k7v7ms4jxkk2etmg9gljxjm4ru3qjdum5edah"
             }
         ]
     },
@@ -159,11 +159,11 @@ was executed (which always appears, while 2 is optional and has information as r
         "Attr": [
             {
                 "key": "recipient",
-                "value": "cosmos14k7v7ms4jxkk2etmg9gljxjm4ru3qjdugfsflq"
+                "value": "fetch14k7v7ms4jxkk2etmg9gljxjm4ru3qjdum5edah"
             },
             {
                 "key": "sender",
-                "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+                "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
             },
             {
                 "key": "amount",
@@ -184,11 +184,11 @@ was executed (which always appears, while 2 is optional and has information as r
             },
             {
                 "key": "signer",
-                "value": "cosmos1zm074khx32hqy20hlshlsd423n07pwlu9cpt37"
+                "value": "fetch1zm074khx32hqy20hlshlsd423n07pwluk9g0nf"
             },
             {
                 "key": "contract_address",
-                "value": "cosmos18vd8fpwxzck93qlwghaj6arh4p7c5n89uzcee5"
+                "value": "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr"
             }
         ]
     }

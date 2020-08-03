@@ -80,8 +80,8 @@ func TestValidators(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 	resultVals := getValidatorSets(t, port, -1, false)
-	require.Contains(t, resultVals.Validators[0].Address.String(), "cosmosvalcons")
-	require.Contains(t, resultVals.Validators[0].PubKey, "cosmosvalconspub")
+	require.Contains(t, resultVals.Validators[0].Address.String(), "fetchvalcons")
+	require.Contains(t, resultVals.Validators[0].PubKey, "fetchvalconspub")
 	getValidatorSets(t, port, 2, false)
 	getValidatorSets(t, port, 10000000, true)
 }
