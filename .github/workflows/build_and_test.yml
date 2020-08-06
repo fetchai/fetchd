@@ -14,18 +14,11 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - name: Set up ssh keys
-        uses: webfactory/ssh-agent@v0.2.0
-        with:
-          ssh-private-key: ${{ secrets.FETCH_BOT_SSH_KEY }}
       - name: Build Docker container
-        env:
-          DOCKER_BUILDKIT: 1
         run: |
           docker build \
             --no-cache \
             --progress plain \
-            --ssh default \
             --tag fetch_cosmos_fetchd:$GITHUB_SHA \
             --file ./ci.Dockerfile \
             ./
