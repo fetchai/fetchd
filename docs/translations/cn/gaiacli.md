@@ -2,14 +2,14 @@
 
 ## Gaia CLI
 
-`wasmcli`是一个工具，使您能够与 Cosmos Hub 网络中的节点进行交互，无论您是否自己运行它。 让我们恰当的设置它。 要安装它，请按照[安装步骤](./ installation.md)进行安装。
+`fetchcli`是一个工具，使您能够与 Cosmos Hub 网络中的节点进行交互，无论您是否自己运行它。 让我们恰当的设置它。 要安装它，请按照[安装步骤](./ installation.md)进行安装。
 
-### 配置 wasmcli
+### 配置 fetchcli
 
-设置`wasmcli`的主要命令如下：
+设置`fetchcli`的主要命令如下：
 
 ```bash
-wasmcli config <flag> <value>
+fetchcli config <flag> <value>
 ```
 
 该命令能为每个标志设置默认值。
@@ -17,9 +17,9 @@ wasmcli config <flag> <value>
 首先，设置要连接的全节点的地址：
 
 ```bash
-wasmcli config node <host>:<port
+fetchcli config node <host>:<port
 
-# example: wasmcli config node https://77.87.106.33:26657
+# example: fetchcli config node https://77.87.106.33:26657
 ```
 
 如果您运行自己的全节点，只需使用`tcp://localhost:26657`地址即可。
@@ -27,7 +27,7 @@ wasmcli config node <host>:<port
 然后，让我们设置`--trust-node`标志的默认值：
 
 ```bash
-wasmcli config trust-node true
+fetchcli config trust-node true
 
 # Set to true if you trust the full-node you are connecting to, false otherwise
 ```
@@ -35,7 +35,7 @@ wasmcli config trust-node true
 最后，设置我们想要与之交互链的`chain-id`：
 
 ```bash
-wasmcli config chain-id cosmoshub-2
+fetchcli config chain-id cosmoshub-2
 ```
 
 ### Key
@@ -45,7 +45,7 @@ wasmcli config chain-id cosmoshub-2
 有如下类型的key：
 
 + `cosmos` 
-	+ 从通过`wasmcli keys add`生成的账户私钥中产生
+	+ 从通过`fetchcli keys add`生成的账户私钥中产生
 	+ 用于接收资金
 	+ 例如 `cosmos15h6vd5f0wqps26zjlwrc6chah08ryu4hzzdwhc`
 + `cosmosvaloper`
@@ -53,11 +53,11 @@ wasmcli config chain-id cosmoshub-2
 	+ 用于发起staking操作命令
 	+ 例如 `cosmosvaloper1carzvgq3e6y3z5kz5y6gxp3wpy3qdrv928vyah`
 + `cosmospub`
-	+ 从通过`wasmcli keys add`生成的账户私钥中产生
+	+ 从通过`fetchcli keys add`生成的账户私钥中产生
 	+ 例如 `cosmospub1zcjduc3q7fu03jnlu2xpl75s2nkt7krm6grh4cc5aqth73v0zwmea25wj2hsqhlqzm`
 + `cosmosvalconspub`
-	+ 在使用`wasmd init`创建节点时生成
-	+ 使用`wasmd tendermint show-validator`获得该值
+	+ 在使用`fetchd init`创建节点时生成
+	+ 使用`fetchd tendermint show-validator`获得该值
 	+ 例如 `cosmosvalconspub1zcjduepq0ms2738680y72v44tfyqm3c9ppduku8fs6sr73fx7m666sjztznqzp2emf`
 
 #### 生成 Key
@@ -67,37 +67,37 @@ wasmcli config chain-id cosmoshub-2
 生成一个新的*secp256k1*密钥：
 
 ```bash
-wasmcli keys add <account_name>
+fetchcli keys add <account_name>
 ```
 
 接下来，你必须创建一个密码来保护磁盘上的密钥。上述命令的输出将包含种子短语。建议将种子短语保存在安全的地方，以便在忘记密码的情况下，最终可以使用以下命令从种子短语重新生成密钥：
 
 ```bash
-wasmcli keys add --recover
+fetchcli keys add --recover
 ```
 
 如果你检查你的私钥，你会看到`<account_name>` :
 
 ```bash
-wasmcli keys show <account_name>
+fetchcli keys show <account_name>
 ```
 
 通过下面的命令查看验证人操作者的地址：
 
 ```bash
-wasmcli keys show <account_name> --bech=val
+fetchcli keys show <account_name> --bech=val
 ```
 
 你可以查看你所有的可以使用的密钥：
 
 ```bash
-wasmcli keys list
+fetchcli keys list
 ```
 
 查看你节点的验证人公钥：
 
 ```bash
-wasmd tendermint show-validator
+fetchd tendermint show-validator
 ```
 
 请注意，这是Tendermint的签名密钥，而不是你在委托交易中使用的操作员密钥。
@@ -110,7 +110,7 @@ wasmd tendermint show-validator
 你可以生成一个多签公钥并将其打印：
 
 ```bash
-wasmcli keys add --multisig=name1,name2,name3[...] --multisig-threshold=K new_key_name
+fetchcli keys add --multisig=name1,name2,name3[...] --multisig-threshold=K new_key_name
 ```
 
 `K`是将要对多签公钥发起的交易进行签名的最小私钥数。
@@ -118,21 +118,21 @@ wasmcli keys add --multisig=name1,name2,name3[...] --multisig-threshold=K new_ke
 `--multisig`标识必须包含要将组合成一个公钥的那些子公钥的名称，该公钥将在本地数据库中生成并存储为`new_key_name`。通过`--multisig`提供的所有名称必须已存在于本地数据库中。除非设置了`--nosort`标识，否则在命令行上提供密钥的顺序无关紧要，即以下命令生成两个相同的密钥：
 
 ```bash
-wasmcli keys add --multisig=foo,bar,baz --multisig-threshold=2 multisig_address
-wasmcli keys add --multisig=baz,foo,bar --multisig-threshold=2 multisig_address
+fetchcli keys add --multisig=foo,bar,baz --multisig-threshold=2 multisig_address
+fetchcli keys add --multisig=baz,foo,bar --multisig-threshold=2 multisig_address
 ```
 
 多签地址也可以在运行中生成并通过以下命令打印：
 
 ```bash
-wasmcli keys show --multisig-threshold K name1 name2 name3 [...]
+fetchcli keys show --multisig-threshold K name1 name2 name3 [...]
 ```
 
 有关如何生成多签帐户，使用其签名和广播多签交易的详细信息，请参阅[多签交易](#多签交易)
 
 ### Tx 广播
 
-在广播交易时，`wasmcli`接受`--broadcast-mode`标识。 这个标识的值可以是`sync`（默认值）、`async`或`block`，其中`sync`使客户端返回 CheckTx 响应，`async`使客户端立即返回，而`block`使得 客户端等待 tx 被提交（或超时）。
+在广播交易时，`fetchcli`接受`--broadcast-mode`标识。 这个标识的值可以是`sync`（默认值）、`async`或`block`，其中`sync`使客户端返回 CheckTx 响应，`async`使客户端立即返回，而`block`使得 客户端等待 tx 被提交（或超时）。
 
 值得注意的是，在大多数情况下**不**应该使用`block`模式。 这是因为广播可以超时但是 tx 仍然可能存在在块中，这可能导致很多不良结果。 因此，最好使用`sync`或`async`并通过 tx hash 查询以确定 tx 何时包含在块中。
 
@@ -147,13 +147,13 @@ wasmcli keys show --multisig-threshold K name1 name2 name3 [...]
 比如：
 
 ```bash
-wasmcli tx send ... --fees=50000uatom
+fetchcli tx send ... --fees=50000uatom
 ```
 
 或：
 
 ```bash
-wasmcli tx send ... --gas-prices=0.025uatom
+fetchcli tx send ... --gas-prices=0.025uatom
 ```
 
 
@@ -168,7 +168,7 @@ wasmcli tx send ... --gas-prices=0.025uatom
 在你的地址收到token后，你可以通过以下命令查看账户的余额：
 
 ```bash
-wasmcli query account <account_cosmos>
+fetchcli query account <account_cosmos>
 ```
 
 ::: warning Note
@@ -180,7 +180,7 @@ wasmcli query account <account_cosmos>
 你可以通过如下命令从一个账户发送资金到另一个账户：
 
 ```bash
-wasmcli tx send <destination_cosmos> 10faucetToken \
+fetchcli tx send <destination_cosmos> 10faucetToken \
   --chain-id=<chain_id> \
   --from=<key_name> 
 ```
@@ -196,20 +196,20 @@ wasmcli tx send <destination_cosmos> 10faucetToken \
 现在，查看源账户和目标账户的更新后的余额：
 
 ```bash
-wasmcli query account <account_cosmos>
-wasmcli query account <destination_cosmos>
+fetchcli query account <account_cosmos>
+fetchcli query account <destination_cosmos>
 ```
 
 你还可以使用`--block`标识查询在特定高度区块下你的余额：
 
 ```bash
-wasmcli query account <account_cosmos> --block=<block_height>
+fetchcli query account <account_cosmos> --block=<block_height>
 ```
 
 你可以通过在命令行中附加`--dry-run`标识来模拟交易而不实际广播它：
 
 ```bash
-wasmcli tx send <destination_cosmosaccaddr> 10faucetToken \
+fetchcli tx send <destination_cosmosaccaddr> 10faucetToken \
   --chain-id=<chain_id> \
   --from=<key_name> \
   --dry-run
@@ -218,14 +218,14 @@ wasmcli tx send <destination_cosmosaccaddr> 10faucetToken \
 此外，你可以通过将`--generate-only`附加到命令行参数列表来构建交易并将其JSON格式打印到STDOUT：
 
 ```bash
-wasmcli tx send <destination_cosmosaccaddr> 10faucetToken \
+fetchcli tx send <destination_cosmosaccaddr> 10faucetToken \
   --chain-id=<chain_id> \
   --from=<key_name> \
   --generate-only > unsignedSendTx.json
 ```
 
 ```bash
-wasmcli tx sign \
+fetchcli tx sign \
   --chain-id=<chain_id> \
   --from=<key_name>
   unsignedSendTx.json > signedSendTx.json
@@ -238,13 +238,13 @@ wasmcli tx sign \
 你可以通过下面的命令验证交易的签名：
 
 ```bash
-wasmcli tx sign --validate-signatures signedSendTx.json
+fetchcli tx sign --validate-signatures signedSendTx.json
 ```
 
 你可以将由JSON文件提供的已签名的交易广播至指定节点：
 
 ```bash
-wasmcli tx broadcast --node=<node> signedSendTx.json
+fetchcli tx broadcast --node=<node> signedSendTx.json
 ```
 
 ### 查询交易
@@ -258,19 +258,19 @@ wasmcli tx broadcast --node=<node> signedSendTx.json
 使用`标签`查询交易的命令如下：
 
 ```bash
-wasmcli query txs --tags='<tag>:<value>'
+fetchcli query txs --tags='<tag>:<value>'
 ```
 
 使用多个`标签`:
 
 ```bash
-wasmcli query txs --tags='<tag1>:<value1>&<tag2>:<value2>'
+fetchcli query txs --tags='<tag1>:<value1>&<tag2>:<value2>'
 ```
 
 通过`page`和`limit`来实现分页:
 
 ```bash
-wasmcli query txs --tags='<tag>:<value>' --page=1 --limit=20
+fetchcli query txs --tags='<tag>:<value>' --page=1 --limit=20
 ```
 
 ::: tip 注意
@@ -291,7 +291,7 @@ action标签始终等于相关message的`Type()`函数返回的消息类型。
 你一可以通过指定hash值查询该笔交易：
 
 ```bash
-wasmcli query tx [hash]
+fetchcli query tx [hash]
 ```
 
 ### Slashing
@@ -301,7 +301,7 @@ wasmcli query tx [hash]
 将你入狱的验证人释放出狱：
 
 ```bash
-wasmcli tx slashing unjail --from <validator-operator-addr>
+fetchcli tx slashing unjail --from <validator-operator-addr>
 ```
 
 #### Signing Info
@@ -309,7 +309,7 @@ wasmcli tx slashing unjail --from <validator-operator-addr>
 检索一个验证人的签名信息：
 
 ```bash
-wasmcli query slashing signing-info <validator-pubkey>
+fetchcli query slashing signing-info <validator-pubkey>
 ```
 
 
@@ -318,7 +318,7 @@ wasmcli query slashing signing-info <validator-pubkey>
 你可以查询当前的slashing参数：
 
 ```bash
-wasmcli query slashing params
+fetchcli query slashing params
 ```
 
 ### Staking
@@ -336,13 +336,13 @@ wasmcli query slashing params
 你可以查询指定链的验证人：
 
 ```bash
-wasmcli query staking validators
+fetchcli query staking validators
 ```
 
 如果你想要获得单个验证人的信息，你可以使用下面的命令：
 
 ```bash
-wasmcli query staking validator <account_cosmosval>
+fetchcli query staking validator <account_cosmosval>
 ```
 
 #### 绑定 Token
@@ -350,7 +350,7 @@ wasmcli query staking validator <account_cosmosval>
 在Cosmos Hub主网中，我们绑定`uatom`，`1atom = 1000000uatom`。你可以把token绑定在一个测试网验证人节点上（即委托）：
 
 ```bash
-wasmcli tx staking delegate \
+fetchcli tx staking delegate \
   --amount=10000000uatom \
   --validator=<validator> \
   --from=<key_name> \
@@ -360,10 +360,10 @@ wasmcli tx staking delegate \
 `<validator>`是你要委托的验证人的操作者地址。如果你运行的是本地testnet，可以通过以下方式找到：
 
 ```bash
-wasmcli keys show [name] --bech val
+fetchcli keys show [name] --bech val
 ```
 
-其中`[name]`是初始化`wasmd`时指定的键的名称。
+其中`[name]`是初始化`fetchd`时指定的键的名称。
 
 虽然token是绑定的，但它们与网络中的所有其他绑定的token汇集在一起。验证人和委托人获得一定比例的股权，这些股权等于他们在这个资产池中的抵押。
 
@@ -372,13 +372,13 @@ wasmcli keys show [name] --bech val
 一旦提交了一笔对验证人的委托，你可以使用下面的命令查看委托详情：
 
 ```bash
-wasmcli query staking delegation <delegator_addr> <validator_addr>
+fetchcli query staking delegation <delegator_addr> <validator_addr>
 ```
 
 或者你想查看所有当前的委托：
 
 ```bash
-wasmcli query staking delegations <delegator_addr>
+fetchcli query staking delegations <delegator_addr>
 ```
 
 你还可以通过添加`--height`标识来获取先前的委托状态。
@@ -387,7 +387,7 @@ wasmcli query staking delegations <delegator_addr>
 如果出于一些原因验证人行为异常，或者你想解绑一定数量的token，请使用以下命令。
 
 ```bash
-wasmcli tx staking unbond \
+fetchcli tx staking unbond \
   <validator_addr> \
   10atom \
   --from=<key_name> \
@@ -401,19 +401,19 @@ wasmcli tx staking unbond \
 一旦你开始了一笔unbonding-delegation，你可以使用以下命令查看信息：
 
 ```bash
-wasmcli query staking unbonding-delegation <delegator_addr> <validator_addr>
+fetchcli query staking unbonding-delegation <delegator_addr> <validator_addr>
 ```
 
 或者你可以查看当前你所有的unbonding-delegation:
 
 ```bash
-wasmcli query staking unbonding-delegations <account_cosmos>
+fetchcli query staking unbonding-delegations <account_cosmos>
 ```
 
 此外，你可以从特定验证人获取所有unbonding-delegation：
 
 ```bash
-wasmcli query staking unbonding-delegations-from <account_cosmosval>
+fetchcli query staking unbonding-delegations-from <account_cosmosval>
 ```
 
 要获取指定区块时的unbonding-delegation状态，请尝试添加`--height`标识。
@@ -423,7 +423,7 @@ wasmcli query staking unbonding-delegations-from <account_cosmosval>
 重新授权是一种委托类型，允许你将非流动token从一个验证人上绑定到另一个验证人：
 
 ```bash
-wasmcli tx staking redelegate \
+fetchcli tx staking redelegate \
   <src-validator-operator-addr> \
   <dst-validator-operator-addr> \
   10atom \
@@ -440,19 +440,19 @@ wasmcli tx staking redelegate \
 开始重新授权后，你可以使用以下命令查看其信息：
 
 ```bash
-wasmcli query staking redelegation <delegator_addr> <src_val_addr> <dst_val_addr>
+fetchcli query staking redelegation <delegator_addr> <src_val_addr> <dst_val_addr>
 ```
 
 或者，如果你可以检查所有当前的unbonding-delegation：
 
 ```bash
-wasmcli query staking redelegations <account_cosmos>
+fetchcli query staking redelegations <account_cosmos>
 ```
 
 此外，你可以查询某个特定验证人的所有转出的重新绑定：
 
 ```bash
-wasmcli query staking redelegations-from <account_cosmosval>
+fetchcli query staking redelegations-from <account_cosmosval>
 ```
 
 添加`--height`标识来查询之前某个特定区块的redelegation。
@@ -462,7 +462,7 @@ wasmcli query staking redelegations-from <account_cosmosval>
 参数定义了staking的高级参数。你可以使用以下方法获取：
 
 ```bash
-wasmcli query staking params
+fetchcli query staking params
 ```
 
 使用上面的命令，你将获得以下值：
@@ -477,7 +477,7 @@ wasmcli query staking params
 一个抵押池定义了当前状态的动态参数。你可以通过以下命令查询：
 
 ```bash
-wasmcli query staking pool
+fetchcli query staking pool
 ```
 
 使用`pool`命令，你将获得以下值：
@@ -491,7 +491,7 @@ wasmcli query staking pool
 你可以查询对某个验证人的所有绑定：
 
 ```bash
-wasmcli query delegations-to <account_cosmosval>
+fetchcli query delegations-to <account_cosmosval>
 ```
 
 ### 治理
@@ -514,7 +514,7 @@ wasmcli query delegations-to <account_cosmosval>
 提交一个文本类型的提案：
 
 ```bash
-wasmcli tx gov submit-proposal \
+fetchcli tx gov submit-proposal \
   --title=<title> \
   --description=<description> \
   --type="Text" \
@@ -528,7 +528,7 @@ wasmcli tx gov submit-proposal \
 要提交更改参数的提案，您必须提供提案文件，因为其内容对 CLI 输入不太友好：
 
 ```bash
-wasmcli tx gov submit-proposal param-change <path/to/proposal.json> \
+fetchcli tx gov submit-proposal param-change <path/to/proposal.json> \
   --from=<name> \
   --chain-id=<chain_id>
 ```
@@ -582,13 +582,13 @@ regardless.
 一旦创建，你就可以查询提案的信息：
 
 ```bash
-wasmcli query gov proposal <proposal_id>
+fetchcli query gov proposal <proposal_id>
 ```
 
 或者查询所有的有效提案：
 
 ```bash
-wasmcli query gov proposals
+fetchcli query gov proposals
 ```
 
 你还可以使用`voter`或`depositor`标识来过滤查询提案。
@@ -596,7 +596,7 @@ wasmcli query gov proposals
 要查询特定提案的提议人：
 
 ```bash
-wasmcli query gov proposer <proposal_id>
+fetchcli query gov proposer <proposal_id>
 ```
 
 #### 增加存入金
@@ -604,7 +604,7 @@ wasmcli query gov proposer <proposal_id>
 为了将提案广播到网络，存入的金额必须高于`minDeposit`值（初始值：`10steak`）。如果你之前创建的提案不符合此要求，你仍可以增加存入的总金额以激活它。达到最低存入金后，提案进入投票期：
 
 ```bash
-wasmcli tx gov deposit <proposal_id> "10000000uatom" \
+fetchcli tx gov deposit <proposal_id> "10000000uatom" \
   --from=<name> \
   --chain-id=<chain_id>
 ```
@@ -616,13 +616,13 @@ wasmcli tx gov deposit <proposal_id> "10000000uatom" \
 创建新提案后，你可以查询提交其所有存款：
 
 ```bash
-wasmcli query gov deposits <proposal_id>
+fetchcli query gov deposits <proposal_id>
 ```
 
 你还可以查询特定地址提交的存入金：
 
 ```bash
-wasmcli query gov deposit <proposal_id> <depositor_address>
+fetchcli query gov deposit <proposal_id> <depositor_address>
 ```
 
 #### 投票给一个提案
@@ -630,7 +630,7 @@ wasmcli query gov deposit <proposal_id> <depositor_address>
 在提案的存入金达到`MinDeposit`后，投票期将开放。抵押了`Atom`的持有人可以投票：
 
 ```bash
-wasmcli tx gov vote <proposal_id> <Yes/No/NoWithVeto/Abstain> \
+fetchcli tx gov vote <proposal_id> <Yes/No/NoWithVeto/Abstain> \
   --from=<name> \
   --chain-id=<chain_id>
 ```
@@ -640,13 +640,13 @@ wasmcli tx gov vote <proposal_id> <Yes/No/NoWithVeto/Abstain> \
 使用您刚才提交的参数检查投票：
 
 ```bash
-wasmcli query gov vote <proposal_id> <voter_address>
+fetchcli query gov vote <proposal_id> <voter_address>
 ```
 
 你还可以查询提交给所有此前投给指定提案的投票：
 
 ```bash
-wasmcli query gov votes <proposal_id>
+fetchcli query gov votes <proposal_id>
 ```
 
 #### 查询提案的计票结果
@@ -654,7 +654,7 @@ wasmcli query gov votes <proposal_id>
 要检查指定提案的当前计票，你可以使用`tally`命令：
 
 ```bash
-wasmcli query gov tally <proposal_id>
+fetchcli query gov tally <proposal_id>
 ```
 
 #### 查询治理参数
@@ -662,15 +662,15 @@ wasmcli query gov tally <proposal_id>
 要检查当前的治理参数，请运行：
 
 ```bash
-wasmcli query gov params
+fetchcli query gov params
 ```
 
 查询运行的治理参数的子集：
 
 ```bash
-wasmcli query gov param voting
-wasmcli query gov param tallying
-wasmcli query gov param deposit
+fetchcli query gov param voting
+fetchcli query gov param tallying
+fetchcli query gov param deposit
 ```
 
 ### 费用分配
@@ -680,7 +680,7 @@ wasmcli query gov param deposit
 查询当前的分配参数：
 
 ```bash
-wasmcli query distribution params
+fetchcli query distribution params
 ```
 
 #### 查询
@@ -688,7 +688,7 @@ wasmcli query distribution params
 查询当前未结算的（未提取）的奖励：
 
 ```bash
-wasmcli query distribution outstanding-rewards
+fetchcli query distribution outstanding-rewards
 ```
 
 #### 查询验证人佣金
@@ -696,7 +696,7 @@ wasmcli query distribution outstanding-rewards
 查询对一个验证人的未结算的佣金：
 
 ```bash
-wasmcli query distribution commission <validator_address>
+fetchcli query distribution commission <validator_address>
 ```
 
 #### 查询验证人的削减处罚
@@ -704,7 +704,7 @@ wasmcli query distribution commission <validator_address>
 查询一个验证人的处罚历史记录：
 
 ```bash
-wasmcli query distribution slashes <validator_address> <start_height> <end_height>
+fetchcli query distribution slashes <validator_address> <start_height> <end_height>
 ```
 
 #### 查询委托人奖励
@@ -712,7 +712,7 @@ wasmcli query distribution slashes <validator_address> <start_height> <end_heigh
 查询某笔委托当前的奖励（如果要取回）：
 
 ```bash
-wasmcli query distribution rewards <delegator_address> <validator_address>
+fetchcli query distribution rewards <delegator_address> <validator_address>
 ```
 
 #### 查询所有的委托人奖励
@@ -720,7 +720,7 @@ wasmcli query distribution rewards <delegator_address> <validator_address>
 要查询委托人的所有当前奖励（如果要取回），请运行：
 
 ```bash
-wasmcli query distribution rewards <delegator_address>
+fetchcli query distribution rewards <delegator_address>
 ```
 
 ### 多签交易
@@ -730,15 +730,15 @@ wasmcli query distribution rewards <delegator_address>
 例如，给定包含密钥`p1`，`p2`和`p3`的多签密钥，每个密钥由不同方持有，持有`p1`的用户将需要导入`p2`和`p3`的公钥以生成多签帐户公钥：
 
 ```bash
-wasmcli keys add \
+fetchcli keys add \
   p2 \
   --pubkey=cosmospub1addwnpepqtd28uwa0yxtwal5223qqr5aqf5y57tc7kk7z8qd4zplrdlk5ez5kdnlrj4
 
-wasmcli keys add \
+fetchcli keys add \
   p3 \
   --pubkey=cosmospub1addwnpepqgj04jpm9wrdml5qnss9kjxkmxzywuklnkj0g3a3f8l5wx9z4ennz84ym5t
 
-wasmcli keys add \
+fetchcli keys add \
   p1p2p3 \
   --multisig-threshold=2 \
   --multisig=p1,p2,p3
@@ -747,21 +747,21 @@ wasmcli keys add \
 已存储新的多签公钥`p1p2p3`，其地址将用作多签交易的签名者：
 
 ```bash
-wasmcli keys show --address p1p2p3
+fetchcli keys show --address p1p2p3
 ```
 
 您还可以通过查看 key 的 JSON 输出或增加`--show-multisig`标识来查看multisig阈值，pubkey构成和相应的权重：
 
 ```bash
-wasmcli keys show p1p2p3 -o json
+fetchcli keys show p1p2p3 -o json
 
-wasmcli keys show p1p2p3 --show-multisig
+fetchcli keys show p1p2p3 --show-multisig
 ```
 
 创建多签交易的第一步是使用上面创建的多签地址初始化：
 
 ```bash
-wasmcli tx send cosmos1570v2fq3twt0f0x02vhxpuzc9jc4yl30q2qned 10000000uatom \
+fetchcli tx send cosmos1570v2fq3twt0f0x02vhxpuzc9jc4yl30q2qned 10000000uatom \
   --from=<multisig_address> \
   --generate-only > unsignedTx.json
 ```
@@ -769,7 +769,7 @@ wasmcli tx send cosmos1570v2fq3twt0f0x02vhxpuzc9jc4yl30q2qned 10000000uatom \
 `unsignedTx.json`文件包含以JSON编码的未签署交易。`p1`现在可以使用自己的私钥对交易进行签名：
 
 ```bash
-wasmcli tx sign \
+fetchcli tx sign \
   unsignedTx.json \
   --multisig=<multisig_address> \
   --from=p1 \
@@ -779,7 +779,7 @@ wasmcli tx sign \
 生成签名后，`p1`将`unsignedTx.json`和`p1signature.json`都发送到`p2`或`p3`，然后`p2`或`p3`将生成它们各自的签名:
 
 ```bash
-wasmcli tx sign \
+fetchcli tx sign \
   unsignedTx.json \
   --multisig=<multisig_address> \
   --from=p2 \
@@ -791,7 +791,7 @@ wasmcli tx sign \
 p1p2p3` 是 2-of-3 多签key，因此一个的签名就足够了。 现在，任何密钥持有者都可以通过组合所需的签名文件来生成多签交易：
 
 ```bash
-wasmcli tx multisign \
+fetchcli tx multisign \
   unsignedTx.json \
   p1p2p3 \
   p1signature.json p2signature.json > signedTx.json
@@ -800,33 +800,33 @@ wasmcli tx multisign \
 现在可以把交易发送给节点：
 
 ```bash
-wasmcli tx broadcast signedTx.json
+fetchcli tx broadcast signedTx.json
 ```
 
 ## shell 自动补全脚本
 
-可以通过完全命令生成主流的UNIX shell解释器（如`Bash`和`Zsh`）的`completion`命令，该命令可用于`wasmd`和`wasmcli`。
+可以通过完全命令生成主流的UNIX shell解释器（如`Bash`和`Zsh`）的`completion`命令，该命令可用于`fetchd`和`fetchcli`。
 
 如果要生成Bash完成脚本，请运行以下命令：
 
 ```bash
-wasmd completion > wasmd_completion
-wasmcli completion > wasmcli_completion
+fetchd completion > fetchd_completion
+fetchcli completion > fetchcli_completion
 ```
 
 如果要生成Zsh完成脚本，请运行以下命令：
 
 ```bash
-wasmd completion --zsh > wasmd_completion
-wasmcli completion --zsh > wasmcli_completion
+fetchd completion --zsh > fetchd_completion
+fetchcli completion --zsh > fetchcli_completion
 ```
 
 ::: tip Note
 在大多数UNIX系统上，可以在`.bashrc`或`.bash_profile`中加载此类脚本以启用Bash自动完成：
 
 ```bash
-echo '. wasmd_completion' >> ~/.bashrc
-echo '. wasmcli_completion' >> ~/.bashrc
+echo '. fetchd_completion' >> ~/.bashrc
+echo '. fetchcli_completion' >> ~/.bashrc
 ```
 
 有关如何启用shell自动完成的信息，请参阅操作系统提供的解释器用户手册。

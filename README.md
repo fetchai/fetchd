@@ -1,6 +1,6 @@
-# Fetch.ai Wasmd Fork
+# Fetch.ai fetchd Fork
 
-This repository is the fork from the original [wasmd](https://github.com/CosmWasm/wasmd). It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
+This repository is the fork from the original [fetchd](https://github.com/fetchai/fetchd). It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
 
 This code was originally from the `cosmos/gaia` repository and the majority of the codebase is the same as `gaia`.
 
@@ -40,7 +40,7 @@ given feedback to improve stability.
 
 ## Encoding
 
-We use standard cosmos-sdk encoding (amino) for all sdk Messages. However, the message body sent to all contracts, as well as the internal state is encoded using JSON. Cosmwasm allows arbitrary bytes with the contract itself responsible for decodng. For better UX, we often use `json.RawMessage` to contain these bytes, which enforces that it is valid json, but also give a much more readable interface.  If you want to use another encoding in the contracts, that is a relatively minor change to wasmd but would currently require a fork. Please open in issue if this is important for your use case.
+We use standard cosmos-sdk encoding (amino) for all sdk Messages. However, the message body sent to all contracts, as well as the internal state is encoded using JSON. Cosmwasm allows arbitrary bytes with the contract itself responsible for decodng. For better UX, we often use `json.RawMessage` to contain these bytes, which enforces that it is valid json, but also give a much more readable interface.  If you want to use another encoding in the contracts, that is a relatively minor change to fetchd but would currently require a fork. Please open in issue if this is important for your use case.
 
 ## Quick Start
 
@@ -48,7 +48,7 @@ We use standard cosmos-sdk encoding (amino) for all sdk Messages. However, the m
 make install
 make test
 ```
-if you are using a linux without X or headless linux, look at [this article](https://ahelpme.com/linux/dbusexception-could-not-get-owner-of-name-org-freedesktop-secrets-no-such-name) or [#31](https://github.com/cosmwasm/wasmd/issues/31#issuecomment-577058321).
+if you are using a linux without X or headless linux, look at [this article](https://ahelpme.com/linux/dbusexception-could-not-get-owner-of-name-org-freedesktop-secrets-no-such-name) or [#31](https://github.com/fetchai/fetchd/issues/31#issuecomment-577058321).
 
 To set up a single node testnet, [look at the deployment documentation](./docs/deploy-testnet.md).
 
@@ -58,7 +58,7 @@ If you want to deploy a whole cluster, [look at the network scripts](./networks/
 
 We provide a docker image to help with test setups. There are two modes to use it
 
-Build: `docker build -t cosmwasm/wasmd:latest .`  or pull from dockerhub
+Build: `docker build -t fetchai/fetchd:latest .`  or pull from dockerhub
 
 ### Dev server
 
@@ -68,24 +68,24 @@ This is just designed for local testing/CI - do not use these scripts in product
 Very likely you will assign tokens to accounts whose mnemonics are public on github.
 
 ```sh
-docker volume rm -f wasmd_data
+docker volume rm -f fetchd_data
 
 # pass password (one time) as env variable for setup, so we don't need to keep typing it
 # add some addresses that you have private keys for (locally) to give them genesis funds
 docker run --rm -it \
     -e PASSWORD=xxxxxxxxx \
-    --mount type=volume,source=wasmd_data,target=/root \
-    cosmwasm/wasmd:latest ./setup.sh cosmos1pkptre7fdkl6gfrzlesjjvhxhlc3r4gmmk8rs6
+    --mount type=volume,source=fetchd_data,target=/root \
+    fetchai/fetchd:latest ./setup.sh cosmos1pkptre7fdkl6gfrzlesjjvhxhlc3r4gmmk8rs6
 
-# This will start both wasmd and wasmcli rest-server, only wasmcli output is shown on the screen
+# This will start both fetchd and fetchcli rest-server, only fetchcli output is shown on the screen
 docker run --rm -it -p 26657:26657 -p 26656:26656 -p 1317:1317 \
-    --mount type=volume,source=wasmd_data,target=/root \
-    cosmwasm/wasmd:latest ./run_all.sh
+    --mount type=volume,source=fetchd_data,target=/root \
+    fetchai/fetchd:latest ./run_all.sh
 
-# view wasmd logs in another shell
+# view fetchd logs in another shell
 docker run --rm -it \
-    --mount type=volume,source=wasmd_data,target=/root,readonly \
-    cosmwasm/wasmd:latest ./logs.sh
+    --mount type=volume,source=fetchd_data,target=/root,readonly \
+    fetchai/fetchd:latest ./logs.sh
 ```
 
 ### CI
@@ -98,28 +98,28 @@ rm -rf ./template && mkdir ./template
 docker run --rm -it \
     -e PASSWORD=xxxxxxxxx \
     --mount type=bind,source=$(pwd)/template,target=/root \
-    cosmwasm/wasmd:latest ./setup.sh cosmos1pkptre7fdkl6gfrzlesjjvhxhlc3r4gmmk8rs6
+    fetchai/fetchd:latest ./setup.sh cosmos1pkptre7fdkl6gfrzlesjjvhxhlc3r4gmmk8rs6
 
 sudo chown -R $(id -u):$(id -g) ./template
 
 # FIRST TIME
 # bind to non-/root and pass an argument to run.sh to copy the template into /root
-# we need wasmd_data volume mount not just for restart, but also to view logs
-docker volume rm -f wasmd_data
+# we need fetchd_data volume mount not just for restart, but also to view logs
+docker volume rm -f fetchd_data
 docker run --rm -it -p 26657:26657 -p 26656:26656 -p 1317:1317 \
     --mount type=bind,source=$(pwd)/template,target=/template \
-    --mount type=volume,source=wasmd_data,target=/root \
-    cosmwasm/wasmd:latest ./run_all.sh /template
+    --mount type=volume,source=fetchd_data,target=/root \
+    fetchai/fetchd:latest ./run_all.sh /template
 
 # RESTART CHAIN with existing state
 docker run --rm -it -p 26657:26657 -p 26656:26656 -p 1317:1317 \
-    --mount type=volume,source=wasmd_data,target=/root \
-    cosmwasm/wasmd:latest ./run_all.sh
+    --mount type=volume,source=fetchd_data,target=/root \
+    fetchai/fetchd:latest ./run_all.sh
 
-# view wasmd logs in another shell
+# view fetchd logs in another shell
 docker run --rm -it \
-    --mount type=volume,source=wasmd_data,target=/root,readonly \
-    cosmwasm/wasmd:latest ./logs.sh
+    --mount type=volume,source=fetchd_data,target=/root,readonly \
+    fetchai/fetchd:latest ./logs.sh
 ```
 
 

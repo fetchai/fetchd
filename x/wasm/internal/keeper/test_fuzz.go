@@ -1,7 +1,7 @@
 package keeper
 
 import (
-	"github.com/CosmWasm/wasmd/x/wasm/internal/types"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	fuzz "github.com/google/gofuzz"
 	tmBytes "github.com/tendermint/tendermint/libs/bytes"

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-tail -f /root/log/wasmd.log
+tail -f /root/log/fetchd.log

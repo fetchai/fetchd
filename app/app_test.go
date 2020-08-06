@@ -14,7 +14,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func TestWasmdExport(t *testing.T) {
+func TestFetchdExport(t *testing.T) {
 	db := db.NewMemDB()
 	gapp := NewWasmApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, 0, map[int64]bool{})
 	err := setGenesis(gapp)

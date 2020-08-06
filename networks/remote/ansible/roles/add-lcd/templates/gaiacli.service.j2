@@ -1,14 +1,14 @@
 [Unit]
-Description=wasmcli
+Description=fetchcli
 Requires=network-online.target
 After=network-online.target
 
 [Service]
 Restart=on-failure
-User=wasmd
-Group=wasmd
+User=fetchd
+Group=fetchd
 PermissionsStartOnly=true
-ExecStart=/usr/bin/wasmcli rest-server --laddr {{GAIACLI_ADDRESS}}
+ExecStart=/usr/bin/fetchcli rest-server --laddr {{GAIACLI_ADDRESS}}
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGTERM
 

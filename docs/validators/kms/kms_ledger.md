@@ -40,8 +40,8 @@ secret_key = "~/.tmkms/secret_connection.key"
 chain_ids = ["gaia-11001"]
 ```
 
-- Edit `addr` to point to your `wasmd` instance.
-- Adjust `chain-id` to match your `.wasmd/config/config.toml` settings.
+- Edit `addr` to point to your `fetchd` instance.
+- Adjust `chain-id` to match your `.fetchd/config/config.toml` settings.
 - `provider.ledgertm` has not additional parameters at the moment, however, it is important that you keep that header to enable the feature.
 
 *Plug your Ledger device and open the Tendermint validator app.*
@@ -56,7 +56,7 @@ tmkms keygen ~/.tmkms/secret_connection.key
 
 ### Retrieve validator key
 
-The last step is to retrieve the validator key that you will use in `wasmd`.
+The last step is to retrieve the validator key that you will use in `fetchd`.
 
 Start the KMS:
 
@@ -72,7 +72,7 @@ The output should look similar to:
 07:28:24 [INFO] KMS node ID: 1BC12314E2E1C29015B66017A397F170C6ECDE4A
 ```
 
-The KMS may complain that it cannot connect to wasmd. That is fine, we will fix it in the next section.
+The KMS may complain that it cannot connect to fetchd. That is fine, we will fix it in the next section.
 
 This output indicates the validator key linked to this particular device is: `cosmosvalconspub1zcjduepqy53m39prgp9dz3nz96kaav3el5e0th8ltwcf8cpavqdvpxgr5slsd6wz6f`
 
@@ -80,7 +80,7 @@ Take note of the validator pubkey that appears in your screen. *We will use it i
 
 ## Gaia configuration
 
-You need to enable KMS access by editing `.wasmd/config/config.toml`. In this file, modify `priv_validator_laddr` to create a listening address/port or a unix socket in `wasmd`.
+You need to enable KMS access by editing `.fetchd/config/config.toml`. In this file, modify `priv_validator_laddr` to create a listening address/port or a unix socket in `fetchd`.
 
 For example:
 
@@ -92,13 +92,13 @@ priv_validator_laddr = "tcp://127.0.0.1:26658"
 ...
 ```
 
-Let's assume that you have set up your validator account and called it `kmsval`. You can tell wasmd the key that we've got in the previous section.
+Let's assume that you have set up your validator account and called it `kmsval`. You can tell fetchd the key that we've got in the previous section.
 
 ```bash
-wasmd gentx --name kmsval --pubkey {.ValidatorKey} 
+fetchd gentx --name kmsval --pubkey {.ValidatorKey} 
 ```
 
-Now start `wasmd`. You should see that the KMS connects and receives a signature request.
+Now start `fetchd`. You should see that the KMS connects and receives a signature request.
 
 Once the ledger receives the first message, it will ask for confirmation that the values are adequate.
 

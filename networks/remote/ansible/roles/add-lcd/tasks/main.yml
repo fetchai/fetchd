@@ -3,13 +3,13 @@
 - name: Copy binary
   copy:
     src: "{{GAIACLI_BINARY}}"
-    dest: /usr/bin/wasmcli
+    dest: /usr/bin/fetchcli
     mode: 0755
-  notify: restart wasmcli
+  notify: restart fetchcli
 
 - name: Copy service
   template:
-    src: wasmcli.service.j2
-    dest: /etc/systemd/system/wasmcli.service
+    src: fetchcli.service.j2
+    dest: /etc/systemd/system/fetchcli.service
   notify: systemctl
 

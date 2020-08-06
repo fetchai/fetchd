@@ -1,7 +1,7 @@
-# Makefile for the "wasmdnode" docker image.
+# Makefile for the "fetchdnode" docker image.
 
 all:
-	docker build --tag tendermint/wasmdnode wasmdnode
+	docker build --tag tendermint/fetchdnode fetchdnode
 
 .PHONY: all
 

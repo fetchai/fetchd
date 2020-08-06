@@ -1,6 +1,6 @@
 # 部署你自己的测试网
 
-这篇文章介绍了三种创建`wasmd`节点的测试网的方式，每种针对不同的使用场景：
+这篇文章介绍了三种创建`fetchd`节点的测试网的方式，每种针对不同的使用场景：
 
 1. 单节点，本地的，手动的测试网
 2. 多节点，本地的，自动的测试网
@@ -14,10 +14,10 @@
 
 如果你需要使用或部署gaia作为容器，你可以跳过`build`步骤并使用官方镜像，$TAG标识你感兴趣的版本：
 
-+ `docker run -it -v ~/.wasmd:/root/.wasmd -v ~/.wasmcli:/root/.wasmcli tendermint:$TAG wasmd init`
-+ `docker run -it -p 26657:26657 -p 26656:26656 -v ~/.wasmd:/root/.wasmd -v ~/.wasmcli:/root/.wasmcli tendermint:$TAG wasmd start`
++ `docker run -it -v ~/.fetchd:/root/.fetchd -v ~/.fetchcli:/root/.fetchcli tendermint:$TAG fetchd init`
++ `docker run -it -p 26657:26657 -p 26656:26656 -v ~/.fetchd:/root/.fetchd -v ~/.fetchcli:/root/.fetchcli tendermint:$TAG fetchd start`
 + ...
-+ `docker run -it -v ~/.wasmd:/root/.wasmd -v ~/.wasmcli:/root/.wasmcli tendermint:$TAG wasmcli version`
++ `docker run -it -v ~/.fetchd:/root/.fetchd -v ~/.fetchcli:/root/.fetchcli tendermint:$TAG fetchcli version`
 
 相同的镜像也可以用于构建你自己的docker-compose栈
 
@@ -36,27 +36,27 @@
 cd $HOME
 
 # Initialize the genesis.json file that will help you to bootstrap the network
-wasmd init --chain-id=testing testing
+fetchd init --chain-id=testing testing
 
 # Create a key to hold your validator account
-wasmcli keys add validator
+fetchcli keys add validator
 
 # Add that key into the genesis.app_state.accounts array in the genesis file
 # NOTE: this command lets you set the number of coins. Make sure this account has some coins
 # with the genesis.app_state.staking.params.bond_denom denom, the default is staking
-wasmd add-genesis-account $(wasmcli keys show validator -a) 1000000000stake,1000000000validatortoken
+fetchd add-genesis-account $(fetchcli keys show validator -a) 1000000000stake,1000000000validatortoken
 
 # Generate the transaction that creates your validator
-wasmd gentx --name validator
+fetchd gentx --name validator
 
 # Add the generated bonding transaction to the genesis file
-wasmd collect-gentxs
+fetchd collect-gentxs
 
-# Now its safe to start `wasmd`
-wasmd start
+# Now its safe to start `fetchd`
+fetchd start
 ```
 
-启动将会把`wasmd`相关的所有数据放在`~/.wasmd`目录。你可以检查所创建的genesis文件——`~/.wasmd/config/genesis.json`。同时`wasmcli`也已经配置完成并且有了一个拥有token的账户(stake和自定义的代币)。
+启动将会把`fetchd`相关的所有数据放在`~/.fetchd`目录。你可以检查所创建的genesis文件——`~/.fetchd/config/genesis.json`。同时`fetchcli`也已经配置完成并且有了一个拥有token的账户(stake和自定义的代币)。
 
 ## 多节点，本地的，自动的测试网
 
@@ -70,7 +70,7 @@ wasmd start
 
 ### 编译
 
-编译`wasmd`二进制文件(linux)和运行`localnet`命令所需的`tendermint/gaianode` docker images。这个二进制文件将被安装到container中，并且可以更新重建image，因此您只需要构建一次image。
+编译`fetchd`二进制文件(linux)和运行`localnet`命令所需的`tendermint/gaianode` docker images。这个二进制文件将被安装到container中，并且可以更新重建image，因此您只需要构建一次image。
 
 ```
 # Work from the SDK repo
@@ -79,8 +79,8 @@ cd $GOPATH/src/github.com/cosmos/cosmos-sdk
 # Build the linux binary in ./build
 make build-linux
 
-# Build tendermint/wasmdnode image
-make build-docker-wasmdnode
+# Build tendermint/fetchdnode image
+make build-docker-fetchdnode
 ```
 
 ### 运行你的测试网
@@ -91,7 +91,7 @@ make build-docker-wasmdnode
 make localnet-start
 ```
 
-此命令使用wasmdnode image创建了一个4节点网络。每个节点的端口可以在下表中找到：
+此命令使用fetchdnode image创建了一个4节点网络。每个节点的端口可以在下表中找到：
 
 | `Node ID` | `P2P Port` | `RPC Port` |
 | ----- | ----- | ---- |
@@ -108,72 +108,72 @@ make build-linux localnet-start
 
 ### 配置
 
-`make localnet-start`命令通过调用`wasmd testnet`命令在`./build`中创建了一个4节点测试网络的文件。输出`./build`目录下一些文件:
+`make localnet-start`命令通过调用`fetchd testnet`命令在`./build`中创建了一个4节点测试网络的文件。输出`./build`目录下一些文件:
 
 ```bash
 $ tree -L 2 build/
 build/
-├── wasmcli
-├── wasmd
+├── fetchcli
+├── fetchd
 ├── gentxs
 │   ├── node0.json
 │   ├── node1.json
 │   ├── node2.json
 │   └── node3.json
 ├── node0
-│   ├── wasmcli
+│   ├── fetchcli
 │   │   ├── key_seed.json
 │   │   └── keys
-│   └── wasmd
-│       ├── ${LOG:-wasmd.log}
+│   └── fetchd
+│       ├── ${LOG:-fetchd.log}
 │       ├── config
 │       └── data
 ├── node1
-│   ├── wasmcli
+│   ├── fetchcli
 │   │   └── key_seed.json
-│   └── wasmd
-│       ├── ${LOG:-wasmd.log}
+│   └── fetchd
+│       ├── ${LOG:-fetchd.log}
 │       ├── config
 │       └── data
 ├── node2
-│   ├── wasmcli
+│   ├── fetchcli
 │   │   └── key_seed.json
-│   └── wasmd
-│       ├── ${LOG:-wasmd.log}
+│   └── fetchd
+│       ├── ${LOG:-fetchd.log}
 │       ├── config
 │       └── data
 └── node3
-    ├── wasmcli
+    ├── fetchcli
     │   └── key_seed.json
-    └── wasmd
-        ├── ${LOG:-wasmd.log}
+    └── fetchd
+        ├── ${LOG:-fetchd.log}
         ├── config
         └── data
 ```
 
-每个`./build/nodeN`目录被挂载到对应container的`/wasmd`目录。
+每个`./build/nodeN`目录被挂载到对应container的`/fetchd`目录。
 
 ### 日志输出
 
-日志被保存在每个`./build/nodeN/wasmd/gaia.log`文件中。你也可以直接通过Docker来查看日志：
+日志被保存在每个`./build/nodeN/fetchd/gaia.log`文件中。你也可以直接通过Docker来查看日志：
 
 ```bash
-docker logs -f wasmdnode0
+docker logs -f fetchdnode0
 ```
 
 
 ### 密钥&账户
 
-你需要使用指定节点的`wasmcli`目录作为你的`home`来同`wasmcli`交互，并执行查询或者创建交易:
+你需要使用指定节点的`fetchcli`目录作为你的`home`来同`fetchcli`交互，并执行查询或者创建交易:
 
 ```bash
-wasmcli keys list --home ./build/node0/wasmcli
+fetchcli keys list --home ./build/node0/fetchcli
 ```
 
 现在账户已经存在了，你可以创建新的账户并向其发送资金！
 
 ::: 提示
-注意：每个节点的密钥种子放在`./build/nodeN/wasmcli/key_seed.json`中，可以通过`wasmcli keys add --restore`命令来回复。
+注意：每个节点的密钥种子放在`./build/nodeN/fetchcli/key_seed.json`中，可以通过`fetchcli keys add --restore`命令来回复。
 :::
 
 ### 特殊的可执行程序

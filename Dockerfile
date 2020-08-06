@@ -1,5 +1,5 @@
-# docker build . -t cosmwasm/wasmd:latest
-# docker run --rm -it cosmwasm/wasmd:latest /bin/sh
+# docker build . -t fetchai/fetchd:latest
+# docker run --rm -it fetchai/fetchd:latest /bin/sh
 FROM cosmwasm/go-ext-builder:0.8.2-alpine AS builder
 
 RUN apk add git
@@ -32,8 +32,8 @@ RUN BUILD_TAGS=muslc make build
 
 FROM alpine:3.12
 
-COPY --from=builder /code/build/wasmd /usr/bin/wasmd
-COPY --from=builder /code/build/wasmcli /usr/bin/wasmcli
+COPY --from=builder /code/build/fetchd /usr/bin/fetchd
+COPY --from=builder /code/build/fetchcli /usr/bin/fetchcli
 
 COPY docker/* /opt/
 RUN chmod +x /opt/*.sh
@@ -47,4 +47,4 @@ EXPOSE 26656
 # tendermint rpc
 EXPOSE 26657
 
-CMD ["/usr/bin/wasmd version"]
+CMD ["/usr/bin/fetchd version"]

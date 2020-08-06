@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/app"
+	"github.com/fetchai/fetchd/app"
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
-// CreateTestApp will create a new wasmd application and provide money to every address
+// CreateTestApp will create a new fetchd application and provide money to every address
 // listed there
 func CreateTestApp(t *testing.T, accounts []*auth.BaseAccount) *app.WasmApp {
 	fmt.Printf("%#v\n", accounts[1])
@@ -27,8 +27,8 @@ func CreateTestApp(t *testing.T, accounts []*auth.BaseAccount) *app.WasmApp {
 	for i, acct := range accounts {
 		genAccounts[i] = acct
 	}
-	wasmd := SetupWithGenesisAccounts(genAccounts)
-	return wasmd
+	fetchd := SetupWithGenesisAccounts(genAccounts)
+	return fetchd
 }
 
 func TestSendWithApp(t *testing.T) {
