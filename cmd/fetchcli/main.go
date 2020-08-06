@@ -24,7 +24,7 @@ import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/CosmWasm/wasmd/app"
+	"github.com/fetchai/fetchd/app"
 )
 
 func main() {
@@ -46,8 +46,8 @@ func main() {
 	// with the cdc
 
 	rootCmd := &cobra.Command{
-		Use:   "wasmcli",
-		Short: "Command line interface for interacting with wasmd",
+		Use:   "fetchcli",
+		Short: "Command line interface for interacting with fetchd",
 	}
 
 	// Add --chain-id to persistent flags and mark it required

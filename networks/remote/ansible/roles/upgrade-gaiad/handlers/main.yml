@@ -1,5 +1,5 @@
 ---
 
-- name: restart wasmd
-  service: name=wasmd state=restarted
+- name: restart fetchd
+  service: name=fetchd state=restarted
 

@@ -18,7 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/tendermint/tendermint/crypto"
 
-	"github.com/CosmWasm/wasmd/x/wasm/internal/types"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 )
 
 // GasMultiplier is how many cosmwasm gas points = 1 sdk gas point

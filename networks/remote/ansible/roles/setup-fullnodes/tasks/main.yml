@@ -6,8 +6,8 @@
   run_once: true
   become: no
 
-- name: Create wasmd user
-  user: name=wasmd home=/home/wasmd shell=/bin/bash
+- name: Create fetchd user
+  user: name=fetchd home=/home/fetchd shell=/bin/bash
 
 - name: Copy binary
   copy:
@@ -16,7 +16,7 @@
     mode: 0755
 
 - name: Copy service file
-  copy: src=wasmd.service dest=/etc/systemd/system/wasmd.service mode=0755
+  copy: src=fetchd.service dest=/etc/systemd/system/fetchd.service mode=0755
   notify: reload systemd
 
 - name: Get node ID
@@ -24,13 +24,13 @@
   changed_when: false
   register: nodeid
 
-- name: wasmd init
-  command: "/usr/bin/wasmd init --chain-id={{TESTNET_NAME}} --name=fullnode{{nodeid.stdout_lines[0]}}"
+- name: fetchd init
+  command: "/usr/bin/fetchd init --chain-id={{TESTNET_NAME}} --name=fullnode{{nodeid.stdout_lines[0]}}"
   become: yes
-  become_user: wasmd
+  become_user: fetchd
   register: initresult
   args:
-    creates: /home/wasmd/.wasmd/config
+    creates: /home/fetchd/.fetchd/config
 
 - name: Get wallet word seed from result of initial transaction locally
   when: initresult["changed"]
@@ -48,14 +48,14 @@
 - name: Copy genesis file
   copy:
     src: "{{GENESISFILE}}"
-    dest: /home/wasmd/.wasmd/config/genesis.json
+    dest: /home/fetchd/.fetchd/config/genesis.json
   become: yes
-  become_user: wasmd
+  become_user: fetchd
 
 - name: Copy config.toml file
   copy:
     src: "{{CONFIGFILE}}"
-    dest: /home/wasmd/.wasmd/config/config.toml
+    dest: /home/fetchd/.fetchd/config/config.toml
   become: yes
-  become_user: wasmd
+  become_user: fetchd
 

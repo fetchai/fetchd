@@ -2,8 +2,8 @@
 #set -euo pipefail
 
 mkdir -p /root/log
-touch /root/log/wasmd.log
-./run_wasmd.sh $1 >> /root/log/wasmd.log &
+touch /root/log/fetchd.log
+./run_fetchd.sh $1 >> /root/log/fetchd.log &
 
 sleep 4
 echo Starting Rest Server...

@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/CosmWasm/wasmd/x/wasm/internal/types"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"

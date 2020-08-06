@@ -25,10 +25,10 @@ jobs:
         run: |
           SHORTVERSION=${SOURCE_TAG%.*}
           docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
-          docker build -t fetchai/wasmd:$SOURCE_TAG -f Dockerfile.hub .
-          docker push fetchai/wasmd:$SOURCE_TAG
-          docker tag fetchai/wasmd:$SOURCE_TAG fetchai/wasmd:$SHORTVERSION
-          docker push fetchai/wasmd:$SHORTVERSION
+          docker build -t fetchai/fetchd:$SOURCE_TAG -f Dockerfile.hub .
+          docker push fetchai/fetchd:$SOURCE_TAG
+          docker tag fetchai/fetchd:$SOURCE_TAG fetchai/fetchd:$SHORTVERSION
+          docker push fetchai/fetchd:$SHORTVERSION
         env:
           SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
 
@@ -42,9 +42,9 @@ jobs:
       - name: Build and push to GCR
         run: |
           SHORTVERSION=${SOURCE_TAG%.*}
-          docker build -t $REGISTRY/wasmd:$SOURCE_TAG -f Dockerfile.gcr . --build-arg VERSION=$SOURCE_TAG
-          docker push $REGISTRY/wasmd:$SOURCE_TAG
-          docker tag $REGISTRY/wasmd:$SOURCE_TAG $REGISTRY/wasmd:$SHORTVERSION
-          docker push $REGISTRY/wasmd:$SHORTVERSION
+          docker build -t $REGISTRY/fetchd:$SOURCE_TAG -f Dockerfile.gcr . --build-arg VERSION=$SOURCE_TAG
+          docker push $REGISTRY/fetchd:$SOURCE_TAG
+          docker tag $REGISTRY/fetchd:$SOURCE_TAG $REGISTRY/fetchd:$SHORTVERSION
+          docker push $REGISTRY/fetchd:$SHORTVERSION
         env:
           SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}

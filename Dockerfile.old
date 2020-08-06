@@ -1,7 +1,7 @@
 # Simple usage with a mounted data directory:
 # > docker build -t gaia .
-# > docker run -it -p 46657:46657 -p 46656:46656 -v ~/.wasmd:/root/.wasmd -v ~/.wasmcli:/root/.wasmcli gaia wasmd init
-# > docker run -it -p 46657:46657 -p 46656:46656 -v ~/.wasmd:/root/.wasmd -v ~/.wasmcli:/root/.wasmcli gaia wasmd start
+# > docker run -it -p 46657:46657 -p 46656:46656 -v ~/.fetchd:/root/.fetchd -v ~/.fetchcli:/root/.fetchcli gaia fetchd init
+# > docker run -it -p 46657:46657 -p 46656:46656 -v ~/.fetchd:/root/.fetchd -v ~/.fetchcli:/root/.fetchcli gaia fetchd start
 FROM golang:1.13-buster AS build-env
 
 # Install minimum necessary dependencies, build Cosmos SDK, remove packages
@@ -11,7 +11,7 @@ RUN apt install -y curl git build-essential
 RUN apt install -y vim
 
 # Set working directory for the build
-WORKDIR /go/src/github.com/cosmwasm/wasmd
+WORKDIR /go/src/github.com/fetchai/fetchd
 
 # Add source files
 COPY . .
@@ -20,7 +20,7 @@ RUN make tools
 RUN make install
 
 # Install libgo_cosmwasm.so to a shared directory where it is readable by all users
-# See https://github.com/CosmWasm/wasmd/issues/43#issuecomment-608366314
+# See https://github.com/fetchai/fetchd/issues/43#issuecomment-608366314
 # Note that CosmWasm gets turned into !cosm!wasm in the pkg/mod cache
 RUN cp /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@v*/api/libgo_cosmwasm.so /lib/x86_64-linux-gnu
 
@@ -36,4 +36,4 @@ EXPOSE 26656
 # tendermint rpc
 EXPOSE 26657
 
-CMD ["wasmd"]
+CMD ["fetchd"]

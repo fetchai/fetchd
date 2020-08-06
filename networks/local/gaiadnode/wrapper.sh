@@ -3,15 +3,15 @@
 ##
 ## Input parameters
 ##
-BINARY=/wasmd/${BINARY:-wasmd}
+BINARY=/fetchd/${BINARY:-fetchd}
 ID=${ID:-0}
-LOG=${LOG:-wasmd.log}
+LOG=${LOG:-fetchd.log}
 
 ##
 ## Assert linux binary
 ##
 if ! [ -f "${BINARY}" ]; then
-	echo "The binary $(basename "${BINARY}") cannot be found. Please add the binary to the shared folder. Please use the BINARY environment variable if the name of the binary is not 'wasmd' E.g.: -e BINARY=wasmd_my_test_version"
+	echo "The binary $(basename "${BINARY}") cannot be found. Please add the binary to the shared folder. Please use the BINARY environment variable if the name of the binary is not 'fetchd' E.g.: -e BINARY=fetchd_my_test_version"
 	exit 1
 fi
 BINARY_CHECK="$(file "$BINARY" | grep 'ELF 64-bit LSB executable, x86-64')"
@@ -23,7 +23,7 @@ fi
 ##
 ## Run binary with all parameters
 ##
-export GAIADHOME="/wasmd/node${ID}/wasmd"
+export GAIADHOME="/fetchd/node${ID}/fetchd"
 
 if [ -d "$(dirname "${GAIADHOME}"/"${LOG}")" ]; then
   "${BINARY}" --home "${GAIADHOME}" "$@" | tee "${GAIADHOME}/${LOG}"

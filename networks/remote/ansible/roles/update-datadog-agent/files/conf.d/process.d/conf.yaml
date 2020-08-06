@@ -5,11 +5,11 @@ instances:
   search_string: ['ssh', 'sshd']
   thresholds:
     critical: [1, 5]
-- name: wasmd
-  search_string: ['wasmd']
+- name: fetchd
+  search_string: ['fetchd']
   thresholds:
     critical: [1, 1]
-- name: wasmcli
-  search_string: ['wasmcli']
+- name: fetchcli
+  search_string: ['fetchcli']
   thresholds:
     critical: [1, 1]

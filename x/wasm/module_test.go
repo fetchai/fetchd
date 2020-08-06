@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/kv"
 
-	"github.com/CosmWasm/wasmd/x/wasm/internal/keeper"
+	"github.com/fetchai/fetchd/x/wasm/internal/keeper"
 )
 
 type testData struct {

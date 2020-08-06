@@ -36,17 +36,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
+	"github.com/fetchai/fetchd/x/wasm"
 )
 
 const appName = "WasmApp"
 
 var (
-	// DefaultCLIHome default home directories for wasmcli
-	DefaultCLIHome = os.ExpandEnv("$HOME/.wasmcli")
+	// DefaultCLIHome default home directories for fetchcli
+	DefaultCLIHome = os.ExpandEnv("$HOME/.fetchcli")
 
-	// DefaultNodeHome default home directories for wasmd
-	DefaultNodeHome = os.ExpandEnv("$HOME/.wasmd")
+	// DefaultNodeHome default home directories for fetchd
+	DefaultNodeHome = os.ExpandEnv("$HOME/.fetchd")
 
 	// ModuleBasics The module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
@@ -243,7 +243,7 @@ func NewWasmApp(
 	var wasmRouter = bApp.Router()
 	// better way to get this dir???
 	homeDir := viper.GetString(cli.HomeFlag)
-	wasmDir := filepath.Join(homeDir, "wasm")
+	fetchdir := filepath.Join(homeDir, "wasm")
 
 	wasmWrap := WasmWrapper{Wasm: wasm.DefaultWasmConfig()}
 	err := viper.Unmarshal(&wasmWrap)
@@ -255,7 +255,7 @@ func NewWasmApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	supportedFeatures := "staking"
-	app.wasmKeeper = wasm.NewKeeper(app.cdc, keys[wasm.StoreKey], app.accountKeeper, app.bankKeeper, app.stakingKeeper, wasmRouter, wasmDir, wasmConfig, supportedFeatures, nil, nil)
+	app.wasmKeeper = wasm.NewKeeper(app.cdc, keys[wasm.StoreKey], app.accountKeeper, app.bankKeeper, app.stakingKeeper, wasmRouter, fetchdir, wasmConfig, supportedFeatures, nil, nil)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.

@@ -12,7 +12,7 @@ The pre-requisites of integrating `x/wasm` into your custom app is to be using
 a compatible version of the Cosmos SDK, and to accept some limits to the
 hardware it runs on.
 
-| wasmd | Cosmos SDK |
+| fetchd | Cosmos SDK |
 |:-----:|:----------:|
 | v0.7 | v0.38 |
 | v0.8 | v0.38 |
@@ -32,26 +32,26 @@ them, please count on the current limits for the near future.
 
 ## Quick Trial
 
-The simplest way to try out CosmWasm is simply to run `wasmd` out of the box,
+The simplest way to try out CosmWasm is simply to run `fetchd` out of the box,
 and focus on writing, uploading, and using your custom contracts. There is
 plenty that can be done there, and lots to learn. 
 
 Once you are happy with it and want to use a custom Cosmos SDK app, 
-you may consider simply forking `wasmd`. *I highly advise against this*. 
+you may consider simply forking `fetchd`. *I highly advise against this*. 
 You should try one of the methods below.
 
-## Integrating wasmd
+## Integrating fetchd
 
 ### As external module
 
-The simplest way to use `wasmd` is just to import `x/wasm` and wire it up
+The simplest way to use `fetchd` is just to import `x/wasm` and wire it up
 in `app.go`.  You now have access to the whole module and you custom modules
 running side by side. (But the CosmWasm contracts will only have access
 to `bank` and `staking`... more below on [customization](#Adding-Custom-Hooks)).
 
 The requirement here is that you have imported the standard sdk modules
 from the Cosmos SDK, and enabled them in `app.go`. If so, you can just look
-at [`wasmd/app/app.go`](https://github.com/CosmWasm/wasmd/blob/master/app/app.go#)
+at [`fetchd/app/app.go`](https://github.com/fetchai/fetchd/blob/master/app/app.go#)
 for how to do so (just search there for lines with `wasm`).
 
 ### Copied into your app
@@ -67,7 +67,7 @@ In either case, your best approach is to copy the `x/wasm` module from the
 latest release into your application. Your goal is to make **minimal changes**
 in this module, and rather add your customizations in a separate module.
 This is due to the fact that you will have to copy and customize `x/wasm`
-from upstream on all future `wasmd` releases, and this should be as simple
+from upstream on all future `fetchd` releases, and this should be as simple
 as possible.
 
 If, for example, you have forked the standard SDK libs, you just want to
@@ -88,7 +88,7 @@ to trade them on the exchange I wrote as a Go module. Or maybe use them
 to add options to the exchange."
 
 At this point, you need to dig down deeper and see how you can add this
-power without forking either CosmWasm or `wasmd`. 
+power without forking either CosmWasm or `fetchd`. 
 
 ### Calling contracts from native code
 
@@ -101,7 +101,7 @@ token contracts, your exchange code can simply call `wasm.Keeper.Execute`
 with a properly formatted message to move funds, or `wasm.Keeper.SmartQuery`
 to check balances.
 
-If you look at the unit tests in [`x/wasm/internal/keeper`](https://github.com/CosmWasm/wasmd/tree/master/x/wasm/internal/keeper),
+If you look at the unit tests in [`x/wasm/internal/keeper`](https://github.com/fetchai/fetchd/tree/master/x/wasm/internal/keeper),
 it should be pretty straight forward.
 
 ### Extending the Contract Interface
@@ -144,22 +144,22 @@ please **do not make these changes to `x/wasm`**.
 We will add a new module, eg. `x/contracts`, that will contain custom
 bindings between CosmWasm contracts and your native modules. There are two entry points
 for you to use. The first is 
-[`CustomQuerier`](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/query_plugins.go#L35),
+[`CustomQuerier`](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/query_plugins.go#L35),
 which allows you to handle your custom queries. The second is 
-[`CustomEncoder`](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/handler_plugin.go#L30)
+[`CustomEncoder`](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/handler_plugin.go#L30)
 which allows you to convert the `CosmosMsg::Custom(YourMessage)` types to `[]sdk.Msg` to be dispatched.
 
 Writing stubs for these is rather simple. You can look at the `reflect_test.go` file to see this in action.
-In particular, here [we define a `CustomQuerier`](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/reflect_test.go#L355-L385),
-and here [we define a `CustomHandler`](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/reflect_test.go#L303-L353).
+In particular, here [we define a `CustomQuerier`](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/reflect_test.go#L355-L385),
+and here [we define a `CustomHandler`](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/reflect_test.go#L303-L353).
 This code is responsible to take `json.RawMessage` from the raw bytes serialized from your custom types in rust and parse it into
 Go structs. Then take these go structs and properly convert them for your custom SDK modules.
 
 You can look at the implementations for the `staking` module to see how to build these for non-trivial
 cases, including passing in the `Keeper` via a closure. Here we 
-[encode staking messages](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/handler_plugin.go#L114-L192).
+[encode staking messages](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/handler_plugin.go#L114-L192).
 Note that withdraw returns 2 messages, which is an option you can use if needed to translate into native messages.
-When we [handle staking queries](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/x/wasm/internal/keeper/query_plugins.go#L109-L172)
+When we [handle staking queries](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/x/wasm/internal/keeper/query_plugins.go#L109-L172)
 we take in a `Keeper in the closure` and dispatch the custom `QueryRequest` from the contract to the native `Keeper` interface,
 then encodes a response. When defining the return types, note that for proper parsing in the Rust contract, you 
 should properly name the JSON fields and use the `omitempty` keyword if Rust expects `Option<T>`. You must also use
@@ -172,13 +172,13 @@ The first step is to write an integration test with a contract compiled with you
 then you need to configure this in `app.go`.
 
 For the test cases, you must 
-[define the supported feature set](https://github.com/CosmWasm/wasmd/blob/ade03a1d39a9b8882e9a1ce80572d39d57bb9bc3/x/wasm/internal/keeper/reflect_test.go#L52)
+[define the supported feature set](https://github.com/fetchai/fetchd/blob/ade03a1d39a9b8882e9a1ce80572d39d57bb9bc3/x/wasm/internal/keeper/reflect_test.go#L52)
 to include your custom name (remember `requires_XYZ` above?). Then, when creating `TestInput`, 
-you can [pass in your custom encoder and querier](https://github.com/CosmWasm/wasmd/blob/ade03a1d39a9b8882e9a1ce80572d39d57bb9bc3/x/wasm/internal/keeper/reflect_test.go#L52).
+you can [pass in your custom encoder and querier](https://github.com/fetchai/fetchd/blob/ade03a1d39a9b8882e9a1ce80572d39d57bb9bc3/x/wasm/internal/keeper/reflect_test.go#L52).
 Run a few tests with your compiled contract, ideally exercising the majority of the interfaces to ensure that all parsing between the contract and
 the SDK is implemented properly.
 
 Once you have tested this and are happy with the results, you can wire it up in `app.go`.
-Just edit [the default `NewKeeper` constructor](https://github.com/CosmWasm/wasmd/blob/v0.8.0-rc1/app/app.go#L257-L258)
+Just edit [the default `NewKeeper` constructor](https://github.com/fetchai/fetchd/blob/v0.8.0-rc1/app/app.go#L257-L258)
 to have the proper `supportedFeatures` and pass in the `CustomEncoder` and `CustomQuerier` as the last two arguments to `NewKeeper`.
 Now you can compile your chain and upload your custom contracts on it.

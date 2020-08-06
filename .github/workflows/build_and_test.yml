@@ -26,10 +26,10 @@ jobs:
             --no-cache \
             --progress plain \
             --ssh default \
-            --tag fetch_cosmos_wasmd:$GITHUB_SHA \
+            --tag fetch_cosmos_fetchd:$GITHUB_SHA \
             --file ./ci.Dockerfile \
             ./
       - name: Run make test
         run: |
-          docker run --rm fetch_cosmos_wasmd:$GITHUB_SHA \
+          docker run --rm fetch_cosmos_fetchd:$GITHUB_SHA \
             make test
