@@ -1,5 +1,0 @@
-ARG VERSION
-FROM fetchai/fetchd:${VERSION}
-
-COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
-COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
