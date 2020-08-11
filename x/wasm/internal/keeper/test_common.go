@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/distribution"
 	"testing"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/x/distribution"
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -119,6 +120,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, tempDir string, supportedFeat
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
 	stakingKeeper := staking.NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace))
 	stakingKeeper.SetParams(ctx, TestingStakeParams)
+	stakingKeeper.SetDelayValidatorUpdates(false)
 
 	distKeeper := distribution.NewKeeper(cdc, keyDistro, pk.Subspace(distribution.DefaultParamspace), stakingKeeper, supplyKeeper, auth.FeeCollectorName, nil)
 	distKeeper.SetParams(ctx, distribution.DefaultParams())

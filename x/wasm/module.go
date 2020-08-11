@@ -8,12 +8,12 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/fetchai/fetchd/x/wasm/client/cli"
-	"github.com/fetchai/fetchd/x/wasm/client/rest"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/fetchai/fetchd/x/wasm/client/cli"
+	"github.com/fetchai/fetchd/x/wasm/client/rest"
 )
 
 var (
@@ -132,6 +132,6 @@ func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
 // updates.
-func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return []abci.ValidatorUpdate{}
+func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
+	return []abci.ValidatorUpdate{}, []abci.ValidatorUpdate{}
 }
