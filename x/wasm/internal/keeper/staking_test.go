@@ -2,18 +2,20 @@ package keeper
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"os"
+	"testing"
+
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 type StakingInitMsg struct {
@@ -448,9 +450,10 @@ func addValidator(ctx sdk.Context, stakingKeeper staking.Keeper, accountKeeper a
 // this will commit the current set, update the block height and set historic info
 // basically, letting two blocks pass
 func nextBlock(ctx sdk.Context, stakingKeeper staking.Keeper) sdk.Context {
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, stakingKeeper)
 	staking.EndBlocker(ctx, stakingKeeper)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
-	staking.BeginBlocker(ctx, stakingKeeper)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, stakingKeeper)
 	return ctx
 }
 
