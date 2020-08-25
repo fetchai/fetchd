@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 PASSWORD="1234567890"
-ADDR="cosmos16xyempempp92x9hyzz9wrgf94r6j9h5f06pxxv"
-RECEIVER="cosmos17gx5vwpm0y2k59tw0x00ccug234n56cgltx2w2"
-VALIDATOR="cosmosvaloper16xyempempp92x9hyzz9wrgf94r6j9h5f2w4n2l"
+ADDR="fetch16xyempempp92x9hyzz9wrgf94r6j9h5fu8gzym"
+RECEIVER="fetch17gx5vwpm0y2k59tw0x00ccug234n56cgvk0wva"
+VALIDATOR="fetchvaloper16xyempempp92x9hyzz9wrgf94r6j9h5ferhphu"
 AMOUNT="1000000stake"
 CHAIN="lcd"
 PROPOSALID="2"

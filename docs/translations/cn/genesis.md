@@ -78,7 +78,7 @@ wasmd add-genesis-account <account-address> <amount><denom>
 ```json
 "accounts": [
       {
-        "address": "cosmos1qs8tnw2t8l6amtzvdemnnsq9dzk0ag0z37gh3h",
+        "address": "fetch1qs8tnw2t8l6amtzvdemnnsq9dzk0ag0z37gh3h",
         "coins": [
           {
             "denom": "uatom",
