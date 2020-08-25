@@ -1,50 +1,44 @@
-# docker build . -t cosmwasm/wasmd:latest
-# docker run --rm -it cosmwasm/wasmd:latest /bin/sh
-FROM cosmwasm/go-ext-builder:0.8.2-alpine AS builder
+FROM golang:1.14-buster as builder
 
-RUN apk add git
-# without this, build with LEDGER_ENABLED=false
-RUN apk add libusb-dev linux-headers
+# Set up dependencies
+ENV PACKAGES jq curl wget jq file make git
 
-# copy all code into /code
-WORKDIR /code
-COPY . /code
+RUN apt-get update && \
+    apt-get install -y $PACKAGES
 
-# download all deps
-RUN go mod download
-# TODO: how to use this instead of hardcoding GO_COSMWASM
-RUN basename $(ls -d /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@v*)
+WORKDIR /cosmwasm
 
-ENV GO_COSMWASM="v0.9.1"
+COPY . .
 
-# build go-cosmwasm *.a and install it
-WORKDIR /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@${GO_COSMWASM}
-RUN cargo build --release --features backtraces --example muslc
-RUN mv /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@${GO_COSMWASM}/target/release/examples/libmuslc.a /lib/libgo_cosmwasm_muslc.a
-# I got errors from go mod verify (called from make build) if I didn't clean this up
-RUN rm -rf /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@${GO_COSMWASM}/target
+RUN make install
 
-# build the go wasm binary
-WORKDIR /code
+# ##################################
 
-# force it to use static lib (from above) not standard libgo_cosmwasm.so file
-RUN BUILD_TAGS=muslc make build
+FROM debian:buster as hub
 
-FROM alpine:3.12
+# Set up dependencies
+ENV PACKAGES jq curl
 
-COPY --from=builder /code/build/wasmd /usr/bin/wasmd
-COPY --from=builder /code/build/wasmcli /usr/bin/wasmcli
+RUN apt-get update && \
+    apt-get install -y $PACKAGES
 
-COPY docker/* /opt/
-RUN chmod +x /opt/*.sh
+COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@v*/api/libgo_cosmwasm.so /usr/lib/libgo_cosmwasm.so
+COPY --from=builder /go/bin/fetchcli /usr/bin/fetchcli
+COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
+COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
-WORKDIR /opt
+VOLUME /root/.fetchd
+VOLUME /root/secret-temp-config
 
-# rest server
+ENTRYPOINT [ "/usr/bin/entrypoint.sh" ]
 EXPOSE 1317
-# tendermint p2p
 EXPOSE 26656
-# tendermint rpc
 EXPOSE 26657
+STOPSIGNAL SIGTERM
 
-CMD ["/usr/bin/wasmd version"]
+# ##################################
+
+FROM hub as gcr
+
+COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
+COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
