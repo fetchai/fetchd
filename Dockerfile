@@ -24,7 +24,7 @@ RUN apt-get update && \
 
 COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/go-cosmwasm@v*/api/libgo_cosmwasm.so /usr/lib/libgo_cosmwasm.so
 COPY --from=builder /go/bin/wasmcli /usr/bin/wasmcli
-COPY --from=builder /go/bin/wasmd /usr/bin/fwasm
+COPY --from=builder /go/bin/wasmd /usr/bin/wasmd
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
 VOLUME /root/.fetchd
