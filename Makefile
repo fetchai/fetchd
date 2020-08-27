@@ -60,10 +60,38 @@ endif
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
+coral_ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=coral \
+				  -X github.com/cosmos/cosmos-sdk/version.ServerName=corald \
+				  -X github.com/cosmos/cosmos-sdk/version.ClientName=coral \
+				  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+				  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+				  -X github.com/CosmWasm/wasmd/app.CLIDir=.coral \
+				  -X github.com/CosmWasm/wasmd/app.NodeDir=.corald \
+				  -X github.com/CosmWasm/wasmd/app.Bech32Prefix=coral \
+				  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
+# we could consider enabling governance override?
+#				  -X github.com/CosmWasm/wasmd/app.EnableSpecificProposals=MigrateContract,UpdateAdmin,ClearAdmin \
 
-# The below include contains the tools target.
-include contrib/devtools/Makefile
+coral_ldflags += $(LDFLAGS)
+coral_ldflags := $(strip $(coral_ldflags))
+
+flex_ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=gaiaflex \
+				  -X github.com/cosmos/cosmos-sdk/version.ServerName=gaiaflexd \
+				  -X github.com/cosmos/cosmos-sdk/version.ClientName=gaiaflex \
+				  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+				  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+				  -X github.com/CosmWasm/wasmd/app.ProposalsEnabled=true \
+				  -X github.com/CosmWasm/wasmd/app.CLIDir=.gaiaflex \
+				  -X github.com/CosmWasm/wasmd/app.NodeDir=.gaiaflexd \
+				  -X github.com/CosmWasm/wasmd/app.Bech32Prefix=cosmos \
+				  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
+
+flex_ldflags += $(LDFLAGS)
+flex_ldflags := $(strip $(flex_ldflags))
+
+BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
+CORAL_BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(coral_ldflags)' -trimpath
+FLEX_BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(flex_ldflags)' -trimpath
 
 all: install lint test
 
@@ -74,6 +102,24 @@ ifeq ($(OS),Windows_NT)
 else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchcli ./cmd/fetchcli
+endif
+
+build-coral: go.sum
+ifeq ($(OS),Windows_NT)
+	# wasmd nodes not supported on windows, maybe the cli?
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral.exe ./cmd/fetchcli
+else
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/corald ./cmd/fetchd
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral ./cmd/fetchcli
+endif
+
+build-gaiaflex: go.sum
+ifeq ($(OS),Windows_NT)
+	# wasmd nodes not supported on windows, maybe the cli?
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex.exe ./cmd/fetchcli
+else
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflexd ./cmd/fetchd
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex ./cmd/fetchcli
 endif
 
 build-linux: go.sum
@@ -89,26 +135,6 @@ endif
 install: go.sum
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchd
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchcli
-
-########################################
-### Documentation
-
-build-docs:
-	@cd docs && \
-	while read p; do \
-		(git checkout $${p} && npm install && VUEPRESS_BASE="/$${p}/" npm run build) ; \
-		mkdir -p ~/output/$${p} ; \
-		cp -r .vuepress/dist/* ~/output/$${p}/ ; \
-		cp ~/output/$${p}/index.html ~/output ; \
-	done < versions ;
-
-sync-docs:
-	cd ~/output && \
-	echo "role_arn = ${DEPLOYMENT_ROLE_ARN}" >> /root/.aws/config ; \
-	echo "CI job = ${CIRCLE_BUILD_URL}" >> version.html ; \
-	aws s3 sync . s3://${WEBSITE_BUCKET} --profile terraform --delete ; \
-	aws cloudfront create-invalidation --distribution-id ${CF_DISTRIBUTION_ID} --profile terraform --path "/*" ;
-.PHONY: sync-docs
 
 ########################################
 ### Tools & dependencies
@@ -151,63 +177,15 @@ test-cover:
 test-build: build
 	@go test -mod=readonly -p 4 `go list ./cli_test/...` -tags=cli_test -v
 
-
-lint: golangci-lint
-	golangci-lint run
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -d -s
-	go mod verify
-
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs misspell -w
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs goimports -w -local github.com/cosmos/cosmos-sdk
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs goimports -w -local github.com/CosmWasm/wasmd
 
 benchmark:
 	@go test -mod=readonly -bench=. ./...
 
 
-########################################
-### Local validator nodes using docker and docker-compose
-
-build-docker-fetchdnode:
-	$(MAKE) -C networks/local
-
-# Run a 4-node testnet locally
-localnet-start: build-linux localnet-stop
-	@if ! [ -f build/node0/fetchd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/fetchd:Z tendermint/fetchdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
-	docker-compose up -d
-
-# Stop testnet
-localnet-stop:
-	docker-compose down
-
-setup-contract-tests-data:
-	echo 'Prepare data for the contract tests'
-	rm -rf /tmp/contract_tests ; \
-	mkdir /tmp/contract_tests ; \
-	cp "${GOPATH}/pkg/mod/${SDK_PACK}/client/lcd/swagger-ui/swagger.yaml" /tmp/contract_tests/swagger.yaml ; \
-	./build/fetchd init --home /tmp/contract_tests/.fetchd --chain-id lcd contract-tests ; \
-	tar -xzf lcd_test/testdata/state.tar.gz -C /tmp/contract_tests/
-
-start-gaia: setup-contract-tests-data
-	./build/fetchd --home /tmp/contract_tests/.fetchd start &
-	@sleep 2s
-
-setup-transactions: start-gaia
-	@bash ./lcd_test/testdata/setup.sh
-
-run-lcd-contract-tests:
-	@echo "Running Gaia LCD for contract tests"
-	./build/fetchcli rest-server --laddr tcp://0.0.0.0:8080 --home /tmp/contract_tests/.fetchcli --node http://localhost:26657 --chain-id lcd --trust-node true
-
-contract-tests: setup-transactions
-	@echo "Running Gaia LCD for contract tests"
-	dredd && pkill fetchd
-
-# include simulations
-include sims.mk
-
 .PHONY: all build-linux install install-debug \
-	go-mod-cache draw-deps clean build \
-	setup-transactions setup-contract-tests-data start-gaia run-lcd-contract-tests contract-tests \
+	go-mod-cache draw-deps clean build format \
 	test test-all test-build test-cover test-unit test-race

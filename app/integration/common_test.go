@@ -9,11 +9,12 @@ import (
 	"os"
 	"testing"
 
-	fetchd "github.com/fetchai/fetchd/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	fetchd "github.com/fetchai/fetchd/app"
+	"github.com/fetchai/fetchd/x/wasm"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -31,7 +32,7 @@ const (
 // Setup initializes a new fetchd.WasmApp. A Nop logger is set in WasmApp.
 func Setup(isCheckTx bool) *fetchd.WasmApp {
 	db := dbm.NewMemDB()
-	app := fetchd.NewWasmApp(log.NewNopLogger(), db, nil, true, 0, nil)
+	app := fetchd.NewWasmApp(log.NewNopLogger(), db, nil, true, 0, wasm.EnableAllProposals, nil)
 	// app := fetchd.NewWasmApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
@@ -57,7 +58,7 @@ func Setup(isCheckTx bool) *fetchd.WasmApp {
 // genesis accounts.
 func SetupWithGenesisAccounts(genAccs []authexported.GenesisAccount) *fetchd.WasmApp {
 	db := dbm.NewMemDB()
-	app := fetchd.NewWasmApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, 0, nil)
+	app := fetchd.NewWasmApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, 0, wasm.EnableAllProposals, nil)
 	// app := fetchd.NewWasmApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
 	// initialize the chain with the passed in genesis accounts

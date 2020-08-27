@@ -108,7 +108,7 @@ func TestInitializeStaking(t *testing.T) {
 	// upload staking derivates code
 	stakingCode, err := ioutil.ReadFile("./testdata/staking.wasm")
 	require.NoError(t, err)
-	stakingID, err := keeper.Create(ctx, creator, stakingCode, "", "")
+	stakingID, err := keeper.Create(ctx, creator, stakingCode, "", "", nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), stakingID)
 
@@ -192,7 +192,7 @@ func initializeStaking(t *testing.T) initInfo {
 	// upload staking derivates code
 	stakingCode, err := ioutil.ReadFile("./testdata/staking.wasm")
 	require.NoError(t, err)
-	stakingID, err := keeper.Create(ctx, creator, stakingCode, "", "")
+	stakingID, err := keeper.Create(ctx, creator, stakingCode, "", "", nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), stakingID)
 

@@ -3,11 +3,11 @@ package rest
 import (
 	"net/http"
 
-	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"github.com/gorilla/mux"
 )
 
@@ -84,7 +84,7 @@ func migrateContractHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		msg := types.MsgMigrateContract{
 			Sender:     cliCtx.GetFromAddress(),
 			Contract:   contractAddress,
-			Code:       req.CodeID,
+			CodeID:     req.CodeID,
 			MigrateMsg: req.MigrateMsg,
 		}
 		if err = msg.ValidateBasic(); err != nil {

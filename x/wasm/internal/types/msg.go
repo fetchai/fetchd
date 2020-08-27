@@ -15,6 +15,8 @@ type MsgStoreCode struct {
 	Source string `json:"source" yaml:"source"`
 	// Builder is a valid docker image name with tag, optional
 	Builder string `json:"builder" yaml:"builder"`
+	// InstantiatePermission to apply on contract creation, optional
+	InstantiatePermission *AccessConfig `json:"instantiate_permission,omitempty" yaml:"instantiate_permission"`
 }
 
 func (msg MsgStoreCode) Route() string {
@@ -41,6 +43,11 @@ func (msg MsgStoreCode) ValidateBasic() error {
 	if err := validateBuilder(msg.Builder); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "builder %s", err.Error())
 	}
+	if msg.InstantiatePermission != nil {
+		if err := msg.InstantiatePermission.ValidateBasic(); err != nil {
+			return sdkerrors.Wrap(err, "instantiate permission")
+		}
+	}
 	return nil
 }
 
@@ -56,7 +63,7 @@ type MsgInstantiateContract struct {
 	Sender sdk.AccAddress `json:"sender" yaml:"sender"`
 	// Admin is an optional address that can execute migrations
 	Admin     sdk.AccAddress  `json:"admin,omitempty" yaml:"admin"`
-	Code      uint64          `json:"code_id" yaml:"code_id"`
+	CodeID    uint64          `json:"code_id" yaml:"code_id"`
 	Label     string          `json:"label" yaml:"label"`
 	InitMsg   json.RawMessage `json:"init_msg" yaml:"init_msg"`
 	InitFunds sdk.Coins       `json:"init_funds" yaml:"init_funds"`
@@ -75,7 +82,7 @@ func (msg MsgInstantiateContract) ValidateBasic() error {
 		return err
 	}
 
-	if msg.Code == 0 {
+	if msg.CodeID == 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "code_id is required")
 	}
 
@@ -83,14 +90,17 @@ func (msg MsgInstantiateContract) ValidateBasic() error {
 		return err
 	}
 
-	if msg.InitFunds.IsAnyNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "negative InitFunds")
+	if !msg.InitFunds.IsValid() {
+		return sdkerrors.ErrInvalidCoins
 	}
 
 	if len(msg.Admin) != 0 {
 		if err := sdk.VerifyAddressFormat(msg.Admin); err != nil {
 			return err
 		}
+	}
+	if !json.Valid(msg.InitMsg) {
+		return sdkerrors.Wrap(ErrInvalid, "init msg json")
 	}
 	return nil
 }
@@ -126,8 +136,11 @@ func (msg MsgExecuteContract) ValidateBasic() error {
 		return err
 	}
 
-	if msg.SentFunds.IsAnyNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "negative SentFunds")
+	if !msg.SentFunds.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "sentFunds")
+	}
+	if !json.Valid(msg.Msg) {
+		return sdkerrors.Wrap(ErrInvalid, "msg json")
 	}
 	return nil
 }
@@ -143,7 +156,7 @@ func (msg MsgExecuteContract) GetSigners() []sdk.AccAddress {
 type MsgMigrateContract struct {
 	Sender     sdk.AccAddress  `json:"sender" yaml:"sender"`
 	Contract   sdk.AccAddress  `json:"contract" yaml:"contract"`
-	Code       uint64          `json:"code_id" yaml:"code_id"`
+	CodeID     uint64          `json:"code_id" yaml:"code_id"`
 	MigrateMsg json.RawMessage `json:"msg" yaml:"msg"`
 }
 
@@ -156,7 +169,7 @@ func (msg MsgMigrateContract) Type() string {
 }
 
 func (msg MsgMigrateContract) ValidateBasic() error {
-	if msg.Code == 0 {
+	if msg.CodeID == 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "code_id is required")
 	}
 	if err := sdk.VerifyAddressFormat(msg.Sender); err != nil {
@@ -165,6 +178,10 @@ func (msg MsgMigrateContract) ValidateBasic() error {
 	if err := sdk.VerifyAddressFormat(msg.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
+	if !json.Valid(msg.MigrateMsg) {
+		return sdkerrors.Wrap(ErrInvalid, "migrate msg json")
+	}
+
 	return nil
 }
 

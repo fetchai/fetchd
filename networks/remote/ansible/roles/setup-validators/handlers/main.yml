@@ -1,5 +1,0 @@
----
-
-- name: reload systemd
-  systemd: name=fetchd enabled=yes daemon_reload=yes
-

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/cosmos/cosmos-sdk/version"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -34,16 +36,16 @@ func main() {
 	cdc := app.MakeCodec()
 
 	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	config.SetBech32PrefixForAccount(app.Bech32PrefixAccAddr, app.Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(app.Bech32PrefixValAddr, app.Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(app.Bech32PrefixConsAddr, app.Bech32PrefixConsPub)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
 	cobra.EnableCommandSorting = false
 	rootCmd := &cobra.Command{
-		Use:               "fetchd",
-		Short:             "Wasm Daemon (server)",
+		Use:               version.ServerName,
+		Short:             "Wasm Daemon (server) with wasm gov proposals disabled\",",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 
@@ -81,20 +83,23 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 	if viper.GetBool(server.FlagInterBlockCache) {
 		cache = store.NewCommitKVStoreCacheManager()
 	}
-
+	pruningOpts, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		panic(err)
+	}
 	skipUpgradeHeights := make(map[int64]bool)
 	for _, h := range viper.GetIntSlice(server.FlagUnsafeSkipUpgrades) {
 		skipUpgradeHeights[int64(h)] = true
 	}
 
-	return app.NewWasmApp(
-		logger, db, traceStore, true, invCheckPeriod, skipUpgradeHeights,
-		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
+	return app.NewWasmApp(logger, db, traceStore, true, invCheckPeriod,
+		app.GetEnabledProposals(),
+		skipUpgradeHeights,
+		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)),
 		baseapp.SetHaltTime(viper.GetUint64(server.FlagHaltTime)),
-		baseapp.SetInterBlockCache(cache),
-	)
+		baseapp.SetInterBlockCache(cache))
 }
 
 func exportAppStateAndTMValidators(
@@ -102,7 +107,7 @@ func exportAppStateAndTMValidators(
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		gapp := app.NewWasmApp(logger, db, traceStore, false, uint(1), nil)
+		gapp := app.NewWasmApp(logger, db, traceStore, false, uint(1), app.GetEnabledProposals(), nil)
 		err := gapp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
@@ -110,6 +115,6 @@ func exportAppStateAndTMValidators(
 		return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	gapp := app.NewWasmApp(logger, db, traceStore, true, uint(1), nil)
+	gapp := app.NewWasmApp(logger, db, traceStore, true, uint(1), app.GetEnabledProposals(), nil)
 	return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }

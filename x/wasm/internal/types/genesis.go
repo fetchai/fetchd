@@ -20,12 +20,16 @@ func (s Sequence) ValidateBasic() error {
 
 // GenesisState is the struct representation of the export genesis
 type GenesisState struct {
-	Codes     []Code     `json:"codes"`
-	Contracts []Contract `json:"contracts"`
-	Sequences []Sequence `json:"sequences"`
+	Params    Params     `json:"params"`
+	Codes     []Code     `json:"codes,omitempty"`
+	Contracts []Contract `json:"contracts,omitempty"`
+	Sequences []Sequence `json:"sequences,omitempty"`
 }
 
 func (s GenesisState) ValidateBasic() error {
+	if err := s.Params.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "params")
+	}
 	for i := range s.Codes {
 		if err := s.Codes[i].ValidateBasic(); err != nil {
 			return sdkerrors.Wrapf(err, "code: %d", i)
@@ -77,6 +81,10 @@ func (c Contract) ValidateBasic() error {
 	}
 	if err := c.ContractInfo.ValidateBasic(); err != nil {
 		return sdkerrors.Wrap(err, "contract info")
+	}
+
+	if c.ContractInfo.Created != nil {
+		return sdkerrors.Wrap(ErrInvalid, "created must be empty")
 	}
 	for i := range c.ContractState {
 		if err := c.ContractState[i].ValidateBasic(); err != nil {
