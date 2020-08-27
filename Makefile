@@ -107,19 +107,19 @@ endif
 build-coral: go.sum
 ifeq ($(OS),Windows_NT)
 	# wasmd nodes not supported on windows, maybe the cli?
-	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral.exe ./cmd/wasmcli
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral.exe ./cmd/fetchcli
 else
-	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/corald ./cmd/wasmd
-	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral ./cmd/wasmcli
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/corald ./cmd/fetchd
+	go build -mod=readonly $(CORAL_BUILD_FLAGS) -o build/coral ./cmd/fetchcli
 endif
 
 build-gaiaflex: go.sum
 ifeq ($(OS),Windows_NT)
 	# wasmd nodes not supported on windows, maybe the cli?
-	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex.exe ./cmd/wasmcli
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex.exe ./cmd/fetchcli
 else
-	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflexd ./cmd/wasmd
-	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex ./cmd/wasmcli
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflexd ./cmd/fetchd
+	go build -mod=readonly $(FLEX_BUILD_FLAGS) -o build/gaiaflex ./cmd/fetchcli
 endif
 
 build-linux: go.sum
