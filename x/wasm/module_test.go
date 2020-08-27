@@ -171,7 +171,7 @@ func TestHandleInstantiate(t *testing.T) {
 	// create with no balance is also legal
 	initCmd := MsgInstantiateContract{
 		Sender:    creator,
-		Code:      1,
+		CodeID:    1,
 		InitMsg:   initMsgBz,
 		InitFunds: nil,
 	}
@@ -228,7 +228,7 @@ func TestHandleExecute(t *testing.T) {
 
 	initCmd := MsgInstantiateContract{
 		Sender:    creator,
-		Code:      1,
+		CodeID:    1,
 		InitMsg:   initMsgBz,
 		InitFunds: deposit,
 	}
@@ -325,7 +325,7 @@ func TestHandleExecuteEscrow(t *testing.T) {
 		Sender:       creator,
 		WASMByteCode: testContract,
 	}
-	res, err := h(data.ctx, &msg)
+	res, err := h(data.ctx, msg)
 	require.NoError(t, err)
 	require.Equal(t, res.Data, []byte("1"))
 
@@ -339,7 +339,7 @@ func TestHandleExecuteEscrow(t *testing.T) {
 
 	initCmd := MsgInstantiateContract{
 		Sender:    creator,
-		Code:      1,
+		CodeID:    1,
 		InitMsg:   initMsgBz,
 		InitFunds: deposit,
 	}

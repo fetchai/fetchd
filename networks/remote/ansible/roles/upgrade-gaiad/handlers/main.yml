@@ -1,5 +1,0 @@
----
-
-- name: restart fetchd
-  service: name=fetchd state=restarted
-

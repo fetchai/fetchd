@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	// authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	// "github.com/fetchai/fetchd/x/wasm/internal/types"
 )
@@ -46,6 +46,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) error 
 	if keeper.peekAutoIncrementID(ctx, types.KeyLastInstanceID) <= uint64(maxContractID) {
 		return sdkerrors.Wrapf(types.ErrInvalid, "seq %s must be greater %d ", string(types.KeyLastInstanceID), maxContractID)
 	}
+	keeper.setParams(ctx, data.Params)
 
 	return nil
 }
@@ -54,23 +55,22 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data types.GenesisState) error 
 func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 	var genState types.GenesisState
 
-	maxCodeID := keeper.GetNextCodeID(ctx)
-	for i := uint64(1); i < maxCodeID; i++ {
-		if !keeper.containsCodeInfo(ctx, i) {
-			continue
-		}
-		bytecode, err := keeper.GetByteCode(ctx, i)
+	genState.Params = keeper.GetParams(ctx)
+
+	keeper.IterateCodeInfos(ctx, func(codeID uint64, info types.CodeInfo) bool {
+		bytecode, err := keeper.GetByteCode(ctx, codeID)
 		if err != nil {
 			panic(err)
 		}
 		genState.Codes = append(genState.Codes, types.Code{
-			CodeID:     i,
-			CodeInfo:   *keeper.GetCodeInfo(ctx, i),
+			CodeID:     codeID,
+			CodeInfo:   info,
 			CodesBytes: bytecode,
 		})
-	}
+		return false
+	})
 
-	keeper.ListContractInfo(ctx, func(addr sdk.AccAddress, contract types.ContractInfo) bool {
+	keeper.IterateContractInfo(ctx, func(addr sdk.AccAddress, contract types.ContractInfo) bool {
 		contractStateIterator := keeper.GetContractState(ctx, addr)
 		var state []types.Model
 		for ; contractStateIterator.Valid(); contractStateIterator.Next() {
@@ -80,6 +80,8 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 			}
 			state = append(state, m)
 		}
+		// redact contract info
+		contract.Created = nil
 
 		genState.Contracts = append(genState.Contracts, types.Contract{
 			ContractAddress: addr,

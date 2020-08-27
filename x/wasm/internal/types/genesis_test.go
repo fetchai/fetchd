@@ -15,6 +15,12 @@ func TestValidateGenesisState(t *testing.T) {
 		"all good": {
 			srcMutator: func(s *GenesisState) {},
 		},
+		"params invalid": {
+			srcMutator: func(s *GenesisState) {
+				s.Params = Params{}
+			},
+			expError: true,
+		},
 		"codeinfo invalid": {
 			srcMutator: func(s *GenesisState) {
 				s.Codes[0].CodeInfo.CodeHash = nil
@@ -112,6 +118,12 @@ func TestContractValidateBasic(t *testing.T) {
 		"contract info invalid": {
 			srcMutator: func(c *Contract) {
 				c.ContractInfo.Creator = nil
+			},
+			expError: true,
+		},
+		"contract with created set": {
+			srcMutator: func(c *Contract) {
+				c.ContractInfo.Created = &AbsoluteTxPosition{}
 			},
 			expError: true,
 		},
