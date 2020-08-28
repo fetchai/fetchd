@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,18 +13,18 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
 	crkeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/server/api"
+	sdkConfig "github.com/cosmos/cosmos-sdk/server/config"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/tests"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
@@ -44,8 +43,8 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+	"github.com/tendermint/tendermint/rpc/client/local"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmrpc "github.com/tendermint/tendermint/rpc/jsonrpc/server"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
@@ -107,10 +106,7 @@ func InitializeLCD(nValidators int, initAddrs []sdk.AccAddress, minting bool, po
 
 	tests.WaitForNextHeightTM(tests.ExtractPortFromAddress(config.RPC.ListenAddress))
 
-	lcdInstance, err := startLCD(logger, listenAddr, cdc)
-	if err != nil {
-		return
-	}
+	startLCD(node, gapp, listenAddr, cdc)
 
 	tests.WaitForLCDStart(port)
 	tests.WaitForHeight(1, port)
@@ -123,10 +119,6 @@ func InitializeLCD(nValidators int, initAddrs []sdk.AccAddress, minting bool, po
 		}
 
 		node.Wait()
-		err = lcdInstance.Close()
-		if err != nil {
-			logger.Error(err.Error())
-		}
 	}
 
 	return cleanup, valConsPubKeys, valOperAddrs, port, err
@@ -349,23 +341,23 @@ func startTM(
 	return node, err
 }
 
-// startLCD starts the LCD.
-func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Listener, error) {
-	rs := lcd.NewRestServer(cdc)
-	registerRoutes(rs)
-	listener, err := tmrpc.Listen(listenAddr, tmrpc.DefaultConfig())
-	if err != nil {
-		return nil, err
-	}
-	go tmrpc.Serve(listener, rs.Mux, logger, tmrpc.DefaultConfig()) //nolint:errcheck
-	return listener, nil
-}
+func startLCD(tmNode *nm.Node, wasm *app.WasmApp, listenAddr string, cdc *codec.Codec) {
+	ctx := context.CLIContext{
+		HomeDir: tmNode.Config().RootDir,
+	}.
+		WithChainID(tmNode.GenesisDoc().ChainID).
+		WithCodec(cdc).
+		WithClient(local.New(tmNode)).
+		WithTrustNode(true)
 
-// NOTE: If making updates here also update cmd/gaia/cmd/fetchcli/main.go
-func registerRoutes(rs *lcd.RestServer) {
-	client.RegisterRoutes(rs.CliCtx, rs.Mux)
-	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
-	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+	apiSrv := api.New(ctx)
+	wasm.RegisterAPIRoutes(apiSrv)
+
+	appConfig := sdkConfig.DefaultConfig()
+	appConfig.API.Enable = true
+	appConfig.API.Address = listenAddr
+
+	go apiSrv.Start(*appConfig)
 }
 
 var cdc = codec.New()
