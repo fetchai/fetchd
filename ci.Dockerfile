@@ -14,7 +14,9 @@ RUN apt-get update && \
     g++ \
     swig \
     libboost-serialization-dev && \
-  git clone https://github.com/herumi/mcl && cd mcl && make install && ldconfig
+  wget https://github.com/herumi/mcl/archive/v1.05.tar.gz && \
+  tar xvf v1.05.tar.gz && cd mcl-1.05 && \
+  make install && ldconfig
 
 WORKDIR /workspace/cosmos-sdk
 COPY . .
