@@ -239,11 +239,11 @@ func NewWasmApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest b
 	app.accountKeeper = auth.NewAccountKeeper(
 		app.cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
 	)
-	app.bankKeeper = bank.NewBaseKeeper(
+	bankKeeper := bank.NewBaseKeeper(
 		app.accountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.supplyKeeper = supply.NewKeeper(
-		app.cdc, keys[supply.StoreKey], app.accountKeeper, app.bankKeeper, maccPerms,
+		app.cdc, keys[supply.StoreKey], app.accountKeeper, &bankKeeper, maccPerms,
 	)
 	stakingKeeper := staking.NewKeeper(
 		app.cdc, keys[staking.StoreKey], app.supplyKeeper, app.subspaces[staking.ModuleName],
@@ -287,6 +287,9 @@ func NewWasmApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest b
 	app.stakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(app.distrKeeper.Hooks(), app.slashingKeeper.Hooks()),
 	)
+
+	// Set function for obtaining bond denomination in bank
+	app.bankKeeper = bankKeeper.SetBondDenomFunc(app.stakingKeeper.BondDenom)
 
 	// just re-use the full router - do we want to limit this more?
 	var wasmRouter = bApp.Router()
