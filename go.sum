@@ -118,10 +118,10 @@ github.com/facebookgo/stack v0.0.0-20160209184415-751773369052/go.mod h1:UbMTZqL
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 h1:E2s37DuLxFhQDg5gKsWoLBOB0n+ZW8s599zru8FJ2/Y=
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+neXqOorC30/tWg0LCSkrqj/AR6gu8yY8/fpw1q0=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
-github.com/fetchai/cosmos-consensus v0.7.0 h1:NPA4qazmamuXtjca44MORLa8gcbR1TggFOajKwqQZRc=
-github.com/fetchai/cosmos-consensus v0.7.0/go.mod h1:3uBzeHvXTweU0DE0ja1RmM/rxcf+tTajjRCfcF+DG3A=
-github.com/fetchai/cosmos-sdk v0.9.0 h1:+B/XDKx8a6A1IpoFcZ9ysu4KNp6AK2NchCkoUgAsyhc=
-github.com/fetchai/cosmos-sdk v0.9.0/go.mod h1:rqs43C3LBC3OIkff8b/oHfXOtd7cLsT84IqgwvhENZg=
+github.com/fetchai/cosmos-consensus v0.8.0 h1:uWYxVLyQxvSvvKl2N/mjLPiwB4HOXHLWN/GwzdILGC4=
+github.com/fetchai/cosmos-consensus v0.8.0/go.mod h1:3uBzeHvXTweU0DE0ja1RmM/rxcf+tTajjRCfcF+DG3A=
+github.com/fetchai/cosmos-sdk v0.10.0 h1:TuDZCV7TK5aY0ozT94oYSxAnxyKzC7YEWd9nYAH539g=
+github.com/fetchai/cosmos-sdk v0.10.0/go.mod h1:rMoHSIoYd3a0MsLimeoKjShe4YALUd1ZDYZPe+nB38k=
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6 h1:u/UEqS66A5ckRmS4yNpjmVH56sVtS/RfclBAYocb4as=
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6/go.mod h1:1i71OnUq3iUe1ma7Lr6yG6/rjvM3emb6yoL7xLFzcVQ=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
