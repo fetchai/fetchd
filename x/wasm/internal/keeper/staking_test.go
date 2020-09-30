@@ -432,7 +432,7 @@ func addValidator(ctx sdk.Context, stakingKeeper staking.Keeper, accountKeeper a
 			MaxRate:       sdk.MustNewDecFromStr("0.2"),
 			MaxChangeRate: sdk.MustNewDecFromStr("0.01"),
 		},
-		MinSelfDelegation: sdk.OneInt(),
+		MinSelfDelegation: sdk.NewInt(1000000000000000),
 		DelegatorAddress:  owner,
 		ValidatorAddress:  addr,
 		PubKey:            pub,
