@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"testing"
 	"time"
 
@@ -55,7 +56,7 @@ var TestingStakeParams = staking.Params{
 	MaxValidators:     10,
 	MaxEntries:        10,
 	HistoricalEntries: 10,
-	//MinSelfDelegation: sdk.NewInt(10000000000000),
+	MinSelfDelegation: types.DefaultMinSelfDelegation,
 	BondDenom:         "stake",
 }
 
