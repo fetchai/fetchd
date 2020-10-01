@@ -168,9 +168,9 @@ func InitFixtures(t *testing.T) (f *Fixtures) {
 		fmt.Sprintf("--vesting-end-time=%d", time.Now().Add(60*time.Second).UTC().UnixNano()),
 	)
 
+	//f.GenTx(keyFoo, fmt.Sprintf("--min-self-delegation %s", "150000000000000000000stake"))
 	f.GenTx(keyFoo)
 	f.CollectGenTxs()
-
 	return f
 }
 

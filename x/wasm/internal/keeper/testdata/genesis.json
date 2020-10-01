@@ -139,7 +139,7 @@
                     "max_rate": "0.200000000000000000",
                     "max_change_rate": "0.010000000000000000"
                   },
-                  "min_self_delegation": "1",
+                  "min_self_delegation": "1000000000000000000000",
                   "delegator_address": "cosmos1ve557a5g9yw2g2z57js3pdmcvd5my6g8ze20np",
                   "validator_address": "cosmosvaloper1ve557a5g9yw2g2z57js3pdmcvd5my6g88d76lj",
                   "pubkey": "cosmosvalconspub1zcjduepqddfln4tujr2p8actpgqz4h2xnls9y7tu9c9tu5lqkdglmdjalzuqah4neg",

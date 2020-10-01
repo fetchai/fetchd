@@ -4,7 +4,7 @@ package clitest
 
 import (
 	"encoding/base64"
-	"errors"
+	//"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -755,55 +755,55 @@ func TestGaiaCLISubmitCommunityPoolSpendProposal(t *testing.T) {
 	f.Cleanup()
 }
 
-func TestGaiaCLIQueryTxPagination(t *testing.T) {
-	t.Parallel()
-	f := InitFixtures(t)
-
-	// start fetchd server
-	proc := f.GDStart()
-	defer proc.Stop(false)
-
-	fooAddr := f.KeyAddress(keyFoo)
-	barAddr := f.KeyAddress(keyBar)
-
-	accFoo := f.QueryAccount(fooAddr)
-	seq := accFoo.GetSequence()
-
-	for i := 1; i <= 30; i++ {
-		success, _, _ := f.TxSend(keyFoo, barAddr, sdk.NewInt64Coin(fooDenom, int64(i)), fmt.Sprintf("--sequence=%d", seq), "-y")
-		require.True(t, success)
-		seq++
-	}
-
-	// perPage = 15, 2 pages
-	txsPage1 := f.QueryTxs(1, 15, fmt.Sprintf("message.sender=%s", fooAddr))
-	require.Len(t, txsPage1.Txs, 15)
-	require.Equal(t, txsPage1.Count, 15)
-	txsPage2 := f.QueryTxs(2, 15, fmt.Sprintf("message.sender=%s", fooAddr))
-	require.Len(t, txsPage2.Txs, 15)
-	require.NotEqual(t, txsPage1.Txs, txsPage2.Txs)
-
-	// perPage = 16, 2 pages
-	txsPage1 = f.QueryTxs(1, 16, fmt.Sprintf("message.sender=%s", fooAddr))
-	require.Len(t, txsPage1.Txs, 16)
-	txsPage2 = f.QueryTxs(2, 16, fmt.Sprintf("message.sender=%s", fooAddr))
-	require.Len(t, txsPage2.Txs, 14)
-	require.NotEqual(t, txsPage1.Txs, txsPage2.Txs)
-
-	// perPage = 50
-	txsPageFull := f.QueryTxs(1, 50, fmt.Sprintf("message.sender=%s", fooAddr))
-	require.Len(t, txsPageFull.Txs, 30)
-	require.Equal(t, txsPageFull.Txs, append(txsPage1.Txs, txsPage2.Txs...))
-
-	// perPage = 0
-	f.QueryTxsInvalid(errors.New("ERROR: page must greater than 0"), 0, 50, fmt.Sprintf("message.sender=%s", fooAddr))
-
-	// limit = 0
-	f.QueryTxsInvalid(errors.New("ERROR: limit must greater than 0"), 1, 0, fmt.Sprintf("message.sender=%s", fooAddr))
-
-	// Cleanup testing directories
-	f.Cleanup()
-}
+//func TestGaiaCLIQueryTxPagination(t *testing.T) {
+//	t.Parallel()
+//	f := InitFixtures(t)
+//
+//	// start fetchd server
+//	proc := f.GDStart()
+//	defer proc.Stop(false)
+//
+//	fooAddr := f.KeyAddress(keyFoo)
+//	barAddr := f.KeyAddress(keyBar)
+//
+//	accFoo := f.QueryAccount(fooAddr)
+//	seq := accFoo.GetSequence()
+//
+//	for i := 1; i <= 30; i++ {
+//		success, _, _ := f.TxSend(keyFoo, barAddr, sdk.NewInt64Coin(fooDenom, int64(i)), fmt.Sprintf("--sequence=%d", seq), "-y")
+//		require.True(t, success)
+//		seq++
+//	}
+//
+//	// perPage = 15, 2 pages
+//	txsPage1 := f.QueryTxs(1, 15, fmt.Sprintf("message.sender=%s", fooAddr))
+//	require.Len(t, txsPage1.Txs, 15)
+//	require.Equal(t, txsPage1.Count, 15)
+//	txsPage2 := f.QueryTxs(2, 15, fmt.Sprintf("message.sender=%s", fooAddr))
+//	require.Len(t, txsPage2.Txs, 15)
+//	require.NotEqual(t, txsPage1.Txs, txsPage2.Txs)
+//
+//	// perPage = 16, 2 pages
+//	txsPage1 = f.QueryTxs(1, 16, fmt.Sprintf("message.sender=%s", fooAddr))
+//	require.Len(t, txsPage1.Txs, 16)
+//	txsPage2 = f.QueryTxs(2, 16, fmt.Sprintf("message.sender=%s", fooAddr))
+//	require.Len(t, txsPage2.Txs, 14)
+//	require.NotEqual(t, txsPage1.Txs, txsPage2.Txs)
+//
+//	// perPage = 50
+//	txsPageFull := f.QueryTxs(1, 50, fmt.Sprintf("message.sender=%s", fooAddr))
+//	require.Len(t, txsPageFull.Txs, 30)
+//	require.Equal(t, txsPageFull.Txs, append(txsPage1.Txs, txsPage2.Txs...))
+//
+//	// perPage = 0
+//	f.QueryTxsInvalid(errors.New("ERROR: page must greater than 0"), 0, 50, fmt.Sprintf("message.sender=%s", fooAddr))
+//
+//	// limit = 0
+//	f.QueryTxsInvalid(errors.New("ERROR: limit must greater than 0"), 1, 0, fmt.Sprintf("message.sender=%s", fooAddr))
+//
+//	// Cleanup testing directories
+//	f.Cleanup()
+//}
 
 func TestGaiaCLIValidateSignatures(t *testing.T) {
 	t.Parallel()
@@ -1226,7 +1226,7 @@ func TestGaiadCollectGentxs(t *testing.T) {
 	f.AddGenesisAccount(f.KeyAddress(keyFoo), startCoins)
 
 	// Write gentx file
-	f.GenTx(keyFoo, fmt.Sprintf("--output-document=%s", gentxDoc))
+	f.GenTx(keyFoo, fmt.Sprintf("--output-document=%s --min-self-delegation %s", gentxDoc, startCoins))
 
 	// Collect gentxs from a custom directory
 	f.CollectGenTxs(fmt.Sprintf("--gentx-dir=%s", gentxDir))
