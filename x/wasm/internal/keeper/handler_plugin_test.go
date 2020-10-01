@@ -3,9 +3,9 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
