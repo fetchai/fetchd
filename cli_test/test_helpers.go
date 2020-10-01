@@ -3,6 +3,7 @@ package clitest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -168,8 +169,7 @@ func InitFixtures(t *testing.T) (f *Fixtures) {
 		fmt.Sprintf("--vesting-end-time=%d", time.Now().Add(60*time.Second).UTC().UnixNano()),
 	)
 
-	//f.GenTx(keyFoo, fmt.Sprintf("--min-self-delegation %s", "150000000000000000000stake"))
-	f.GenTx(keyFoo)
+	f.GenTx(keyFoo, fmt.Sprintf("--min-self-delegation %s", types.DefaultMinSelfDelegation))
 	f.CollectGenTxs()
 	return f
 }
