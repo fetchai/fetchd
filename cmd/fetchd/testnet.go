@@ -109,8 +109,6 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 		chainID = "chain-" + tmrand.Str(6)
 	}
 
-	fmt.Printf("asfasfdasf asdf asdf\n") // DELETEME_NH
-
 	monikers := make([]string, numValidators)
 	nodeIDs := make([]string, numValidators)
 	valPubKeys := make([]crypto.PubKey, numValidators)
