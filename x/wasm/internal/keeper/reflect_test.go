@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"encoding/json"
-	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	"io/ioutil"
 	"os"
 	"strings"

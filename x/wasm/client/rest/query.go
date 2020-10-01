@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/fetchai/fetchd/x/wasm/internal/keeper"
-	"github.com/fetchai/fetchd/x/wasm/internal/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/fetchai/fetchd/x/wasm/internal/keeper"
+	"github.com/fetchai/fetchd/x/wasm/internal/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/gorilla/mux"
