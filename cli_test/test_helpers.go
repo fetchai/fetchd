@@ -3,6 +3,7 @@ package clitest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -168,9 +169,8 @@ func InitFixtures(t *testing.T) (f *Fixtures) {
 		fmt.Sprintf("--vesting-end-time=%d", time.Now().Add(60*time.Second).UTC().UnixNano()),
 	)
 
-	f.GenTx(keyFoo)
+	f.GenTx(keyFoo, fmt.Sprintf("--min-self-delegation %s", types.DefaultMinSelfDelegation))
 	f.CollectGenTxs()
-
 	return f
 }
 
@@ -365,7 +365,7 @@ func (f *Fixtures) TxStakingCreateValidator(from, consPubKey string, amount sdk.
 		" --pubkey=%s", f.GaiacliBinary, f.Flags(), from, consPubKey)
 	cmd += fmt.Sprintf(" --amount=%v --moniker=%v --commission-rate=%v", amount, from, "0.05")
 	cmd += fmt.Sprintf(" --commission-max-rate=%v --commission-max-change-rate=%v", "0.20", "0.10")
-	cmd += fmt.Sprintf(" --min-self-delegation=%v", "1")
+	cmd += fmt.Sprintf(" --min-self-delegation=%v", types.DefaultMinSelfDelegation)
 	return executeWriteRetStdStreams(f.T, addFlags(cmd, flags), clientkeys.DefaultKeyPass)
 }
 

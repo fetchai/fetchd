@@ -3,6 +3,7 @@ package lcdtest
 import (
 	"bytes"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -173,7 +174,7 @@ func defaultGenesis(config *tmcfg.Config, nValidators int, initAddrs []sdk.AccAd
 			sdk.NewCoin(sdk.DefaultBondDenom, startTokens),
 			staking.NewDescription(fmt.Sprintf("validator-%d", i+1), "", "", "", ""),
 			staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			sdk.OneInt(),
+			types.DefaultMinSelfDelegation,
 		)
 
 		stdSignMsg := auth.StdSignMsg{
