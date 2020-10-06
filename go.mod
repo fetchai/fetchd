@@ -32,4 +32,4 @@ replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.
 // this include a few extra debug helpers on top of cosmos v0.38.3 but original also works fine
 replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.12.0
 
-replace github.com/tendermint/tendermint => github.com/n-hutton/cosmos-consensus v0.5.2-0.20201002151727-7aba19dae64c
+replace github.com/tendermint/tendermint => github.com/fetchai/cosmos-consensus v0.9.0
