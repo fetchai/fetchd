@@ -149,13 +149,13 @@ func replayTxs(rootDir string) error {
 		state.NextValidators = newValidators
 	}
 
-	// Create executor
-	fmt.Fprintln(os.Stderr, "Creating block executor")
-	blockExec := tmsm.NewBlockExecutor(tmDB, ctx.Logger, proxyApp.Consensus(), nil, tmsm.MockEvidencePool{})
-
 	// Create block store
 	fmt.Fprintln(os.Stderr, "Creating block store")
 	blockStore := tmstore.NewBlockStore(bcDB)
+
+	// Create executor
+	fmt.Fprintln(os.Stderr, "Creating block executor")
+	blockExec := tmsm.NewBlockExecutor(tmDB, ctx.Logger, proxyApp.Consensus(), nil, tmsm.MockEvidencePool{}, blockStore)
 
 	tz := []time.Duration{0, 0, 0}
 	for i := int(state.LastBlockHeight) + 1; ; i++ {
