@@ -136,6 +136,9 @@ func InitFixtures(t *testing.T) (f *Fixtures) {
 	// reset test state
 	f.UnsafeResetAll()
 
+	// For the unit tests, we want to turn off certain behaviour via the config files
+	f.ModifyDefaultConfig("strict_tx_filtering = \"false\"")
+
 	f.CLIConfig("keyring-backend", "test")
 
 	// ensure keystore has foo and bar keys
@@ -196,6 +199,46 @@ func (f *Fixtures) UnsafeResetAll(flags ...string) {
 	executeWrite(f.T, addFlags(cmd, flags))
 	err := os.RemoveAll(filepath.Join(f.GaiadHome, "config", "gentx"))
 	require.NoError(f.T, err)
+}
+
+// ModifyDefaultConfig will replace the config file's option with the selected string
+// which must be of the format `option = "xxx"`. Failure to find and replace `option`
+// will cause a panic
+func (f *Fixtures) ModifyDefaultConfig(modification string) {
+	//Get just the first word which is the option to replace
+	firstWord := strings.Fields(modification)[0]
+
+	filePath := f.GaiadHome + "/config/config.toml"
+
+	// Check the file exists, or panic
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		panic(fmt.Sprintf("Failed to find file for unit testing: %v\n", filePath))
+	}
+
+	input, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+
+	foundModification := false
+	lines := strings.Split(string(input), "\n")
+
+	for i, line := range lines {
+		if strings.Contains(line, firstWord) {
+			lines[i] = modification
+			foundModification = true
+		}
+	}
+
+	if !foundModification {
+		panic(fmt.Sprintf("Failed to search and replace %v in file %v (not found)\n", modification, filePath))
+	}
+
+	output := strings.Join(lines, "\n")
+	err = ioutil.WriteFile(filePath, []byte(output), 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // GDInit is fetchd init
