@@ -121,9 +121,7 @@ func txFmtCmd(cdc *codec.Codec) *cobra.Command {
 		Use:   "fmtd",
 		Short: "Run the tx format server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("hello there....")
 			runTxFmtServer(cdc)
-
 			return nil
 		},
 		Args: cobra.NoArgs,
