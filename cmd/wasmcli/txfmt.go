@@ -55,6 +55,14 @@ func encodeJsonResponse(w http.ResponseWriter, resp interface{}, statusCode int)
 }
 
 func handleEncode(cdc *codec.Codec, w http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		resp := EncodeErrResponse{
+			Msg:   "POST only endpoint",
+			Error: "",
+		}
+		encodeJsonResponse(w, resp, http.StatusMethodNotAllowed)
+	}
+
 	// read the transaction as posted into the http response
 	stdTx, err := readStdTx(cdc, req.Body)
 	if err != nil {
