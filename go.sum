@@ -118,10 +118,6 @@ github.com/facebookgo/stack v0.0.0-20160209184415-751773369052/go.mod h1:UbMTZqL
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 h1:E2s37DuLxFhQDg5gKsWoLBOB0n+ZW8s599zru8FJ2/Y=
 github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+neXqOorC30/tWg0LCSkrqj/AR6gu8yY8/fpw1q0=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
-github.com/fetchai/cosmos-consensus v0.10.0 h1:S1LG9ngB4iOP0oPKEn5gf2taHzVxUfPWKvDZ5Po8hUE=
-github.com/fetchai/cosmos-consensus v0.10.0/go.mod h1:3uBzeHvXTweU0DE0ja1RmM/rxcf+tTajjRCfcF+DG3A=
-github.com/fetchai/cosmos-sdk v0.12.0 h1:gYlkXEJGzYGEbN8D5uNrZdsWoRdWiAjJ8c+565/KEaI=
-github.com/fetchai/cosmos-sdk v0.12.0/go.mod h1:rMoHSIoYd3a0MsLimeoKjShe4YALUd1ZDYZPe+nB38k=
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6 h1:u/UEqS66A5ckRmS4yNpjmVH56sVtS/RfclBAYocb4as=
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6/go.mod h1:1i71OnUq3iUe1ma7Lr6yG6/rjvM3emb6yoL7xLFzcVQ=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
@@ -307,6 +303,10 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mtibben/percent v0.2.1 h1:5gssi8Nqo8QU/r2pynCm+hBQHpkB/uNK7BJCFogWdzs=
 github.com/mtibben/percent v0.2.1/go.mod h1:KG9uO+SZkUp+VkRHsCdYQV3XSZrrSpR3O9ibNBTZrns=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
+github.com/n-hutton/cosmos-consensus v0.5.2-0.20201021152113-5d8b0163cb06 h1:P0V81K1Ib5uBih4RxQg34m1FL5BhghMjQVTaSNU+kao=
+github.com/n-hutton/cosmos-consensus v0.5.2-0.20201021152113-5d8b0163cb06/go.mod h1:3uBzeHvXTweU0DE0ja1RmM/rxcf+tTajjRCfcF+DG3A=
+github.com/n-hutton/cosmos-sdk v0.10.1-0.20201021152553-8f07015dc046 h1:rxXHGgmFCpMYKIBYARMQ7LpW1GDquFNo135AHOfHR88=
+github.com/n-hutton/cosmos-sdk v0.10.1-0.20201021152553-8f07015dc046/go.mod h1:VDKDeMkF6s47EidZyRTOjbjyCJPqS2YkBwP/ki8SKms=
 github.com/nats-io/jwt v0.3.0/go.mod h1:fRYCDE99xlTsqUzISS1Bi75UBJ6ljOJQOAAu5VglpSg=
 github.com/nats-io/jwt v0.3.2/go.mod h1:/euKqTS1ZD+zzjYrY7pseZrTtWQSjujC7xjPc8wL6eU=
 github.com/nats-io/nats-server/v2 v2.1.2/go.mod h1:Afk+wRZqkMQs/p45uXdrVLuab3gwv3Z8C4HTBu8GD/k=
