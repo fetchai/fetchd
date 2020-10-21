@@ -119,6 +119,7 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 		authcmd.GetBroadcastCommand(cdc),
 		authcmd.GetEncodeCommand(cdc),
 		authcmd.GetDecodeCommand(cdc),
+		txFmtCmd(cdc),
 		// TODO: I think it is safe to remove
 		// authcmd.GetDecodeTxCmd(cdc),
 		flags.LineBreak,
