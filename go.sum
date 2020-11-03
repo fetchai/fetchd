@@ -305,8 +305,8 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mtibben/percent v0.2.1 h1:5gssi8Nqo8QU/r2pynCm+hBQHpkB/uNK7BJCFogWdzs=
 github.com/mtibben/percent v0.2.1/go.mod h1:KG9uO+SZkUp+VkRHsCdYQV3XSZrrSpR3O9ibNBTZrns=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
-github.com/n-hutton/cosmos-sdk v0.10.1-0.20201102163646-620ca6efcaad h1:wdB9LxdmhmeFqUkwweedLhrSW+r46lvZPWUHoseJo4k=
-github.com/n-hutton/cosmos-sdk v0.10.1-0.20201102163646-620ca6efcaad/go.mod h1:V20JLa5NuIBhX4n4WxCz1XtykizHVSuPCU0FpNuqt8o=
+github.com/n-hutton/cosmos-sdk v0.10.1-0.20201103141425-297574861ff9 h1:l2OsFnNsNWV3TWbglr6nGDGygzphxb8m57lwAjlPshM=
+github.com/n-hutton/cosmos-sdk v0.10.1-0.20201103141425-297574861ff9/go.mod h1:V20JLa5NuIBhX4n4WxCz1XtykizHVSuPCU0FpNuqt8o=
 github.com/nats-io/jwt v0.3.0/go.mod h1:fRYCDE99xlTsqUzISS1Bi75UBJ6ljOJQOAAu5VglpSg=
 github.com/nats-io/jwt v0.3.2/go.mod h1:/euKqTS1ZD+zzjYrY7pseZrTtWQSjujC7xjPc8wL6eU=
 github.com/nats-io/nats-server/v2 v2.1.2/go.mod h1:Afk+wRZqkMQs/p45uXdrVLuab3gwv3Z8C4HTBu8GD/k=
