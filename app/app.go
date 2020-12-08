@@ -42,11 +42,11 @@ import (
 const appName = "WasmApp"
 
 var (
-	// DefaultCLIHome default home directories for wasmcli
-	DefaultCLIHome = os.ExpandEnv("$HOME/.wasmcli")
+	// DefaultCLIHome default home directories for fetchcli
+	DefaultCLIHome = os.ExpandEnv("$HOME/.fetchcli")
 
-	// DefaultNodeHome default home directories for wasmd
-	DefaultNodeHome = os.ExpandEnv("$HOME/.wasmd")
+	// DefaultNodeHome default home directories for fetchd
+	DefaultNodeHome = os.ExpandEnv("$HOME/.fetchd")
 
 	// ModuleBasics The module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration

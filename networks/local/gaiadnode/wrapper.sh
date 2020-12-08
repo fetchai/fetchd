@@ -3,9 +3,9 @@
 ##
 ## Input parameters
 ##
-BINARY=/wasmd/${BINARY:-wasmd}
+BINARY=/fetchd/${BINARY:-fetchd}
 ID=${ID:-0}
-LOG=${LOG:-wasmd.log}
+LOG=${LOG:-fetchd.log}
 
 ##
 ## Assert linux binary

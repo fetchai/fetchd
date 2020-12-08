@@ -1,5 +1,5 @@
 #!/bin/sh
-# upgrade-wasmd - example make call to upgrade wasmd on a set of nodes in AWS
+# upgrade-fetchd - example make call to upgrade fetchd on a set of nodes in AWS
 # WARNING: Run it from the current directory - it uses relative paths to ship the binary and the genesis.json,config.toml files
 
 if [ $# -ne 1 ]; then
@@ -10,5 +10,5 @@ set -eux
 
 export CLUSTER_NAME=$1
 
-make upgrade-wasmd
+make upgrade-fetchd
 

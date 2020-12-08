@@ -1,5 +1,5 @@
 ---
 
 - name: reload systemd
-  systemd: name=wasmd enabled=yes daemon_reload=yes
+  systemd: name=fetchd enabled=yes daemon_reload=yes
 

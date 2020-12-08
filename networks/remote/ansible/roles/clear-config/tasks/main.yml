@@ -1,12 +1,12 @@
 ---
 
 - name: Stop service
-  service: name=wasmd state=stopped
+  service: name=fetchd state=stopped
 
 - name: Delete files
   file: "path={{item}} state=absent"
   with_items:
-  - /usr/bin/wasmd
-  - /home/wasmd/.wasmd
-  - /home/wasmd/.wasmcli
+  - /usr/bin/fetchd
+  - /home/fetchd/.fetchd
+  - /home/fetchd/.fetchcli
 

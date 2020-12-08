@@ -21,7 +21,7 @@ func TestMyNewCommand(t *testing.T) {
   t.Parallel()
 	f := InitFixtures(t)
 
-	// start wasmd server
+	// start fetchd server
 	proc := f.GDStart()
 	defer proc.Stop(false)
 
