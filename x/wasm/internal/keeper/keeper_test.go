@@ -44,7 +44,7 @@ func TestCreate(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/contract.wasm")
 	require.NoError(t, err)
 
-	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
+	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 	// and verify content
@@ -67,12 +67,12 @@ func TestCreateDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	// create one copy
-	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
+	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 
 	// create second copy
-	duplicateID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
+	duplicateID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "cosmwasm-opt:0.5.2")
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), duplicateID)
 
@@ -102,14 +102,14 @@ func TestCreateWithSimulation(t *testing.T) {
 	require.NoError(t, err)
 
 	// create this once in simulation mode
-	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "confio/cosmwasm-opt:0.57.2")
+	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "confio/cosmwasm-opt:0.57.2")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 
 	// then try to create it in non-simulation mode (should not fail)
 	ctx, keepers = CreateTestInput(t, false, tempDir, SupportedFeatures, nil, nil)
 	accKeeper, keeper = keepers.AccountKeeper, keepers.WasmKeeper
-	contractID, err = keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "confio/cosmwasm-opt:0.7.2")
+	contractID, err = keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "confio/cosmwasm-opt:0.7.2")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 
@@ -157,7 +157,7 @@ func TestCreateWithGzippedPayload(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/contract.wasm.gzip")
 	require.NoError(t, err)
 
-	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "")
+	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "")
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 	// and verify content
@@ -181,7 +181,7 @@ func TestInstantiate(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/contract.wasm")
 	require.NoError(t, err)
 
-	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/wasmd/blob/master/x/wasm/testdata/escrow.wasm", "")
+	contractID, err := keeper.Create(ctx, creator, wasmCode, "https://github.com/CosmWasm/fetchd/blob/master/x/wasm/testdata/escrow.wasm", "")
 	require.NoError(t, err)
 
 	_, _, bob := keyPubAddr()
@@ -202,7 +202,7 @@ func TestInstantiate(t *testing.T) {
 	require.Equal(t, "fetch18vd8fpwxzck93qlwghaj6arh4p7c5n890l3amr", addr.String())
 
 	gasAfter := ctx.GasMeter().GasConsumed()
-	require.Equal(t, uint64(0x114f8), gasAfter-gasBefore)
+	require.Equal(t, uint64(0x114fb), gasAfter-gasBefore)
 
 	// ensure it is stored properly
 	info := keeper.GetContractInfo(ctx, addr)

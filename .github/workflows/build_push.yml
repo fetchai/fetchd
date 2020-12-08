@@ -18,7 +18,7 @@ jobs:
       - name: Build and Publish Public Images
         uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
         with:
-          repo: fetchai/wasmd
+          repo: fetchai/fetchd
           target: hub
 
       - name: Setup GCloud
@@ -33,5 +33,5 @@ jobs:
       - name: Build and Publish Private Images
         uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
         with:
-          repo: gcr.io/fetch-ai-images/wasmd
+          repo: gcr.io/fetch-ai-images/fetchd
           target: gcr

@@ -12,7 +12,7 @@ CLUSTER_NAME?=$(TESTNET_NAME)
 # Number of servers to put in one availability zone in AWS.
 SERVERS?=1
 
-# Path to wasmd for deployment. Must be a Linux binary.
+# Path to fetchd for deployment. Must be a Linux binary.
 BINARY?=$(CURDIR)/../build/wasmd
 
 # Path to the genesis.json and config.toml files to deploy on full nodes.

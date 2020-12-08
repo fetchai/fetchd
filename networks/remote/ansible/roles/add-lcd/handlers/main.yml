@@ -1,9 +1,9 @@
 ---
 
 - name: systemctl
-  systemd: name=wasmcli enabled=yes daemon_reload=yes
+  systemd: name=fetchcli enabled=yes daemon_reload=yes
 
-- name: restart wasmcli
-  service: name=wasmcli state=restarted
+- name: restart fetchcli
+  service: name=fetchcli state=restarted
 
 

@@ -48,8 +48,8 @@ build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
 # process linker flags
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=wasm \
-		  -X github.com/cosmos/cosmos-sdk/version.ServerName=wasmd \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=wasmcli \
+		  -X github.com/cosmos/cosmos-sdk/version.ServerName=fetchd \
+		  -X github.com/cosmos/cosmos-sdk/version.ClientName=fetchcli \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -69,11 +69,11 @@ all: install lint test
 
 build: go.sum
 ifeq ($(OS),Windows_NT)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/wasmd.exe ./cmd/wasmd
-	go build -mod=readonly $(BUILD_FLAGS) -o build/wasmcli.exe ./cmd/wasmcli
+	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd.exe ./cmd/fetchd
+	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchcli.exe ./cmd/fetchcli
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o build/wasmd ./cmd/wasmd
-	go build -mod=readonly $(BUILD_FLAGS) -o build/wasmcli ./cmd/wasmcli
+	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
+	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchcli ./cmd/fetchcli
 endif
 
 build-linux: go.sum

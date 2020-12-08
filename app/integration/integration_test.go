@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
-// CreateTestApp will create a new wasmd application and provide money to every address
+// CreateTestApp will create a new fetchd application and provide money to every address
 // listed there
 func CreateTestApp(t *testing.T, accounts []*auth.BaseAccount) *app.WasmApp {
 	fmt.Printf("%#v\n", accounts[1])
