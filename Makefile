@@ -47,7 +47,7 @@ build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
 
 # process linker flags
 
-ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=wasm \
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 		  -X github.com/cosmos/cosmos-sdk/version.ServerName=fetchd \
 		  -X github.com/cosmos/cosmos-sdk/version.ClientName=fetchcli \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
@@ -87,8 +87,8 @@ else
 endif
 
 install: go.sum
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/wasmd
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/wasmcli
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchd
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchcli
 
 ########################################
 ### Documentation
@@ -124,7 +124,7 @@ go.sum: go.mod
 draw-deps:
 	@# requires brew install graphviz or apt-get install graphviz
 	go get github.com/RobotsAndPencils/goviz
-	@goviz -i ./cmd/wasmd -d 2 | dot -Tpng -o dependency-graph.png
+	@goviz -i ./cmd/fetchd -d 2 | dot -Tpng -o dependency-graph.png
 
 clean:
 	rm -rf snapcraft-local.yaml build/
@@ -169,12 +169,12 @@ benchmark:
 ########################################
 ### Local validator nodes using docker and docker-compose
 
-build-docker-wasmdnode:
+build-docker-fetchdnode:
 	$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
 localnet-start: build-linux localnet-stop
-	@if ! [ -f build/node0/wasmd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/wasmd:Z tendermint/wasmdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
+	@if ! [ -f build/node0/fetchd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/fetchd:Z tendermint/fetchdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
 	docker-compose up -d
 
 # Stop testnet
@@ -186,11 +186,11 @@ setup-contract-tests-data:
 	rm -rf /tmp/contract_tests ; \
 	mkdir /tmp/contract_tests ; \
 	cp "${GOPATH}/pkg/mod/${SDK_PACK}/client/lcd/swagger-ui/swagger.yaml" /tmp/contract_tests/swagger.yaml ; \
-	./build/wasmd init --home /tmp/contract_tests/.wasmd --chain-id lcd contract-tests ; \
+	./build/fetchd init --home /tmp/contract_tests/.fetchd --chain-id lcd contract-tests ; \
 	tar -xzf lcd_test/testdata/state.tar.gz -C /tmp/contract_tests/
 
 start-gaia: setup-contract-tests-data
-	./build/wasmd --home /tmp/contract_tests/.wasmd start &
+	./build/fetchd --home /tmp/contract_tests/.fetchd start &
 	@sleep 2s
 
 setup-transactions: start-gaia
@@ -198,11 +198,11 @@ setup-transactions: start-gaia
 
 run-lcd-contract-tests:
 	@echo "Running Gaia LCD for contract tests"
-	./build/wasmcli rest-server --laddr tcp://0.0.0.0:8080 --home /tmp/contract_tests/.wasmcli --node http://localhost:26657 --chain-id lcd --trust-node true
+	./build/fetchcli rest-server --laddr tcp://0.0.0.0:8080 --home /tmp/contract_tests/.fetchcli --node http://localhost:26657 --chain-id lcd --trust-node true
 
 contract-tests: setup-transactions
 	@echo "Running Gaia LCD for contract tests"
-	dredd && pkill wasmd
+	dredd && pkill fetchd
 
 # include simulations
 include sims.mk
