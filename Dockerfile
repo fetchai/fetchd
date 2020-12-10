@@ -30,6 +30,8 @@ COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 VOLUME /root/.fetchd
 VOLUME /root/secret-temp-config
 
+WORKDIR /root
+
 ENTRYPOINT [ "/usr/bin/entrypoint.sh" ]
 EXPOSE 1317
 EXPOSE 26656
