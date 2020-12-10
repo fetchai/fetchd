@@ -24,7 +24,7 @@ else
 
     fetchd start --p2p.laddr tcp://127.0.0.1:26656 --rpc.laddr tcp://127.0.0.1:26657 ${P2PPEX} ${PERSPEERS} ${PRIVPEERS} ${SEEDMODE} ${SEEDS} ${PRUNING}
   else
-    VALIDATOR_STATE_FILE="/root/.wasmd/data/priv_validator_state.json"
+    VALIDATOR_STATE_FILE="/root/.fetchd/data/priv_validator_state.json"
 
     # Copy readonly values from configmap dir to /root/.gaiad/config
     mkdir -p /root/.fetchd/config
