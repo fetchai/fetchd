@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/bls12_381"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -350,7 +350,7 @@ func TestGaiaCLICreateValidator(t *testing.T) {
 	barAddr := f.KeyAddress(keyBar)
 	barVal := sdk.ValAddress(barAddr)
 
-	consPubKey := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, bls12_381.GenPrivKey().PubKey())
+	consPubKey := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, ed25519.GenPrivKey().PubKey())
 
 	sendTokens := sdk.TokensFromConsensusPower(10)
 	f.TxSend(keyFoo, barAddr, sdk.NewCoin(denom, sendTokens), "-y")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -37,6 +36,7 @@ import (
 
 	tmcfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
@@ -162,7 +162,7 @@ func defaultGenesis(config *tmcfg.Config, nValidators int, initAddrs []sdk.AccAd
 
 		power := int64(100)
 		if i > 0 {
-			pubKey = bls12_381.GenPrivKey().PubKey()
+			pubKey = ed25519.GenPrivKey().PubKey()
 			power = 1
 		}
 
