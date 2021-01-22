@@ -52,6 +52,28 @@ your use case.
 ## Quick Start
 
 ```
+# Ubuntu/Debian based linux distro dependencies
+apt install swig libboost-all-dev libgmp-dev
+
+cd ~/Downloads
+wget https://github.com/herumi/mcl/archive/v1.05.tar.gz
+tar xvf v1.05.tar.gz 
+cd mcl-1.05
+make install
+ldconfig
+
+# OS X dependencies
+brew install swig boost gmp
+
+cd ~/Downloads
+wget https://github.com/herumi/mcl/archive/v1.05.tar.gz
+tar xvf v1.05.tar.gz 
+cd mcl-1.05
+make install
+
+```
+After installing the reuired dependencies, install golang and execute the following commands:
+```
 make install
 make test
 ```
