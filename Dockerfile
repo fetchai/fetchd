@@ -13,10 +13,6 @@ WORKDIR /cosmwasm
 COPY . .
 RUN make install
 
-# we also (temporarily?) build the testnet binaries here
-RUN LEDGER_ENABLED=false make build-coral
-RUN LEDGER_ENABLED=false make build-gaiaflex
-
 # ##################################
 
 FROM debian:buster as hub
@@ -33,12 +29,6 @@ COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
 COPY --from=builder /usr/local/lib/libmcl.so /usr/lib
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
-# testnet
-COPY --from=builder /cosmwasm/build/coral /usr/bin/coral
-COPY --from=builder /cosmwasm/build/corald /usr/bin/corald
-COPY --from=builder /cosmwasm/build/gaiaflex /usr/bin/gaiaflex
-COPY --from=builder /cosmwasm/build/gaiaflexd /usr/bin/gaiaflexd
-
 VOLUME /root/.fetchd
 VOLUME /root/secret-temp-config
 
@@ -54,3 +44,24 @@ FROM hub as gcr
 
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
 COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
+
+# ##################################
+
+FROM hub as localnet
+
+COPY ./entrypoints/run-localnet.sh /usr/bin/run-localnet.sh
+
+ENTRYPOINT [ "/usr/bin/run-localnet.sh" ]
+
+# ##################################
+
+FROM hub as localnet-setup
+
+RUN apt-get update && apt-get install -y python3
+
+COPY ./entrypoints/run-localnet-setup.py /usr/bin/run-localnet-setup.py
+
+ENV PYTHONUNBUFFERED=1
+
+ENTRYPOINT [ "/usr/bin/run-localnet-setup.py" ]
+CMD []
