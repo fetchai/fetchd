@@ -1,0 +1,40 @@
+site_name: Ledger
+site_url: https://docs.fetch.ai/ledger/
+site_description: Documentation for the Fetch.ai ledger project
+repo_url: https://github.com/fetchai/fetchd/
+site_author: developer@fetch.ai
+
+theme:
+  name: 'material'
+  feature:
+    tabs: true
+
+strict: false
+docs_dir: src/
+
+nav:
+  - Introduction: 'index.md'
+  - Installation: 'building.md'
+  - Versions: 'versions.md'
+  - Networks: 'networks.md'
+  - Commandline Client:
+    - Introduction: 'cli-introduction.md'
+    - Keys: 'cli-keys.md'
+    - Tokens: 'cli-tokens.md'
+    # - Delegator Guide: 'delegator-guide-cli.md'
+  - Validators:
+    - Overview: 'validators/overview.md'
+    - Security: 'validators/security.md'
+    # - FAQ: 'validators/validator-faq.md'
+    # - Setup: 'validators/validator-setup.md'
+  - Block Explorer: 'block-explorer.md'
+  - Governance: 'governance.md'
+  - Docker Images: 'docker-images.md'
+  - Faucet: 'faucet.md'
+  - Python Examples: 'python-examples.md'
+
+extra_css:
+  - css/my-styles.css
+
+plugins:
+  - search
