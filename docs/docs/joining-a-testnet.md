@@ -11,7 +11,7 @@ Much more information is available from the [Docker Images](../docker-images/) p
 
     docker run -e MONIKER=<insert node name here> -e NETWORK=<network name> fetchai/fetchd:0.5
 
-### Beacon World Example
+**Beacon World Example**
 
 To connect to the beacon world testnet users would simply need to run the following command
 
@@ -33,6 +33,29 @@ fetchd version
 fetchcli version
 ```
 
+### Configuring the client `fetchcli`
+
+In general to configure the CLI to point at a given network it needs as a minimum the following configuration values
+
+```bash
+fetchcli config chain-id <chain-id>
+fetchcli config trust-node false
+fetchcli config node <rpc url>
+```
+
+**Beacon World Example**
+
+In the case of the beacon world network this would be as follows:
+
+```bash
+fetchcli config chain-id beaconworld-1
+fetchcli config trust-node false
+fetchcli config node https://rpc-beaconworld.fetch.ai:443
+```
+
+### Configuring the server `fetchd`
+
+
 Initialize fetchd by running command. This setups a default / empty genesis configuration.
 
 ```bash
@@ -51,7 +74,7 @@ Finally connect fetchd to the network by getting it to connect to a seed node fo
 fetchd start --p2p.seeds=<network seed peers>
 ```
 
-### Beacon World Example
+**Beacon World Example**
 
 Less abstractly then, if a user wants to connect to the beacon world test net for example. You would need to run the following steps:
 
