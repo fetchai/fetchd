@@ -25,7 +25,7 @@ nav:
     - Overview: 'validators/overview.md'
     - Security: 'validators/security.md'
     # - FAQ: 'validators/validator-faq.md'
-    # - Setup: 'validators/validator-setup.md'
+    - Setup: 'validators/setup.md'
   - Joining a Testnet: 'joining-a-testnet.md'
   - Block Explorer: 'block-explorer.md'
   - Governance: 'governance.md'
