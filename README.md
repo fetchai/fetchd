@@ -19,6 +19,8 @@ binary for `muslc`. (Or just use this Dockerfile for your production setup).
 
 ## Quick Start
 
+### Pre Requisites for Ubuntu / Debian
+
 ```
 # Ubuntu/Debian based linux distro dependencies
 apt install swig libboost-all-dev libgmp-dev
@@ -29,7 +31,11 @@ tar xvf v1.05.tar.gz
 cd mcl-1.05
 make install
 ldconfig
+```
 
+### Pre Requisites for MacOS
+
+```
 # OS X dependencies
 brew install swig boost gmp
 
@@ -38,14 +44,18 @@ wget https://github.com/herumi/mcl/archive/v1.05.tar.gz
 tar xvf v1.05.tar.gz
 cd mcl-1.05
 make install
-
 ```
+
+### Building and testing the project
+
 After installing the reuired dependencies, install golang and execute the following commands:
+
 ```
 make install
 make test
 ```
-if you are using a linux without X or headless linux, look at [this article](https://ahelpme.com/linux/dbusexception-could-not-get-owner-of-name-org-freedesktop-secrets-no-such-name) or [#31](https://github.com/fetchai/fetchd/issues/31#issuecomment-577058321).
+
+If you are using a linux without X or headless linux, look at [this article](https://ahelpme.com/linux/dbusexception-could-not-get-owner-of-name-org-freedesktop-secrets-no-such-name) or [#31](https://github.com/fetchai/fetchd/issues/31#issuecomment-577058321).
 
 ## Run a simple local test network
 
