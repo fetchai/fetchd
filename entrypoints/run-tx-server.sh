@@ -8,4 +8,4 @@ fetchcli config trust-node ${TRUSTNODE}
 
 fetchcli config node ${NODE}
 
-fetchcli rest-server --laddr tcp://127.0.0.1:1317
+fetchcli tx fmtd --port 8090
