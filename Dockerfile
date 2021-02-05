@@ -43,7 +43,7 @@ STOPSIGNAL SIGTERM
 FROM hub as gcr
 
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
-COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
+COPY ./entrypoints/run-tx-server.sh /usr/bin/run-tx-server.sh
 
 # ##################################
 
