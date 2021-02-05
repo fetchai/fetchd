@@ -37,16 +37,17 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 
 ## **Incentivized Testnet Phase 2: Beacon World**
 
-Currently, Beacon World network is invite only. It will be open to all developers when we reach [phase 2](../i_nets/quickstart-aw2.md) of the incentivized testnet. If you have a specific need to participate in it earlier, please do contact us at [developer@fetch.ai](mailto:developer@fetch.ai).
 
+Beacon World network will be used for onboarding community validators nodes in a build up for the upcoming main network launch.
 
-| Parameter      | Value            |
-| -------------- | ---------------- |
-| Chain ID       | beaconworld-1    |
-| Denomination   | atestfet         |
-| Decimals       | 18               |
-| Version        | v0.3.x           |
-| RPC Endpoint   | n/a              |
-| REST Endpoint  | n/a              |
-| Block Explorer | n/a              |
-| Token Faucet   | n/a              |
+| Parameter      | Value                                                                          |
+| -------------- | ------------------------------------------------------------------------------ |
+| Chain ID       | beaconworld-1                                                                  |
+| Denomination   | atestfet                                                                       |
+| Decimals       | 18                                                                             |
+| Version        | v0.5.x                                                                         |
+| RPC Endpoint   | https://rpc-beaconworld.fetch.ai:443                                           |
+| REST Endpoint  | https://rest-beaconworld.fetch.ai:443                                          |
+| Block Explorer | [https://explore-beaconworld.fetch.ai/](https://explore-beaconworld.fetch.ai/) |
+| Token Faucet   | https://faucet-beaconworld.fetch.ai                                            |
+| Seed Node(s)   | e5102b892cf49d20b5e58435abfcf1d9f923e0f3@connect-beaconworld.fetch.ai:36656    |

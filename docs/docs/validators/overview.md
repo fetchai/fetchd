@@ -26,6 +26,8 @@ Uptime in incredibly important for being a validator. It is expected that valida
 
 Set up a dedicated validator's website and signal your intention to become a validator on our [Discord](https://discord.gg/UDzpBFa) server. This is important since delegators will want to have information about the entity they are delegating their FET to.
 
+Strictly speaking this is not necessary, however, it is recommended. As a validator on the network you will want to get other community users to delegate stake to your validator. The more combined stake that a validate has then the great share of the block rewards they will take.
+
 ## Seek Legal Advice
 
 Seek legal advice if you intend to run a Validator.
