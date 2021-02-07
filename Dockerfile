@@ -1,7 +1,7 @@
 FROM golang:1.14-buster as builder
 
 # Set up dependencies
-ENV PACKAGES jq curl wget jq file make git libgmp-dev gcc g++ swig libboost-serialization-dev
+ENV PACKAGES curl wget jq file make git libgmp-dev gcc g++ swig libboost-serialization1.67-dev
 
 RUN apt-get update && \
     apt-get install -y $PACKAGES && \

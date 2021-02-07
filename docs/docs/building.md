@@ -4,11 +4,11 @@
 
 - Go 1.14+ (installation instructions available [here](https://golang.org/dl/]))
 
-### Ubuntu
+### Ubuntu 20.04 / Debian 10
 
 ```bash
 # Run the following command if using Ubuntu
-sudo apt-get install libgmp-dev swig libboost-all-dev
+sudo apt-get install libgmp-dev swig libboost-serialization1.67-dev
 
 # Download and install the MCL libraries
 cd ~
@@ -54,3 +54,21 @@ For non-developer users we recommend that the user installs the binaries into th
     sudo make install
 
 This will install the binaries in the directory specified by your `$GOBIN` environment variable.
+
+### Boost Dependencies
+
+Currently the code requires that the user compiles the code with at least version 1.67 of Boost Serialisation library. Failure to do so will mean that users will not be able to sync with the blockchain. This limitation will be resolved in the near future (with the Boost dependency being removed completely).
+
+To verify which libraries you have linked against use the following commands
+
+**Ubuntu 20.04 / Debian 10**
+
+```bash
+ldd ./build/fetchd
+```
+
+**MacOS**
+
+```bash
+otool -L ./build/fetchd
+```
