@@ -25,14 +25,6 @@ Understanding building block relationships: [https://docs.fetch.ai/aea/oef-ledge
 
 For more detailed information, have a look at our [network](./networks/) information page.
 
-### Other testnets
-
-There are currently three key sequential testnets planned, but more may arise and operate in parallel in order to target the testing and development of specific additional new technologies. The three main incentivised testnet phases are:
-
-1. [**Agents**](../i_nets/quickstart-aw1.md): a stable testnet for autonomous economic agents, featuring the core new mainnet v2 technologies that agent developers need in order to prepare.
-2. [**Random Beacon**](../i_nets/quickstart-aw2.md): a stable testnet showcasing the decentralised random beacon, vital for DeFi, gaming and a key part of our on-going unique approach to consensus.
-3. [**Oracles**](../i_nets/quickstart-aw3.md): a stable testnet for demonstrating connecting the outside world to the inside world; enabling agents to communicate reliable, trustworthy information from the environment at large.
-
 ## Roadmap for Smart Contracts
 
 The v2.0 main-net and our test-nets support a webassembly (WASM) virtual machine VM. When mainnet V2 is released, smart contracts will be developed using Cosmwasm, which will include the ability to develop your contracts in a variety of languages depending on your preferences, such as Rust, Go or Javascript. For more information on Cosmwasm, and Rust, which is the first language to be supported by the Cosmwasm VM, you can go to [https://www.cosmwasm.com/](https://www.cosmwasm.com/) and [https://github.com/CosmWasm/cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template).

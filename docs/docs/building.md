@@ -8,7 +8,7 @@
 
 ```bash
 # Run the following command if using Ubuntu
-sudo apt-get install libgmp-dev swig libboost-serialization1.67-dev
+sudo apt-get install libgmp-dev swig
 
 # Download and install the MCL libraries
 cd ~
@@ -23,7 +23,7 @@ sudo ldconfig
 
 ```bash
 # Run the following command if using OS X
-brew install swig boost gmp
+brew install swig gmp
 
 # Download and install the MCL libraries
 cd ~

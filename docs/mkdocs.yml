@@ -9,7 +9,7 @@ theme:
   feature:
     tabs: true
 
-strict: false
+strict: true
 
 nav:
   - Introduction: 'index.md'
@@ -27,6 +27,7 @@ nav:
     # - FAQ: 'validators/validator-faq.md'
     - Setup: 'validators/setup.md'
   - Joining a Testnet: 'joining-a-testnet.md'
+  - Single Node Testnet: 'single-node-network.md'
   - Block Explorer: 'block-explorer.md'
   - Governance: 'governance.md'
   - Docker Images: 'docker-images.md'
