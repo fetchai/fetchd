@@ -422,8 +422,6 @@ func TestGaiaCLIQueryRewards(t *testing.T) {
 	var mintData mint.GenesisState
 	cdc.UnmarshalJSON(genesisState[mint.ModuleName], &mintData)
 	mintData.Minter.Inflation = inflationMin
-	mintData.Params.InflationMin = inflationMin
-	mintData.Params.InflationMax = sdk.MustNewDecFromStr("1.0")
 	mintDataBz, err := cdc.MarshalJSON(mintData)
 	require.NoError(t, err)
 	genesisState[mint.ModuleName] = mintDataBz
@@ -455,6 +453,9 @@ func TestGaiaCLIQuerySupply(t *testing.T) {
 
 	totalSupply := f.QueryTotalSupply()
 	totalSupplyOf := f.QueryTotalSupplyOf(fooDenom)
+
+	fmt.Println(totalCoins)
+	fmt.Println(totalSupply)
 
 	require.Equal(t, totalCoins, totalSupply)
 	require.True(sdk.IntEq(t, totalCoins.AmountOf(fooDenom), totalSupplyOf))
@@ -682,8 +683,6 @@ func TestGaiaCLISubmitCommunityPoolSpendProposal(t *testing.T) {
 	var mintData mint.GenesisState
 	cdc.UnmarshalJSON(genesisState[mint.ModuleName], &mintData)
 	mintData.Minter.Inflation = inflationMin
-	mintData.Params.InflationMin = inflationMin
-	mintData.Params.InflationMax = sdk.MustNewDecFromStr("1.0")
 	mintDataBz, err := cdc.MarshalJSON(mintData)
 	require.NoError(t, err)
 	genesisState[mint.ModuleName] = mintDataBz
