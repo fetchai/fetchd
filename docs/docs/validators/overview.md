@@ -4,9 +4,9 @@
 
 The Fetch.ai Ledger relies on a set of validators that are responsible for committing new blocks in the blockchain. These validators participate in the consensus protocol by broadcasting votes which contain cryptographic signatures signed by each validator's private key.
 
-Validator candidates can bond their own FET and have FET ["delegated"](../delegator-guide-cli.md), or staked, to them by token holders. The validators are determined by who has the most stake delegated to them — the top N validator candidates with the most stake will become validators.
+Validator candidates can bond their own FET and have FET delegated, or staked, to them by token holders. The validators are determined by who has the most stake delegated to them. The top N validator candidates with the most stake will become the active validators.
 
-Validators and their delegators will earn Atoms as block provisions and tokens as transaction fees through execution of the consensus protocol. Transaction fees will be paid in FET.
+Validators and their delegators will earn FET as block provisions and tokens as transaction fees through execution of the consensus protocol. Transaction fees will be paid in FET.
 
 If validators double sign, are frequently offline or do not participate in governance, their staked FET (including FET of users that delegated to them) can be slashed. The penalty depends on the severity of the violation.
 
