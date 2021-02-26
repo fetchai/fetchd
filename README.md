@@ -1,6 +1,7 @@
-# Fetch.ai fetchd Fork
+# Fetch.ai fetchd repository
 
-This repository is the fork from the original [wasmd](https://github.com/CosmWasm/wasmd). It contains Fetch.ai specific updates required for the test networks and future mainnet. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/fetchd/releases) section for the compatiblity with upstream versions.
+This repository contains the source code for validators on the Fetch network. The source is based on the [wasmd](https://github.com/CosmWasm/wasmd) variant of the Cosmos-SDK, which includes a virtual machine that compiles to WebAssembly. It contains Fetch.ai-specific updates required for the test networks and future mainne
+t, including a decentralized random beacon (DRB) and a novel, compact multi-signatures scheme. Versions of this repository are not currently syncrhonised with either wasmd or the Cosmos-SDK. Please refer to the [releases](https://github.com/fetchai/fetchd/releases) section for the compatiblity with upstream versions.
 
 **Note**: Requires [Go 1.14+](https://golang.org/dl/)
 
