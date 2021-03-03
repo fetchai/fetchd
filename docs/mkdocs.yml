@@ -20,7 +20,7 @@ nav:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'
     - Tokens: 'cli-tokens.md'
-    # - Delegator Guide: 'delegator-guide-cli.md'
+    - Delegator Guide: 'delegator-guide-cli.md'
   - Validators:
     - Overview: 'validators/overview.md'
     - Security: 'validators/security.md'

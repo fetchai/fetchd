@@ -1,5 +1,5 @@
 
-# CLI - Staking query
+# CLI - Delegator guide
 
 ## Querying the current staking holdings of the validators
 
