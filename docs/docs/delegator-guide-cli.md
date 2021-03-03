@@ -68,6 +68,7 @@ fetchcli query staking validator fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98x
 ```
 
 A delegator will be particularly interested in the following keys:
+
 - `commission/commission_rates/rate`: The commission rate on revenue charged to any delegator by the validator.
 - `commission/commission_rates/max_change_rate`: The maximum daily increase of the validator's commission. This parameter cannot be changed by the validator operator.
 - `commission/commission_rates/max_rate`: The maximum commission rate this validator can charge. This parameter cannot be changed by the validator operator.
