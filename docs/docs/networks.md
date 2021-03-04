@@ -10,7 +10,7 @@ Agent Land is our stable, public testnet for the Fetch Ledger v2. As such most d
 | Chain ID       | agent-land                                                                 |
 | Denomination   | atestfet                                                                   |
 | Decimals       | 18                                                                         |
-| Version        | v0.2.x                                                                     |
+| Version        | v0.2.x (fetchcli <= v0.2.7)                                                |
 | RPC Endpoint   | https://rpc-agent-land.fetch.ai:443                                        |
 | REST Endpoint  | https://rest-agent-land.fetch.ai:443                                       |
 | Block Explorer | [https://explore-agent-land.fetch.ai](https://explore-agent-land.fetch.ai) |
@@ -28,7 +28,7 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 | Chain ID       | agentworld-1                                                                 |
 | Denomination   | atestfet                                                                     |
 | Decimals       | 18                                                                           |
-| Version        | v0.2.x                                                                       |
+| Version        | v0.2.x (fetchcli <= v0.2.7)                                                  |
 | RPC Endpoint   | https://rpc-agentworld.fetch.ai:443                                          |
 | REST Endpoint  | https://rest-agentworld.fetch.ai:443                                         |
 | Block Explorer | [https://explore-agentworld.fetch.ai/](https://explore-agentworld.fetch.ai/) |
@@ -45,7 +45,7 @@ Beacon World network will be used for onboarding community validators nodes in a
 | Chain ID       | beaconworld-1                                                                  |
 | Denomination   | atestfet                                                                       |
 | Decimals       | 18                                                                             |
-| Version        | v0.5.x                                                                         |
+| Version        | v0.5.x (fetchcli >= v0.5.0)                                                    |
 | RPC Endpoint   | https://rpc-beaconworld.fetch.ai:443                                           |
 | REST Endpoint  | https://rest-beaconworld.fetch.ai:443                                          |
 | Block Explorer | [https://explore-beaconworld.fetch.ai/](https://explore-beaconworld.fetch.ai/) |
