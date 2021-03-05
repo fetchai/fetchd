@@ -1,7 +1,10 @@
 
 # CLI - Delegator guide
 
-## Querying the current staking holdings of the validators
+
+## Querying the state
+
+### Querying the current staking holdings of the validators
 
 The following command can be used to retrieve the current staking holdings of all validators:
 
@@ -74,7 +77,7 @@ A delegator will be particularly interested in the following keys:
 - `commission/commission_rates/max_rate`: The maximum commission rate this validator can charge. This parameter cannot be changed by the validator operator.
 - `minselfdelegation`: Minimum amount of Atoms the validator need to have bonded at all time. If the validator's self-bonded stake falls below this limit, their entire staking pool (i.e. all its delegators) will unbond. This parameter exists as a safeguard for delegators. Indeed, when a validator misbehaves, part of their total stake gets slashed. This included the validator's self-delegateds stake as well as their delegators' stake. Thus, a validator with a high amount of self-delegated Atoms has more skin-in-the-game than a validator with a low amount. The minimum self-bond amount parameter guarantees to delegators that a validator will never fall below a certain amount of self-bonded stake, thereby ensuring a minimum level of skin-in-the-game. This parameter can only be increased by the validator operator.
 
-## Query the delegations made to a validator
+### Query the delegations made to a validator
 
 From a validator address, we can retrieve the list of delegations it received:
 
@@ -101,10 +104,9 @@ Here is a sample of delegations `validator5` received on `beacon-world`:
     amount: "100000"
 ```
 
-## Query the redelegations
+### Query the redelegations
 
-Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period, but the tokens can't be redelegated until the initial redelegation complete, in ~21 days (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
-
+Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period, but the tokens can't be redelegated until the initial redelegation transaction complete after 21 days (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
 
 To obtains the list of redelegations made from a validator, use the following command:
 
@@ -142,7 +144,7 @@ Similarly, the list of redelegations issued by a delegator can be obtained with 
 fetchcli query staking redelegations fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
-## Query the user rewards
+### Query the user rewards
 
 After having delegated some tokens to a validator, the user is eligible to a share of the rewards the validator collect.
 
@@ -182,7 +184,52 @@ we now get only the reward from this validator:
   amount: "0.000000000000200000"
 ```
 
-## Withdrawing rewards
+## Delegator operations
+
+### Delegating tokens
+
+To delegate `1000000 atestfet` tokens to  the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator from the account `myKey`, the following command can be used:
+
+```bash
+fetchcli tx staking delegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 1000000atestfet --from myKey
+```
+
+This will prompt for confirmation before issuing a transaction. After the transaction get processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
+
+<div class="admonition note">
+  <p class="admonition-title">Note</p>
+  <p>Once delegated, tokens can only be <i>redelegated</i> to another validator, or <i>unbond</i> in order to be returned to their original account. It's important to note that those two operations take <b>21 days to complete</b>, period in which the involved tokens will be unavailable.</p>
+</div>
+
+### Redelegating tokens
+
+Redelegating tokens allows to transfer already delegated tokens from one validator to another.
+
+From the above example where we delegated `1000000 atestfet` to `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w`, we can now redelegate parts or all of those tokens to another validator. For example, we redelegate `400000 atestfet` from `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` to `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu` with the following command:
+
+```bash
+fetchcli tx staking redelegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu 400000atestfet --from myKey
+```
+
+This will prompt for confirmation and issue a new transaction once accepted.
+From here, inspecting the delegations from our account, we'll see that our delegated tokens are now:
+
+- `600000atestfet` to validator `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` (our initial 1000000 minus the 400000 redelegated)
+- `400000atestfet` to validator `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`
+
+Now thoses `400000 atestfet` we redelegated can't be redelegated anymore for 21 days (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). Note that it's still possible to unbond those tokens if needed. 
+
+### Unbonding tokens
+
+At any time, we can transfer parts or all of our delegated tokens back to our account:
+
+```bash
+fetchcli tx staking unbond fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 300000atestfet --from myKey
+```
+
+Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 days period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
+
+### Withdrawing rewards
 
 In order to transfer rewards to the wallet, the following command can be used:
 
@@ -197,3 +244,5 @@ When having delegated tokens to multiple validators, all rewards can be claimed 
 ```bash
 fetchcli tx distribution withdraw-all-rewards --from myKey
 ```
+
+The rewards then appears on the account as soon as the transaction is processed.
