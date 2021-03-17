@@ -3,7 +3,7 @@
 
 ### Determine version number
 
-Ensure you're on master and up to date with the remote, then git desccribe should returns the latest tag:
+Ensure you're on master and up to date with the remote, then git describe should returns the latest tag:
 
 ```bash
 $ git checkout master 
