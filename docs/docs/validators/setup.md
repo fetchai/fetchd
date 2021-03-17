@@ -32,7 +32,7 @@ fetchcli tx staking create-validator \
   --amount=1000000000000000000000atestfet \
   --pubkey=fetchvalconspub1zcjduepqa8ldmfnt6avct9x5h7269jjfmv2l22pnejezz37vh7syajfyku6stlj0s9 \
   --moniker="my-test-validator" \
-  --chain-id=beaconworld-1 \
+  --chain-id=beaconworld-2 \
   --commission-rate="0.10" \
   --commission-max-rate="0.20" \
   --commission-max-change-rate="0.01" \
