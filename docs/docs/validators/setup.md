@@ -9,7 +9,7 @@ To create a validator on the network you will need to send a transaction to the 
 ```bash
 fetchcli tx staking create-validator \
   --amount=<the amount to bond> \
-  --pubkey=$(fetchcli tendermint show-validator) \
+  --pubkey=$(fetchd tendermint show-validator) \
   --moniker="choose a moniker" \
   --chain-id=<chain_id> \
   --commission-rate="0.10" \
@@ -21,9 +21,9 @@ fetchcli tx staking create-validator \
 
 ** Beacon World Example **
 
-In the case of Beaconworld the minimum self delegation amount (the amount of fet that the validator themselves must stake) is 1000TESTFET (i.e. 1000000000000000000000atestfet).
+In the case of Beaconworld the minimum self delegation amount (the amount of FET that the validator themselves must stake) is 1000TESTFET (i.e. 1000000000000000000000atestfet).
 
-Before trying to create a validator you should verify that you have this required minimum number of tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/)
+Before trying to create a validator you should verify that you have this required minimum number of tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/).
 
 Here is an sample of a typical command line command that will register the node as running the validator.
 
@@ -40,11 +40,11 @@ fetchcli tx staking create-validator \
   --from=beaonworld-test-key
 ```
 
-## Editting a validator
+## Editing a validator
 
-Over time it is possible that validators will want to adjust various settings about there nodes. This can simple things like the associated website for a validator or more consequential actions like altering the commision rate.
+Over time it is possible that validators will want to adjust various settings about their nodes. This can be simple things like the associated website for a validator or more consequential actions like altering the commission rate.
 
-In either case, should a validator choose to make this update they would send a "edit-validator" transaction to the network. These can be created in a similar way to the "create-validator" transactions as shown below:
+In either case, should a validator choose to make this update they would send an "edit-validator" transaction to the network. These can be created in a similar way to the "create-validator" transactions as shown below:
 
 ```bash
 fetchcli tx staking edit-validator
@@ -68,7 +68,7 @@ When / if a validator wants to stop being a validator for any reason, they can u
   --from <key name>
 ```
 
-An example of the is command is given in the following example:
+An example of the command is given in the following example:
 
 ```bash
 ./build/fetchcli tx staking unbond \
@@ -79,4 +79,4 @@ An example of the is command is given in the following example:
 
 ** Note **
 
-Validators obligations continue until the end of the aeon (which is typically 100 blocks or ~8 minutes depending on the configuration). It is therefore important that after a validator unbonds there stakes they must leave there node up and running for 2 complete aeons before switching off. Failure to do so is treated as malicious behaviour and will result it stake being slashed.
+Validators' obligations continue until the end of the aeon (which is typically 100 blocks or ~8 minutes depending on the configuration). It is therefore important that after a validator unbonds their stake they must leave their node up and running for 2 complete aeons before switching off. Failure to do so is treated as malicious behaviour and will result in stake being slashed.
