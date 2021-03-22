@@ -37,6 +37,15 @@ else
     sed -i "s/tempmoniker/$MONIKER/g" ~/.fetchd/config/config.toml
     sed -i "s/tempexternal/$P2PADDRESS/g" ~/.fetchd/config/config.toml
 
+    # Genesis usually comes from /root/wasm-temp-config/genesis.json, which is populated from a configmap
+    # Some genesis might not fit there (when over 1MB), so as an alternative, OVERWRITE_GENESIS_URL environment 
+    # can be specified to pull the genesis from the URL it contains.
+    if [ ! -z "${OVERWRITE_GENESIS_URL}" ];
+    then
+        echo "Overwritting genesis.json from ${OVERWRITE_GENESIS_URL}"
+        curl -o ~/.fetchd/config/genesis.json "${OVERWRITE_GENESIS_URL}"
+    fi
+
     ##
     ## Create priv_validator_state.json if it does not exist
     ##
