@@ -33,7 +33,7 @@ jobs:
           requireScope: false
           # Configure additional validation for the subject based on a regex.
           # This example ensures the subject doesn't start with an uppercase character.
-          subjectPattern: ^[a-z\s:\-&()#\d.]+$
+          subjectPattern: ^[a-z]+:\s[A-Za-z\s\-&()#\d._]+$
           # For work-in-progress PRs you can typically use draft pull requests
           # from Github. However, private repositories on the free plan don't have
           # this option and therefore this action allows you to opt-in to using the
