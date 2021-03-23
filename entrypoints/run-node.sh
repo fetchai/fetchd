@@ -28,7 +28,9 @@ else
     VALIDATOR_STATE_DIR="/root/.fetchd/data"
 
     # Copy readonly values from configmap dir to /root/.gaiad/config
-    mkdir -p /root/.fetchd/config
+    if [ ! -d /root/.fetchd/config ]; then
+      mkdir -p /root/.fetchd/config
+    fi
     cp /root/wasm-temp-config/* /root/.fetchd/config/
     cp /root/secret-temp-config/* /root/.fetchd/config/
     chmod 644 /root/.fetchd/config/*
@@ -44,6 +46,10 @@ else
     then
         echo "Overwritting genesis.json from ${OVERWRITE_GENESIS_URL}"
         curl -o ~/.fetchd/config/genesis.json "${OVERWRITE_GENESIS_URL}"
+        if [ $? -ne 0 ]; then
+            echo "failed to download genesis.json"
+            exit 1
+        fi
     fi
 
     ##
