@@ -48,7 +48,7 @@ fetchcli config node <rpc url>
 In the case of the beacon world network this would be as follows:
 
 ```bash
-fetchcli config chain-id beaconworld-2
+fetchcli config chain-id beaconworld-3
 fetchcli config trust-node false
 fetchcli config node https://rpc-beaconworld.fetch.ai:443
 ```
@@ -81,11 +81,11 @@ Less abstractly then, if a user wants to connect to the beacon world test net fo
 
 ```bash
 # init
-fetchd init my-first-fetch-node --chain-id beaconworld-2
+fetchd init my-first-fetch-node --chain-id beaconworld-3
 
 # genesis
 curl https://rpc-beaconworld.fetch.ai/genesis? | jq .result.genesis > ~/.fetchd/config/genesis.json
 
 # start
-fetchd start --p2p.seeds=29478d48b65482f4d627cad034281ebefb6fdc13@connect-beaconworld.fetch.ai:36656
+fetchd start --p2p.seeds=08edefb35e6f4f7baeb27303d438ee3daa2e9ace@connect-beaconworld.fetch.ai:36656
 ```

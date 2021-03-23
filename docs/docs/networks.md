@@ -42,7 +42,7 @@ Beacon World network will be used for onboarding community validators nodes in a
 
 | Parameter      | Value                                                                          |
 | -------------- | ------------------------------------------------------------------------------ |
-| Chain ID       | beaconworld-2                                                                  |
+| Chain ID       | beaconworld-3                                                                  |
 | Denomination   | atestfet                                                                       |
 | Decimals       | 18                                                                             |
 | Version        | v0.5.x (fetchcli >= v0.5.0)                                                    |
@@ -50,4 +50,4 @@ Beacon World network will be used for onboarding community validators nodes in a
 | REST Endpoint  | https://rest-beaconworld.fetch.ai:443                                          |
 | Block Explorer | [https://explore-beaconworld.fetch.ai/](https://explore-beaconworld.fetch.ai/) |
 | Token Faucet   | https://faucet-beaconworld.fetch.ai                                            |
-| Seed Node(s)   | 29478d48b65482f4d627cad034281ebefb6fdc13@connect-beaconworld.fetch.ai:36656    |
+| Seed Node(s)   | 08edefb35e6f4f7baeb27303d438ee3daa2e9ace@connect-beaconworld.fetch.ai:36656    |
