@@ -43,4 +43,25 @@ STOPSIGNAL SIGTERM
 FROM hub as gcr
 
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
-COPY ./entrypoints/run-server.sh /usr/bin/run-server.sh
+COPY ./entrypoints/run-tx-server.sh /usr/bin/run-tx-server.sh
+
+# ##################################
+
+FROM hub as localnet
+
+COPY ./entrypoints/run-localnet.sh /usr/bin/run-localnet.sh
+
+ENTRYPOINT [ "/usr/bin/run-localnet.sh" ]
+
+# ##################################
+
+FROM hub as localnet-setup
+
+RUN apt-get update && apt-get install -y python3
+
+COPY ./entrypoints/run-localnet-setup.py /usr/bin/run-localnet-setup.py
+
+ENV PYTHONUNBUFFERED=1
+
+ENTRYPOINT [ "/usr/bin/run-localnet-setup.py" ]
+CMD []

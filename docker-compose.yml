@@ -1,68 +1,144 @@
-version: '3'
-
+version: "3.9"
 services:
-  fetchdnode0:
-    container_name: fetchdnode0
-    image: "tendermint/fetchdnode"
-    ports:
-      - "26656-26657:26656-26657"
+  setup:
+    build:
+      context: .
+      target: localnet-setup
+
+    restart: "no"
+
     environment:
-      - ID=0
-      - LOG=${LOG:-fetchd.log}
-    volumes:
-      - ./build:/fetchd:Z
-    networks:
-      localnet:
-        ipv4_address: 192.168.10.2
+      NUM_VALIDATORS: 5
+      CHAINID: localnet
 
-  fetchdnode1:
-    container_name: fetchdnode1
-    image: "tendermint/fetchdnode"
-    ports:
-      - "26659-26660:26656-26657"
+    volumes:
+      - "setup-data:/setup"
+
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.1
+
+  node0:
+    build:
+      context: .
+      target: localnet
+
+    restart: always
+
     environment:
-      - ID=1
-      - LOG=${LOG:-fetchd.log}
-    volumes:
-      - ./build:/fetchd:Z
-    networks:
-      localnet:
-        ipv4_address: 192.168.10.3
+      MONIKER: node0
+      CHAINID: localnet
+      MNEMONIC: "boat leave enrich glare into second this model appear owner strong tail perfect fringe best still soup clap betray rigid bleak return minimum goddess"
+      PASSPHRASE: change-me-please
 
-  fetchdnode2:
-    container_name: fetchdnode2
-    image: "tendermint/fetchdnode"
+    volumes:
+      - "setup-data:/setup"
+      - "node0-data:/root/.fetchd"
+
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.2
+
+  node1:
+    build:
+      context: .
+      target: localnet
+
+    restart: always
+
     environment:
-      - ID=2
-      - LOG=${LOG:-fetchd.log}
-    ports:
-      - "26661-26662:26656-26657"
-    volumes:
-      - ./build:/fetchd:Z
-    networks:
-      localnet:
-        ipv4_address: 192.168.10.4
+      MONIKER: node1
+      CHAINID: localnet
+      MNEMONIC: "question ski cancel busy census brush slush scissors ridge usual size fetch tortoise drum relax unlock chapter chapter electric surge arm priority vibrant blue"
+      PASSPHRASE: change-me-please
 
-  fetchdnode3:
-    container_name: fetchdnode3
-    image: "tendermint/fetchdnode"
+    volumes:
+      - "setup-data:/setup"
+      - "node1-data:/root/.fetchd"
+
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.3
+
+  node2:
+    build:
+      context: .
+      target: localnet
+
+    restart: always
+
     environment:
-      - ID=3
-      - LOG=${LOG:-fetchd.log}
-    ports:
-      - "26663-26664:26656-26657"
+      MONIKER: node2
+      CHAINID: localnet
+      MNEMONIC: "advance fatigue arm sentence champion tube half smoke beyond creek toddler blur measure ozone donkey live start address loan advance possible rough famous heavy"
+      PASSPHRASE: change-me-please
+
+    links:
+      - "node0"
+
     volumes:
-      - ./build:/fetchd:Z
-    networks:
-      localnet:
-        ipv4_address: 192.168.10.5
+      - "setup-data:/setup"
+      - "node2-data:/root/.fetchd"
 
-networks:
-  localnet:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-      -
-        subnet: 192.168.10.0/16
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.4
 
+  node3:
+    build:
+      context: .
+      target: localnet
+
+    restart: always
+
+    environment:
+      MONIKER: node3
+      CHAINID: localnet
+      MNEMONIC: "rebel hurdle hill zebra citizen firm season witness speak column success protect front butter outside nature monitor panda airport vague drink soccer lake dragon"
+      PASSPHRASE: change-me-please
+
+    volumes:
+      - "setup-data:/setup"
+      - "node3-data:/root/.fetchd"
+
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.5
+
+  node4:
+    build:
+      context: .
+      target: localnet
+
+    restart: always
+
+    environment:
+      MONIKER: node4
+      CHAINID: localnet
+      MNEMONIC: "crystal cargo useful rice hotel leader mandate rebel subway end chase desk tumble raccoon leisure super kite kiss conduct orphan spread wage when bird"
+      PASSPHRASE: change-me-please
+
+    volumes:
+      - "setup-data:/setup"
+      - "node4-data:/root/.fetchd"
+
+    # networks:
+    #   localnet:
+    #     ipv4_address: 192.168.10.6
+
+
+volumes:
+  setup-data:
+  node0-data:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+
+# networks:
+#   localnet:
+#     driver: bridge
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 192.168.10.0/16
