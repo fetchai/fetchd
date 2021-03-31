@@ -49,7 +49,7 @@ make install
 
 ### Building and testing the project
 
-After installing the reuired dependencies, install golang and execute the following commands:
+After installing the required dependencies, install golang and execute the following commands:
 
 ```
 make install
