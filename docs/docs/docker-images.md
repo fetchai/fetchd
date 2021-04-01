@@ -8,7 +8,8 @@ For every Fetchd release a corresponding docker images is released. The full lis
 
 Current Versions:
 
-* [0.5.2, 0.5](https://github.com/fetchai/fetchd/blob/v0.5.2/Dockerfile) (used for beaconworld test networks)
+* [0.7.2, 0.7](https://github.com/fetchai/fetchd/blob/v0.7.2/Dockerfile) (used for fetchhub mainnetv2 networks)
+* [0.6.4, 0.6](https://github.com/fetchai/fetchd/blob/v0.6.4/Dockerfile) (used for beaconworld test networks)
 * [0.2.7, 0.2](https://github.com/fetchai/fetchd/blob/v0.2.7/Dockerfile) (used for agentworld test networks)
 
 # Quick Reference

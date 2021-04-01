@@ -6,6 +6,16 @@ The command line client provides all of the capabilities for interacting with th
 
 While some users will want to connect a node to the network and sync the entire blockchain, for many however, it is quicker and easier to connect directly to existing publically available nodes.
 
+### Connecting to fetchhub mainnet v2 network
+
+To connect to the mainnet v2 network run the following configuration steps:
+
+```bash
+fetchcli config chain-id fetchhub-1
+fetchcli config trust-node false
+fetchcli config node https://rpc-fetchhub.fetch-ai.com:443
+```
+
 ### Connecting to Agent Land network
 
 To connect to the agent land network run the following configuration steps:
@@ -26,4 +36,4 @@ fetchcli config trust-node false
 fetchcli config node https://rpc-agentworld.prod.fetch-ai.com:443
 ```
 
-Checkout the [Network Information](../networks/) page for more detailed information on the available test networks.
+Checkout the [Network Information](../networks/) page for more detailed information on the available networks.

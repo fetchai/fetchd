@@ -1,6 +1,8 @@
-# Getting Ready for Mainnet V2
+# Mainnet V2 is here
 
-We are hard at work preparing for Fetch mainnet version 2, which is currently due for release in the next few months. But you can get prepared __now__. This documentation covers some of the things you need to know in order to prepare for and develop for this new network:
+Fetchhub, our mainnet v2 is here! You will find all information to setup your client and connect on the [network](./networks/) and [cli-introduction](./cli-introduction/) pages. Previous test networks are still available as well for your tests and experiments.
+
+This documentation covers some of the things you need to know in order to prepare for and develop for this new network:
 
 ## Test Networks
 
@@ -28,4 +30,3 @@ For more detailed information, have a look at our [network](./networks/) informa
 ## Roadmap for Smart Contracts
 
 The v2.0 main-net and our test-nets support a webassembly (WASM) virtual machine VM. When mainnet V2 is released, smart contracts will be developed using Cosmwasm, which will include the ability to develop your contracts in a variety of languages depending on your preferences, such as Rust, Go or Javascript. For more information on Cosmwasm, and Rust, which is the first language to be supported by the Cosmwasm VM, you can go to [https://www.cosmwasm.com/](https://www.cosmwasm.com/) and [https://github.com/CosmWasm/cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template).
-
