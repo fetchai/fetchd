@@ -1,5 +1,22 @@
 # Networks
 
+## Mainnet v2: fetchhub
+
+Fetchhub is our mainnet v2 production network. 
+
+| Parameter      | Value                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID       | fetchhub-1                                                                                 |
+| Denomination   | afet                                                                                       |
+| Decimals       | 18                                                                                         |
+| Version        | v0.7.x (fetchcli >= v0.7.2)                                                                |
+| RPC Endpoint   | https://rpc-fetchhub.fetch-ai.com:443                                                      |
+| REST Endpoint  | https://rest-fetchhub.fetch-ai.com:443                                                     |
+| Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai)                     |
+| Token Faucet   | N/A                                                                                        |
+| Seed Node(s)   | 9f9774d88bb6ff9f43b395baf0e7a4baba27dec6@connect-fetchhub.m-v2-london-c.fetch-ai.com:36856 |
+
+
 ## Agent Land
 
 Agent Land is our stable, public testnet for the Fetch Ledger v2. As such most developers will be interacting with this testnet. This is specifically designed and supported for autonomous economic agent development. There are other testnets, such as those supporting our unique DRB (decentralized random beacon) and other exciting technologies. When we come to the mainnet, all of these testnets will become one: a single network supporting all the new features.
@@ -45,7 +62,7 @@ Beacon World network will be used for onboarding community validators nodes in a
 | Chain ID       | beaconworld-3                                                                  |
 | Denomination   | atestfet                                                                       |
 | Decimals       | 18                                                                             |
-| Version        | v0.5.x (fetchcli >= v0.5.0)                                                    |
+| Version        | v0.5.x (fetchcli >= v0.5.0 and <= 0.6.5)                                       |
 | RPC Endpoint   | https://rpc-beaconworld.fetch.ai:443                                           |
 | REST Endpoint  | https://rest-beaconworld.fetch.ai:443                                          |
 | Block Explorer | [https://explore-beaconworld.fetch.ai/](https://explore-beaconworld.fetch.ai/) |
