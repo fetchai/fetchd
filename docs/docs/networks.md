@@ -50,6 +50,7 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 | REST Endpoint  | https://rest-agentworld.fetch.ai:443                                         |
 | Block Explorer | [https://explore-agentworld.fetch.ai/](https://explore-agentworld.fetch.ai/) |
 | Token Faucet   | n/a                                                                          |
+| Seed Node(s)   | b387f0909e0eac780b8bbe25f04953136b61d0e4@connect-agentworld.prod.fetch-ai.com:26856 |
 
 
 ## **Incentivized Testnet Phase 2: Beacon World**

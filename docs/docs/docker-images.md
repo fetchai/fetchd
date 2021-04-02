@@ -8,9 +8,9 @@ For every Fetchd release a corresponding docker images is released. The full lis
 
 Current Versions:
 
-* [0.7.2, 0.7](https://github.com/fetchai/fetchd/blob/v0.7.2/Dockerfile) (used for fetchhub mainnetv2 networks)
-* [0.6.4, 0.6](https://github.com/fetchai/fetchd/blob/v0.6.4/Dockerfile) (used for beaconworld test networks)
-* [0.2.7, 0.2](https://github.com/fetchai/fetchd/blob/v0.2.7/Dockerfile) (used for agentworld test networks)
+* [fetchhub, 0.7, 0.7.x](https://github.com/fetchai/fetchd/blob/v0.7.2/Dockerfile) (used for fetchhub mainnetv2 networks)
+* [beaconworld, 0.6, 0.6.x](https://github.com/fetchai/fetchd/blob/v0.6.4/Dockerfile) (used for beaconworld test networks)
+* [agentworld, 0.2, 0.2.x](https://github.com/fetchai/fetchd/blob/v0.2.7/Dockerfile) (used for agentworld test networks)
 
 # Quick Reference
 
@@ -24,19 +24,80 @@ Current Versions:
 
 # How to use this image
 
-## Connecting to a test network
+## Starting a node
 
-Connecting a node to the test network is easy. In its simpliest configuration the docker container can be run with just a couple of environment variables as shown below:
+To start a fetchd node on `fetchhub`, simply run:
 
-    docker run -e MONIKER=<insert node name here> -e NETWORK=<network name> fetchai/fetchd:0.5
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    -e MONIKER=<your_moniker> \
+    fetchai/fetchd:fetchhub
+```
 
-However, users will almost certainly want to mount a storage volume into the container so that the node does not need to resync from genesis everytime. This can be done by adding the following volume path:
+Replace `<your_moniker>` with any name of your choice to identify your node on the network.
+The 2 volumes are used to export the fetchd and fetchcli keys, configuration and runtime data out of the container. 
 
-    docker run -e MONIKER=<insert node name here> -e NETWORK=<network name> -v /path/for/data:/root/.fetchd fetchai/fetchd:0.5
+To connect to other networks, simply swap the `fetchai/fetchd:fetchhub` image with `fetchai/fetchd:beaconworld` or `fetchai/fetchd:agentworld`.
 
-For example connecting a node to the beaconworld testnet can be done with the following command:
+## Using fetchcli
 
-    docker run -e MONIKER=my-first-fetch-node -e NETWORK=beaconworld -v $(pwd)/my-first-fetch-node-data:/root/.fetchd fetchai/fetchd:0.5
+You can invoke the fetchcli binary directly by setting the `--entrypoint` parameter:
+
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    --entrypoint fetchcli \
+    fetchai/fetchd:fetchhub <commands>
+```
+
+### Example
+
+List keys: 
+
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    --entrypoint fetchcli \
+    fetchai/fetchd:fetchhub keys list
+```
+
+List validators:
+
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    --entrypoint fetchcli \
+    fetchai/fetchd:fetchhub query staking validators
+```
+
+## Customize fetchd
+
+You can specify additionnal environment variables to connect to a custom network:
+
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    -e MONIKER=<your_moniker> \
+    -e RPC_ENDPOINT=<rpc_endpoint>
+    -e SEEDS=<seed_ids>
+    fetchai/fetchd:fetchhub
+```
+
+Or fine tune the flags passed to `fetchd start`:
+
+```
+docker run \
+    -v $(pwd)/fetchd:/root/.fetchd \
+    -v $(pwd)/fetchcli:/root/.fetchcli \
+    -e MONIKER=<your_moniker> \
+    fetchai/fetchd:fetchhub --p2p.pex --p2p.laddr 0.0.0.0:2665
+```
 
 # License
 

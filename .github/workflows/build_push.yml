@@ -11,15 +11,64 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Login to Docker Hub
+      - name: Set defaults networks based on tag
+        id: defaults
         run: |
-          docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+          case ${GITHUB_REF#refs/*/} in
+            v0.5* | v0.6*)
+                NETWORK=beaconworld
+                SEEDS="08edefb35e6f4f7baeb27303d438ee3daa2e9ace@connect-beaconworld.fetch.ai:36656"
+                RPC_ENDPOINT="https://rpc-beaconworld.fetch.ai:443"
+                LATEST=false
+            ;;
+            v0.2*)
+                NETWORK=agentworld
+                SEEDS="b387f0909e0eac780b8bbe25f04953136b61d0e4@connect-agentworld.prod.fetch-ai.com:26856"
+                RPC_ENDPOINT="https://rpc-agentworld.fetch.ai:443"
+                LATEST=false
+            ;;
+            *)
+                NETWORK=fetchhub
+                SEEDS="9f9774d88bb6ff9f43b395baf0e7a4baba27dec6@connect-fetchhub.m-v2-london-c.fetch-ai.com:36856"
+                RPC_ENDPOINT="https://rpc-fetchhub.fetch-ai.com:443"
+                LATEST=true
+            ;;
+          esac
+          echo ::set-output name=network::${NETWORK}
+          echo ::set-output name=seeds::${SEEDS}
+          echo ::set-output name=rpcendpoint::${RPC_ENDPOINT}
+          echo ::set-output name=latestflavor::${LATEST}
 
-      - name: Build and Publish Public Images
-        uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
         with:
-          repo: fetchai/fetchd
-          target: hub
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Docker meta
+        id: meta
+        uses: crazy-max/ghaction-docker-meta@v2
+        with:
+          images: |
+            ${{ github.repository }}
+          flavor: |
+            latest=${{ steps.defaults.outputs.latestflavor }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.defaults.outputs.network }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: fetchd
+          build-args: |
+            DEFAULT_RPC_ENDPOINT=${{ steps.defaults.outputs.rpcendpoint }}
+            DEFAULT_SEEDS=${{ steps.defaults.outputs.seeds }}
 
       - name: Setup GCloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
