@@ -1,4 +1,4 @@
-module github.com/CosmWasm/wasmd
+module github.com/fetchai/fetchd
 
 go 1.13
 
