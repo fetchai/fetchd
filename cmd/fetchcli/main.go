@@ -24,7 +24,7 @@ import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/CosmWasm/wasmd/app"
+	"github.com/fetchai/fetchd/app"
 )
 
 func main() {

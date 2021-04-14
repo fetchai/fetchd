@@ -63,7 +63,7 @@ ldflags := $(strip $(ldflags))
 BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
 
 # The below include contains the tools target.
-include contrib/devtools/Makefile
+#include contrib/devtools/Makefile
 
 all: install lint test
 
