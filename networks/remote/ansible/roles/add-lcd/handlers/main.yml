@@ -1,9 +1,0 @@
----
-
-- name: systemctl
-  systemd: name=fetchcli enabled=yes daemon_reload=yes
-
-- name: restart fetchcli
-  service: name=fetchcli state=restarted
-
-

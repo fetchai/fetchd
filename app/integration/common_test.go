@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	wasmd "github.com/CosmWasm/wasmd/app"
+	wasmd "github.com/fetchai/fetchd/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
