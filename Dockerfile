@@ -41,6 +41,9 @@ STOPSIGNAL SIGTERM
 
 FROM fetchd as gcr
 
+VOLUME /root/wasm-temp-config
+VOLUME /root/secret-temp-config
+
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
 COPY ./entrypoints/run-tx-server.sh /usr/bin/run-tx-server.sh
 
