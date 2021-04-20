@@ -5,6 +5,7 @@ import sys
 import time
 import shutil
 import subprocess
+import json
 
 
 FETCHD_CONFIG_ROOT = '/root/.fetchd/config'
@@ -51,6 +52,14 @@ def main():
         os.remove(GENESIS_PATH)
     create_genesis(chain_id)
 
+    with open(GENESIS_PATH, 'r+') as f:
+        genesis = json.load(f)
+        genesis["app_state"]["staking"]["params"]["max_validators"] = 10
+        genesis["app_state"]["staking"]["params"]["max_entries"] = 10
+        f.seek(0)
+        json.dump(genesis, f, indent=4)
+        f.truncate()
+
     # collect up the validators identities
     validators = get_validators()
     while len(validators) != num_validators:
@@ -59,7 +68,8 @@ def main():
         validators = get_validators()
 
     for validator in validators:
-        cmd = ['fetchd', 'add-genesis-account', validator, '100000000000000000000stake']
+        cmd = ['fetchd', 'add-genesis-account',
+               validator, '200000000000000000000stake']
         subprocess.check_call(cmd)
 
     # copy the generated genesis file
