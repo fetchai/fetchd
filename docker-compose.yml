@@ -26,7 +26,7 @@ services:
     restart: always
 
     environment:
-      MONIKER: node0
+      MONIKER: seed0
       CHAINID: localnet
       MNEMONIC: "boat leave enrich glare into second this model appear owner strong tail perfect fringe best still soup clap betray rigid bleak return minimum goddess"
       PASSPHRASE: change-me-please

@@ -30,8 +30,10 @@ node_address=$(fetchcli keys show ${MONIKER} -a < passphrase.txt)
 if [ ! -f /setup/genesis.json ]; then
 
 	# create the validator file for the setup script
-	if [ ! -f /setup/${node_address}.validator ]; then
-		touch /setup/${node_address}.validator
+	if [ ${MONIKER} -ne "seed0" ]; then
+		if [ ! -f /setup/${node_address}.validator ]; then
+				touch /setup/${node_address}.validator
+		fi
 	fi
 
 	# publish node addresses
@@ -51,10 +53,12 @@ if [ ! -f /setup/genesis.json ]; then
 	cp /setup/genesis.intermediate.json /root/.fetchd/config/genesis.json
 
 	# generate the tx
-	if [ ! -f "/setup/gentx-${node_address}.json" ]; then
-		fetchd gentx --name ${MONIKER} --output-document /setup/gentx-${node_address}.json < passphrase4.txt
+	if [ ${MONIKER} -ne "seed0" ]; then
+		if [ ! -f "/setup/gentx-${node_address}.json" ]; then
+			fetchd gentx --name ${MONIKER} --output-document /setup/gentx-${node_address}.json < passphrase4.txt
+		fi
 	fi
-
+	
 	# wait for the genesis file to be created
 	while [ ! -f "/setup/genesis.json" ]
 	do
@@ -70,11 +74,21 @@ cp /setup/genesis.json /root/.fetchd/config/genesis.json
 rm -f mnemonic-setup.txt passphrase.txt passphrase4.txt
 
 # build up the arguments
-args="--p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657"
+if [ "${MONIKER}" -eq "seed0" ]; 
+then
+	args="--p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657"
+	args="--p2p.seed_mode"
+else
+	args="--p2p.laddr tcp://127.0.0.1:26656 --rpc.laddr tcp://127.0.0.1:26657"
+	#args="${args} --p2p.persistent_peers=${persistent_peers}"
+	args="--p2p.seeds"
+fi
+
+
 
 # calculate the persistent peers for the network
-persistent_peers=$(ls -1 /setup/*.networkaddr | grep -v ${node_address} | xargs cat | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')
-args="${args} --p2p.persistent_peers=${persistent_peers}"
+#persistent_peers=$(ls -1 /setup/*.networkaddr | grep -v ${node_address} | xargs cat | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')
+#args="${args} --p2p.persistent_peers=${persistent_peers}"
 
 # debug
 echo "Moniker.....: ${MONIKER}"
