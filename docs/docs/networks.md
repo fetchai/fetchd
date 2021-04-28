@@ -16,6 +16,21 @@ Fetchhub is our mainnet v2 production network.
 | Token Faucet   | N/A                                                                                        |
 | Seed Node(s)   | 9f9774d88bb6ff9f43b395baf0e7a4baba27dec6@connect-fetchhub.m-v2-london-c.fetch-ai.com:36856 |
 
+## Testnet v2: fetchhubtest
+
+Fetchhubtest is our testnet v2 production network. 
+
+| Parameter      | Value                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID       | fetchhubtest-1                                                                             |
+| Denomination   | atestfet                                                                                   |
+| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
+| Version        | v0.7.x (fetchcli >= v0.7.2)                                                                |
+| RPC Endpoint   | https://rpc-fetchhubtest.prod.fetch-ai.com                                                 |
+| REST Endpoint  | https://rest-fetchhubtest.prod.fetch-ai.com                                                |
+| Block Explorer | [https://explore-fetchhubtest.prod.fetch-ai.com](https://explore-fetchhubtest.prod.fetch-ai.com) |
+| Token Faucet   | Use block explorer                                                                         |
+| Seed Node(s)   | a750291cadda90e6db0b7b070f577b963d455f43@connect-fetchhubtest.prod.fetch-ai.com:36756      |
 
 ## Agent Land
 
