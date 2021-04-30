@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	crkeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
@@ -187,10 +186,10 @@ func getTransactions(t *testing.T, port string, events ...string) *sdk.SearchTxs
 // ICS 1 - Keys
 // ----------------------------------------------------------------------
 // GET /keys List of accounts stored locally
-func getKeys(t *testing.T, port string) []keys.KeyOutput {
+func getKeys(t *testing.T, port string) []crkeys.KeyOutput {
 	res, body := Request(t, port, "GET", "/keys", nil)
 	require.Equal(t, http.StatusOK, res.StatusCode, body)
-	var m []keys.KeyOutput
+	var m []crkeys.KeyOutput
 	err := cdc.UnmarshalJSON([]byte(body), &m)
 	require.Nil(t, err)
 
@@ -198,7 +197,7 @@ func getKeys(t *testing.T, port string) []keys.KeyOutput {
 }
 
 // POST /keys Create a new account locally
-func doKeysPost(t *testing.T, port, name, password, mnemonic string, account int, index int) keys.KeyOutput {
+func doKeysPost(t *testing.T, port, name, password, mnemonic string, account int, index int) crkeys.KeyOutput {
 	pk := clientkeys.NewAddNewKey(name, password, mnemonic, account, index)
 	req, err := cdc.MarshalJSON(pk)
 	require.NoError(t, err)
@@ -206,7 +205,7 @@ func doKeysPost(t *testing.T, port, name, password, mnemonic string, account int
 	res, body := Request(t, port, "POST", "/keys", req)
 
 	require.Equal(t, http.StatusOK, res.StatusCode, body)
-	var resp keys.KeyOutput
+	var resp crkeys.KeyOutput
 	err = cdc.UnmarshalJSON([]byte(body), &resp)
 	require.Nil(t, err, body)
 

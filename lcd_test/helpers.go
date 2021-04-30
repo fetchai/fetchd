@@ -45,7 +45,7 @@ import (
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmrpc "github.com/tendermint/tendermint/rpc/lib/server"
+	tmrpc "github.com/tendermint/tendermint/rpc/jsonrpc/server"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
@@ -160,11 +160,15 @@ func defaultGenesis(config *tmcfg.Config, nValidators int, initAddrs []sdk.AccAd
 		genAccounts []authexported.GenesisAccount
 	)
 	totalSupply := sdk.ZeroInt()
+	var pubKey crypto.PubKey
 
 	for i := 0; i < nValidators; i++ {
 		operPrivKey := secp256k1.GenPrivKey()
 		operAddr := operPrivKey.PubKey().Address()
-		pubKey := privVal.GetPubKey()
+		pubKey, err = privVal.GetPubKey()
+		if err != nil {
+			return
+		}
 
 		power := int64(100)
 		if i > 0 {
@@ -277,7 +281,7 @@ func defaultGenesis(config *tmcfg.Config, nValidators int, initAddrs []sdk.AccAd
 	crisisDataBz = cdc.MustMarshalJSON(crisisData)
 	genesisState[crisis.ModuleName] = crisisDataBz
 
-	//// double check inflation is set according to the minting boolean flag
+	// double check inflation is set according to the minting boolean flag
 	if minting {
 		if !(mintData.Minter.Inflation.Equal(sdk.MustNewDecFromStr("0.9"))) {
 			err = errors.New("mint parameters does not correspond to their defaults")
@@ -348,7 +352,7 @@ func startLCD(logger log.Logger, listenAddr string, cdc *codec.Codec) (net.Liste
 	if err != nil {
 		return nil, err
 	}
-	go tmrpc.StartHTTPServer(listener, rs.Mux, logger, tmrpc.DefaultConfig()) //nolint:errcheck
+	go tmrpc.Serve(listener, rs.Mux, logger, tmrpc.DefaultConfig()) //nolint:errcheck
 	return listener, nil
 }
 
@@ -469,7 +473,7 @@ func makePathname() (string, error) {
 	}
 
 	sep := string(filepath.Separator)
-	return strings.Replace(p, sep, "_", -1), nil
+	return strings.ReplaceAll(p, sep, "_"), nil
 }
 
 // GetConfig returns a Tendermint config for the test cases.
