@@ -147,7 +147,7 @@ func NewWasmApp(
 	cdc := MakeCodec()
 
 	debug := viper.GetBool(cli.TraceFlag)
-	baseAppOptions = append(baseAppOptions, bam.SetDebug(debug))
+	baseAppOptions = append(baseAppOptions, bam.SetTrace(debug))
 
 	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)

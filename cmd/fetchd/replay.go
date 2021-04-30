@@ -21,7 +21,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/store"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -95,7 +95,7 @@ func replayTxs(rootDir string) error {
 	gapp := app.NewWasmApp(
 		// TODO: do we want to set skipUpgradeHieghts here?
 		ctx.Logger, appDB, traceStoreWriter, true, uint(1), nil,
-		baseapp.SetPruning(store.PruneEverything), // nothing
+		baseapp.SetPruning(storetypes.PruneEverything), // nothing
 	)
 
 	// Genesis
