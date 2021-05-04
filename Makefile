@@ -49,7 +49,6 @@ build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 		  -X github.com/cosmos/cosmos-sdk/version.ServerName=fetchd \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=fetchcli \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -148,9 +147,6 @@ localnet-start: build-linux localnet-stop
 # Stop testnet
 localnet-stop:
 	docker-compose down
-
-# include simulations
-include sims.mk
 
 .PHONY: all build-linux install install-debug \
 	go-mod-cache draw-deps clean build \

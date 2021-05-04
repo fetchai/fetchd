@@ -1,5 +1,6 @@
 #!/bin/bash
-#set -e
+
+set -e
 
 # check the expected environment variable setup
 if [ -z "${MNEMONIC}" ]; then echo "Missing MNEMONIC environment variable"; exit 1; fi
@@ -21,19 +22,17 @@ if [ ! -f "/root/.fetchd/config/genesis.json" ]; then
 fi
 
 # create the key if needed
-fetchcli keys show "${MONIKER}" < passphrase.txt > /dev/null 2>&1 || fetchcli keys add "${MONIKER}" --recover < mnemonic-setup.txt > /dev/null 2>&1
+fetchd keys show "${MONIKER}" < passphrase.txt > /dev/null 2>&1 || fetchd keys add "${MONIKER}" --recover < mnemonic-setup.txt > /dev/null 2>&1
 
 # get the address
-node_address=$(fetchcli keys show ${MONIKER} -a < passphrase.txt)
+node_address=$(fetchd keys show ${MONIKER} -a < passphrase.txt)
 
 # check to see if the final genesis configuration has been made
 if [ ! -f /setup/genesis.json ]; then
 
 	# create the validator file for the setup script
-	if [ ${MONIKER} -ne "seed0" ]; then
-		if [ ! -f /setup/${node_address}.validator ]; then
-				touch /setup/${node_address}.validator
-		fi
+	if [ ! -f "/setup/${node_address}.validator" ]; then
+			touch "/setup/${node_address}.validator"
 	fi
 
 	# publish node addresses
@@ -53,10 +52,8 @@ if [ ! -f /setup/genesis.json ]; then
 	cp /setup/genesis.intermediate.json /root/.fetchd/config/genesis.json
 
 	# generate the tx
-	if [ ${MONIKER} -ne "seed0" ]; then
-		if [ ! -f "/setup/gentx-${node_address}.json" ]; then
-			fetchd gentx --name ${MONIKER} --output-document /setup/gentx-${node_address}.json < passphrase4.txt
-		fi
+	if [ ! -f "/setup/gentx-${node_address}.json" ]; then
+		fetchd gentx ${MONIKER} 1000000000000000000stake --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
 	fi
 	
 	# wait for the genesis file to be created
@@ -74,16 +71,11 @@ cp /setup/genesis.json /root/.fetchd/config/genesis.json
 rm -f mnemonic-setup.txt passphrase.txt passphrase4.txt
 
 # build up the arguments
-if [ "${MONIKER}" -eq "seed0" ]; 
-then
-	args="--p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657"
-	args="--p2p.seed_mode"
-else
-	args="--p2p.laddr tcp://127.0.0.1:26656 --rpc.laddr tcp://127.0.0.1:26657"
-	#args="${args} --p2p.persistent_peers=${persistent_peers}"
-	args="--p2p.seeds"
-fi
+args="--p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657"
 
+# calculate the persistent peers for the network
+persistent_peers=$(ls -1 /setup/*.networkaddr | grep -v ${node_address} | xargs cat | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')
+args="${args} --p2p.persistent_peers=${persistent_peers}"
 
 
 # calculate the persistent peers for the network
