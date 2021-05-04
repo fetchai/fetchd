@@ -118,8 +118,8 @@ github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+ne
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fetchai/cosmos-consensus v0.16.3 h1:c+r5dUUs2uX7qp/6X0SPAbXkIY84WpZhDAn7KoLy7HA=
 github.com/fetchai/cosmos-consensus v0.16.3/go.mod h1:0yUs9eIuuDq07nQql9BmI30FtYGcEC60Tu5JzB5IezM=
-github.com/fetchai/cosmos-sdk v0.16.5-0.20210430122712-ada4ed11f39f h1:wGq7w+BcXjG6/mFiso05suoxguOW0//KLs8anMyMHYY=
-github.com/fetchai/cosmos-sdk v0.16.5-0.20210430122712-ada4ed11f39f/go.mod h1:sjdNvMgke53G6XUzZu5YjsSPepE0MZQo8DUNjC22tzg=
+github.com/fetchai/cosmos-sdk v0.16.5 h1:h42N4evfoUOAahAg3Jgv7W0Bv/4vTfDnRo6S6Ogq0AM=
+github.com/fetchai/cosmos-sdk v0.16.5/go.mod h1:sjdNvMgke53G6XUzZu5YjsSPepE0MZQo8DUNjC22tzg=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVBjqR7JHJk0brhHOZYGmfBYOrK0ZhYMEtBr4=
