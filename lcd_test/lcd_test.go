@@ -497,9 +497,9 @@ func TestBonding(t *testing.T) {
 	require.Equal(t, operAddrs[1], delegatorDels[0].ValidatorAddress)
 
 	// TODO uncomment once all validators actually sign in the lcd tests
-	//validator2 := getValidator(t, port, operAddrs[1])
-	//delTokensAfterRedelegation := validator2.ShareTokens(delegatorDels[0].GetShares())
-	//require.Equal(t, rdTokens.ToDec(), delTokensAfterRedelegation)
+	// validator2 := getValidator(t, port, operAddrs[1])
+	// delTokensAfterRedelegation := validator2.ShareTokens(delegatorDels[0].GetShares())
+	// require.Equal(t, rdTokens.ToDec(), delTokensAfterRedelegation)
 
 	// verify balance after paying fees
 	expectedBalance = expectedBalance.Sub(fees[0])
