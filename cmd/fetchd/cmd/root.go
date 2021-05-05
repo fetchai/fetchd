@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"io"
+	"math/big"
 	"os"
 	"path/filepath"
 
@@ -44,6 +45,8 @@ var ChainID string
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 	// Set config for prefixes
 	app.SetConfig()
+	// Set custom power reduction
+	sdk.PowerReduction = sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
 
 	encodingConfig := app.MakeEncodingConfig()
 	initClientCtx := client.Context{}.
