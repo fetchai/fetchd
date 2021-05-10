@@ -53,7 +53,7 @@ if [ ! -f /setup/genesis.json ]; then
 
 	# generate the tx
 	if [ ! -f "/setup/gentx-${node_address}.json" ]; then
-		fetchd gentx ${MONIKER} 1000000000000000000stake --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
+		fetchd gentx ${MONIKER} 1000000000000000000atestfet --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
 	fi
 	
 	# wait for the genesis file to be created
@@ -76,11 +76,6 @@ args="--p2p.laddr tcp://0.0.0.0:26656 --rpc.laddr tcp://0.0.0.0:26657"
 # calculate the persistent peers for the network
 persistent_peers=$(ls -1 /setup/*.networkaddr | grep -v ${node_address} | xargs cat | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')
 args="${args} --p2p.persistent_peers=${persistent_peers}"
-
-
-# calculate the persistent peers for the network
-#persistent_peers=$(ls -1 /setup/*.networkaddr | grep -v ${node_address} | xargs cat | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')
-#args="${args} --p2p.persistent_peers=${persistent_peers}"
 
 # debug
 echo "Moniker.....: ${MONIKER}"
