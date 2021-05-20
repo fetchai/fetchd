@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+# fetchd seems to start too fast without this sleep
+# and fails with domain resolution error
+sleep 20 
+
 if [ "${MAINTENANCE}" == "true" ];
 then
   echo "Sleeping for 24 hours"
