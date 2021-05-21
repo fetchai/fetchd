@@ -5,9 +5,6 @@ on:
       - master
       - release/*
   pull_request:
-    branches:
-      - master
-      - release/*
 
 jobs:
   build-and-test:
