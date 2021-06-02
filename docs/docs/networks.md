@@ -37,7 +37,7 @@ Fetchhubtest is our testnet v2, running similar versions than our production net
 ## Stargate testnet: stargateworld
 
 A new network, updated with latest patches from the Cosmos ecosystem. It is **not compatible** with the current mainnet version.
-Note that `fetchcli` have disappeared. It's now merged into `fetchd`, for a single binary to either run a node or query the network.
+Note that with this version `fetchcli` has been removed and its functionality has been merged into `fetchd`. This means that with this version you will only need the single `fetchd` binary to either run a node or query the network.
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
