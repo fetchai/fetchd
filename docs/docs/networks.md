@@ -18,24 +18,46 @@ Fetchhub is our mainnet v2 production network.
 
 ## Testnet v2: fetchhubtest
 
-Fetchhubtest is our testnet v2 production network. 
+Fetchhubtest is our testnet v2, running similar versions than our production network. 
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Chain ID       | fetchhubtest-1                                                                             |
+| Chain ID       | fetchhubtest-2                                                                             |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
 | Version        | v0.7.x (fetchcli >= v0.7.2)                                                                |
-| RPC Endpoint   | https://rpc-fetchhubtest.prod.fetch-ai.com                                                 |
-| REST Endpoint  | https://rest-fetchhubtest.prod.fetch-ai.com                                                |
-| Block Explorer | [https://explore-fetchhubtest.prod.fetch-ai.com](https://explore-fetchhubtest.prod.fetch-ai.com) |
+| RPC Endpoint   | https://rpc-fetchhubtest.fetch.ai:443                                                      |
+| REST Endpoint  | https://rest-fetchhubtest.fetch.ai:443                                                     |
+| Block Explorer | [https://explore-fetchhubtest.fetch.ai/](https://explore-fetchhubtest.fetch.ai/)           |
 | Token Faucet   | Use block explorer                                                                         |
-| Seed Node(s)   | a750291cadda90e6db0b7b070f577b963d455f43@connect-fetchhubtest.prod.fetch-ai.com:36756      |
+| Seed Node(s)   | 06da15abb82328a2fa7ba8b69925cf3fa73f1970@connect-fetchhubtest.t-v2-london-c.fetch-ai.com:36756 |
+
+# Upcomming networks
+
+## Stargate testnet: stargateworld
+
+A new network, updated with latest patches from the Cosmos ecosystem. It is **not compatible** with the current mainnet version.
+Note that with this version `fetchcli` has been removed and its functionality has been merged into `fetchd`. This means that with this version you will only need the single `fetchd` binary to either run a node or query the network.
+
+| Parameter      | Value                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID       | stargateworld-1                                                                            |
+| Denomination   | atestfet                                                                                   |
+| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
+| Version        | v0.8.x (fetchd >= v0.8.0-rc5)                                                              |
+| RPC Endpoint   | https://rpc-stargateworld.fetch.ai:443                                                     |
+| REST Endpoint  | https://rest-stargateworld.fetch.ai:443                                                    |
+| Block Explorer | [https://explore-stargateworld.fetch.ai/](https://explore-stargateworld.fetch.ai/)         |
+| Token Faucet   | Use block explorer                                                                         |
+| Seed Node(s)   | 0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.t-v2-london-c.fetch-ai.com:36656 |
+
+# Deprecated networks
+
+These networks are still up and kept for backward compatibility until everything is migrated off from them.
 
 ## Agent Land
 
 Agent Land is our stable, public testnet for the Fetch Ledger v2. As such most developers will be interacting with this testnet. This is specifically designed and supported for autonomous economic agent development. There are other testnets, such as those supporting our unique DRB (decentralized random beacon) and other exciting technologies. When we come to the mainnet, all of these testnets will become one: a single network supporting all the new features.
-
 
 | Parameter      | Value                                                                      |
 | -------------- | -------------------------------------------------------------------------- |
@@ -54,7 +76,6 @@ You can read more detailed information on [Github](https://github.com/fetchai/ne
 
 The Agent World incentivized test network is phase 1 of our journey to Mainnet v2. Check out the [Incentivised Testnets](../../i_nets/) for more information.
 
-
 | Parameter      | Value                                                                        |
 | -------------- | ---------------------------------------------------------------------------- |
 | Chain ID       | agentworld-1                                                                 |
@@ -65,21 +86,3 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 | REST Endpoint  | https://rest-agentworld.fetch.ai:443                                         |
 | Block Explorer | [https://explore-agentworld.fetch.ai/](https://explore-agentworld.fetch.ai/) |
 | Token Faucet   | n/a                                                                          |
-
-
-## **Incentivized Testnet Phase 2: Beacon World**
-
-
-Beacon World network will be used for onboarding community validators nodes in a build up for the upcoming main network launch.
-
-| Parameter      | Value                                                                          |
-| -------------- | ------------------------------------------------------------------------------ |
-| Chain ID       | beaconworld-3                                                                  |
-| Denomination   | atestfet                                                                       |
-| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                    |
-| Version        | v0.5.x (fetchcli >= v0.5.0 and <= 0.6.5)                                       |
-| RPC Endpoint   | https://rpc-beaconworld.fetch.ai:443                                           |
-| REST Endpoint  | https://rest-beaconworld.fetch.ai:443                                          |
-| Block Explorer | [https://explore-beaconworld.fetch.ai/](https://explore-beaconworld.fetch.ai/) |
-| Token Faucet   | https://faucet-beaconworld.fetch.ai                                            |
-| Seed Node(s)   | 08edefb35e6f4f7baeb27303d438ee3daa2e9ace@connect-beaconworld.fetch.ai:36656    |
