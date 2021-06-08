@@ -1,4 +1,4 @@
-FROM golang:1.15-buster as builder
+FROM golang:1.16-buster as builder
 
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
