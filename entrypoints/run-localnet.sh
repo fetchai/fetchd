@@ -15,6 +15,9 @@ echo -e "${MNEMONIC}\n${PASSPHRASE}\n${PASSPHRASE}\n" > mnemonic-setup.txt
 echo -e "${PASSPHRASE}\n" > passphrase.txt
 echo -e "${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n" > passphrase4.txt
 
+fetchd config chain-id "${CHAINID}"
+fetchd config keyring-backend test
+
 # setup the node with a default genesis
 if [ ! -f "/root/.fetchd/config/genesis.json" ]; then
 	echo 'Generating genesis file...'
