@@ -33,7 +33,6 @@ fetchd config chain-id stargateworld-1
 fetchd config node https://rpc-stargateworld.fetch.ai:443
 ```
   
-# now the following will still work the same as above:
 
 ```bash
 fetchd query staking validators 
