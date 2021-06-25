@@ -19,41 +19,33 @@ fetchd version
 ### Configuring the client fetchd
 In general to configure the CLI to point at a given network it needs as a minimum the following configuration values
 
-
+```bash
 fetchd config chain-id <chain-id>
 fetchd config node <rpc url>
-
+```
   
 ### Stargate example
 
 In the case of the Stargate network this would be as follows:
 
-
+```bash
 fetchd config chain-id stargateworld-1
 fetchd config node https://rpc-stargateworld.fetch.ai:443
+```
   
-This config command avoids having to provide these flags on every other command
-ie without config:
-
-fetchd query staking validators --node https://rpc-stargateworld.fetch.ai:443 --chain-id stargateworld-1 
-fetchd tx bank send account1 account2 1atestfet --node https://rpc-stargateworld.fetch.ai:443 --chain-id stargateworld-1
-  
-  
-And now with config:
-
-fetchd config node https://rpc-stargateworld.fetch.ai:443
-fetchd config chain-id stargateworld-1
-
 # now the following will still work the same as above:
 
+```bash
 fetchd query staking validators 
 fetchd tx bank send account1 account2 1atestfet 
+```
+
 And few extra bits:
 
+```bash
 fetchd config # display current config
 cat ~/.fetchd/config/client.toml # this is the file where the config is written
-
-
+```
 
 
 ### Configuring the server `fetchd`
