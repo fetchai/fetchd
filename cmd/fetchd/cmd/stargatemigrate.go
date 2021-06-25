@@ -24,13 +24,14 @@ import (
 
 const flagGenesisTime = "genesis-time"
 const flagConsensusEvidenceMaxBytes = "consensus-evidence-max-bytes"
+const flagInitialHeight = "initial-height"
 
 // AddStargateMigrateCmd returns a command to migrate genesis to stargate version.
 func AddStargateMigrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stargate-migrate [genesis-file]",
-		Short: "Migrate fetch.ai mainnet genesis to the stargate Cosmos SDK version",
-		Long: `Set the consensus.params.evidence.max_bytes value to 150Kb,
+		Short: "Migrate fetchAI mainnet genesis to the stargate Cosmos SDK version",
+		Long: `Override the consensus.params.evidence.max_bytes value, set the new genesis_time, chain_id and initial_height,
 removes multisig public keys that fail to decode, reset wasm module to its genesis state (as existing contracts are not backward compatible),
 and then migrate the given genesis to version v0.39, and then v0.40 of the cosmos-sdk.`,
 		Args: cobra.ExactArgs(1),
@@ -49,6 +50,12 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 				return fmt.Errorf("failed to retrieve flag %q: %w", flagConsensusEvidenceMaxBytes, err)
 			}
 			genDoc.ConsensusParams.Evidence.MaxBytes = maxBytes
+
+			initialHeight, err := cmd.Flags().GetInt64(flagInitialHeight)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagInitialHeight, err)
+			}
+			genDoc.InitialHeight = initialHeight
 
 			var v038GenState types.AppMap
 			if err := json.Unmarshal(genDoc.AppState, &v038GenState); err != nil {
@@ -143,6 +150,7 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 	}
 
 	cmd.Flags().String(flagGenesisTime, "", "override genesis_time with this flag")
+	cmd.Flags().Int64(flagInitialHeight, 0, "override initial_height with this flag")
 	cmd.Flags().Int64(flagConsensusEvidenceMaxBytes, 150000, "override consensus.evidence.max_bytes with this flag")
 	cmd.Flags().String(flags.FlagChainID, "", "override chain_id with this flag")
 
