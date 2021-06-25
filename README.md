@@ -22,10 +22,9 @@ binary for `muslc`. (Or just use this Dockerfile for your production setup).
 
 ### Pre Requisites for Ubuntu / Debian
 
-```
-# Ubuntu/Debian based linux distro dependencies
-apt install swig libboost-all-dev libgmp-dev
+# Download and install the MCL libraries
 
+```
 cd ~/Downloads
 wget https://github.com/herumi/mcl/archive/v1.05.tar.gz
 tar xvf v1.05.tar.gz
@@ -37,9 +36,6 @@ ldconfig
 ### Pre Requisites for MacOS
 
 ```
-# OS X dependencies
-brew install swig boost gmp
-
 cd ~/Downloads
 wget https://github.com/herumi/mcl/archive/v1.05.tar.gz
 tar xvf v1.05.tar.gz
@@ -68,5 +64,5 @@ The easiest way to get started with a simple network is to run the [docker-compo
 2. [Documenation](https://docs.fetch.ai/ledger_v2/)
 3. [Discord Server](https://discord.gg/UDzpBFa)
 4. [Blog](https://fetch.ai/blog)
-5. [Community Website](https://community.fetch.ai/)
+5. [Community Website](https://community.fetch.ai/) 
 6. [Community Telegram Group](https://t.me/fetch_ai)
