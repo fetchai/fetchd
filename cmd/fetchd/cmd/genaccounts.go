@@ -48,11 +48,6 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 
 			config.SetRoot(clientCtx.HomeDir)
 
-			coins, err := sdk.ParseCoinsNormalized(args[1])
-			if err != nil {
-				return fmt.Errorf("failed to parse coins: %w", err)
-			}
-
 			addr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -73,6 +68,11 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				}
 
 				addr = info.GetAddress()
+			}
+
+			coins, err := sdk.ParseCoinsNormalized(args[1])
+			if err != nil {
+				return fmt.Errorf("failed to parse coins: %w", err)
 			}
 
 			vestingStart, err := cmd.Flags().GetInt64(flagVestingStart)
@@ -163,6 +163,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			bankGenState := banktypes.GetGenesisStateFromAppState(depCdc, appState)
 			bankGenState.Balances = append(bankGenState.Balances, balances)
 			bankGenState.Balances = banktypes.SanitizeGenesisBalances(bankGenState.Balances)
+			bankGenState.Supply = bankGenState.Supply.Add(balances.Coins...)
 
 			bankGenStateBz, err := cdc.MarshalJSON(bankGenState)
 			if err != nil {
@@ -181,8 +182,8 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 		},
 	}
 
-	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	cmd.Flags().String(flagVestingAmt, "", "amount of coins for vesting accounts")
 	cmd.Flags().Int64(flagVestingStart, 0, "schedule start time (unix epoch) for vesting accounts")
 	cmd.Flags().Int64(flagVestingEnd, 0, "schedule end time (unix epoch) for vesting accounts")
