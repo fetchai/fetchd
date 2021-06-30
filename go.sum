@@ -155,8 +155,8 @@ github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+ne
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fetchai/cosmos-sdk v0.16.6-0.20210618154541-2685be5ca835 h1:I8KA+AthzhFZzE8XdsreC9GL62snAEhJz92ckmh5tfI=
-github.com/fetchai/cosmos-sdk v0.16.6-0.20210618154541-2685be5ca835/go.mod h1:3JyT+Ud7QRTO1/ikncNqVhaF526ZKNqh2HGMqXn+QHE=
+github.com/fetchai/cosmos-sdk v0.16.6-0.20210630084815-8baea8e357b9 h1:swpGUSAw3xNdah0mLioW+uy+uGCpfttH6Uwy0q0pia0=
+github.com/fetchai/cosmos-sdk v0.16.6-0.20210630084815-8baea8e357b9/go.mod h1:6JvcPd4leHHexuIY+4lF6ywfgfhqZxOGsqJAPVzfoAE=
 github.com/fetchai/tendermint v1.0.0 h1:O88hdRfO1BZn0J5+ifcAGjIm89PGdZj6uSXMhzjsECc=
 github.com/fetchai/tendermint v1.0.0/go.mod h1:aeHL7alPh4uTBIJQ8mgFEE8VwJLXI1VD3rVOmH2Mcy0=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
