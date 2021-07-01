@@ -1,5 +1,6 @@
 #!/bin/bash
-#set -e
+
+set -e
 
 # check the expected environment variable setup
 if [ -z "${MNEMONIC}" ]; then echo "Missing MNEMONIC environment variable"; exit 1; fi
@@ -14,6 +15,9 @@ echo -e "${MNEMONIC}\n${PASSPHRASE}\n${PASSPHRASE}\n" > mnemonic-setup.txt
 echo -e "${PASSPHRASE}\n" > passphrase.txt
 echo -e "${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n" > passphrase4.txt
 
+fetchd config chain-id "${CHAINID}"
+fetchd config keyring-backend test
+
 # setup the node with a default genesis
 if [ ! -f "/root/.fetchd/config/genesis.json" ]; then
 	echo 'Generating genesis file...'
@@ -21,17 +25,17 @@ if [ ! -f "/root/.fetchd/config/genesis.json" ]; then
 fi
 
 # create the key if needed
-fetchcli keys show "${MONIKER}" < passphrase.txt > /dev/null 2>&1 || fetchcli keys add "${MONIKER}" --recover < mnemonic-setup.txt > /dev/null 2>&1
+fetchd keys show "${MONIKER}" < passphrase.txt > /dev/null 2>&1 || fetchd keys add "${MONIKER}" --recover < mnemonic-setup.txt > /dev/null 2>&1
 
 # get the address
-node_address=$(fetchcli keys show ${MONIKER} -a < passphrase.txt)
+node_address=$(fetchd keys show ${MONIKER} -a < passphrase.txt)
 
 # check to see if the final genesis configuration has been made
 if [ ! -f /setup/genesis.json ]; then
 
 	# create the validator file for the setup script
-	if [ ! -f /setup/${node_address}.validator ]; then
-		touch /setup/${node_address}.validator
+	if [ ! -f "/setup/${node_address}.validator" ]; then
+			touch "/setup/${node_address}.validator"
 	fi
 
 	# publish node addresses
@@ -52,9 +56,9 @@ if [ ! -f /setup/genesis.json ]; then
 
 	# generate the tx
 	if [ ! -f "/setup/gentx-${node_address}.json" ]; then
-		fetchd gentx --name ${MONIKER} --output-document /setup/gentx-${node_address}.json < passphrase4.txt
+		fetchd gentx ${MONIKER} 1000000000000000000atestfet --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
 	fi
-
+	
 	# wait for the genesis file to be created
 	while [ ! -f "/setup/genesis.json" ]
 	do

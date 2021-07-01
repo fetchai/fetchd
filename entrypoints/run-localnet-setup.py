@@ -5,8 +5,9 @@ import sys
 import time
 import shutil
 import subprocess
+import json
 
-
+DENOM = 'atestfet'
 FETCHD_CONFIG_ROOT = '/root/.fetchd/config'
 GENESIS_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'genesis.json')
 GENTX_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'gentx')
@@ -15,7 +16,8 @@ GENTX_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'gentx')
 def create_genesis(chain_id: str):
     cmd = ['fetchd', 'init', 'setup-node', '--chain-id', chain_id]
     subprocess.check_call(cmd)
-
+    replace_denom_cmd = ['sed', '-i', 's/stake/'+DENOM+'/g', GENESIS_PATH]
+    subprocess.check_call(replace_denom_cmd)
 
 def get_validators():
     validators = set()
@@ -51,6 +53,14 @@ def main():
         os.remove(GENESIS_PATH)
     create_genesis(chain_id)
 
+    with open(GENESIS_PATH, 'r+') as f:
+        genesis = json.load(f)
+        genesis["app_state"]["staking"]["params"]["max_validators"] = 10
+        genesis["app_state"]["staking"]["params"]["max_entries"] = 10
+        f.seek(0)
+        json.dump(genesis, f, indent=4)
+        f.truncate()
+
     # collect up the validators identities
     validators = get_validators()
     while len(validators) != num_validators:
@@ -59,7 +69,8 @@ def main():
         validators = get_validators()
 
     for validator in validators:
-        cmd = ['fetchd', 'add-genesis-account', validator, '100000000000000000000stake']
+        cmd = ['fetchd', 'add-genesis-account',
+               validator, '200000000000000000000atestfet']
         subprocess.check_call(cmd)
 
     # copy the generated genesis file

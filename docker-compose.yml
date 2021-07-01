@@ -8,7 +8,7 @@ services:
     restart: "no"
 
     environment:
-      NUM_VALIDATORS: 5
+      NUM_VALIDATORS: 3
       CHAINID: localnet
 
     volumes:
@@ -84,56 +84,12 @@ services:
     #   localnet:
     #     ipv4_address: 192.168.10.4
 
-  node3:
-    build:
-      context: .
-      target: localnet
-
-    restart: always
-
-    environment:
-      MONIKER: node3
-      CHAINID: localnet
-      MNEMONIC: "rebel hurdle hill zebra citizen firm season witness speak column success protect front butter outside nature monitor panda airport vague drink soccer lake dragon"
-      PASSPHRASE: change-me-please
-
-    volumes:
-      - "setup-data:/setup"
-      - "node3-data:/root/.fetchd"
-
-    # networks:
-    #   localnet:
-    #     ipv4_address: 192.168.10.5
-
-  node4:
-    build:
-      context: .
-      target: localnet
-
-    restart: always
-
-    environment:
-      MONIKER: node4
-      CHAINID: localnet
-      MNEMONIC: "crystal cargo useful rice hotel leader mandate rebel subway end chase desk tumble raccoon leisure super kite kiss conduct orphan spread wage when bird"
-      PASSPHRASE: change-me-please
-
-    volumes:
-      - "setup-data:/setup"
-      - "node4-data:/root/.fetchd"
-
-    # networks:
-    #   localnet:
-    #     ipv4_address: 192.168.10.6
-
 
 volumes:
   setup-data:
   node0-data:
   node1-data:
   node2-data:
-  node3-data:
-  node4-data:
 
 # networks:
 #   localnet:

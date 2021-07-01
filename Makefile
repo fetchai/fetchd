@@ -49,7 +49,6 @@ build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 		  -X github.com/cosmos/cosmos-sdk/version.ServerName=fetchd \
-		  -X github.com/cosmos/cosmos-sdk/version.ClientName=fetchcli \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
@@ -65,15 +64,13 @@ BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
 # The below include contains the tools target.
 #include contrib/devtools/Makefile
 
-all: install lint test
+all: install test
 
 build: go.sum
 ifeq ($(OS),Windows_NT)
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd.exe ./cmd/fetchd
-	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchcli.exe ./cmd/fetchcli
 else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
-	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchcli ./cmd/fetchcli
 endif
 
 build-linux: go.sum
@@ -88,7 +85,6 @@ endif
 
 install: go.sum
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchd
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchcli
 
 ########################################
 ### Tools & dependencies
@@ -116,7 +112,7 @@ distclean: clean
 ### Testing
 
 
-test: test-unit test-build
+test: test-unit 
 test-all: check test-race test-cover
 
 test-unit:
@@ -127,15 +123,6 @@ test-race:
 
 test-cover:
 	@go test -mod=readonly -timeout 30m -race -coverprofile=coverage.txt -covermode=atomic -tags='ledger test_ledger_mock' ./...
-
-test-build: build
-	@go test -mod=readonly -p 4 `go list ./cli_test/...` -tags=cli_test -v
-
-
-lint: golangci-lint
-	golangci-lint run
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -d -s
-	go mod verify
 
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
@@ -161,33 +148,6 @@ localnet-start: build-linux localnet-stop
 localnet-stop:
 	docker-compose down
 
-setup-contract-tests-data:
-	echo 'Prepare data for the contract tests'
-	rm -rf /tmp/contract_tests ; \
-	mkdir /tmp/contract_tests ; \
-	cp "${GOPATH}/pkg/mod/${SDK_PACK}/client/lcd/swagger-ui/swagger.yaml" /tmp/contract_tests/swagger.yaml ; \
-	./build/fetchd init --home /tmp/contract_tests/.fetchd --chain-id lcd contract-tests ; \
-	tar -xzf lcd_test/testdata/state.tar.gz -C /tmp/contract_tests/
-
-start-gaia: setup-contract-tests-data
-	./build/fetchd --home /tmp/contract_tests/.fetchd start &
-	@sleep 2s
-
-setup-transactions: start-gaia
-	@bash ./lcd_test/testdata/setup.sh
-
-run-lcd-contract-tests:
-	@echo "Running Gaia LCD for contract tests"
-	./build/fetchcli rest-server --laddr tcp://0.0.0.0:8080 --home /tmp/contract_tests/.fetchcli --node http://localhost:26657 --chain-id lcd --trust-node true
-
-contract-tests: setup-transactions
-	@echo "Running Gaia LCD for contract tests"
-	dredd && pkill fetchd
-
-# include simulations
-include sims.mk
-
 .PHONY: all build-linux install install-debug \
 	go-mod-cache draw-deps clean build \
-	setup-transactions setup-contract-tests-data start-gaia run-lcd-contract-tests contract-tests \
-	test test-all test-build test-cover test-unit test-race
+	test test-all test-cover test-unit test-race

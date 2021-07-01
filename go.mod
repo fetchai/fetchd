@@ -1,24 +1,23 @@
 module github.com/fetchai/fetchd
 
-go 1.13
+go 1.16
 
 require (
-	github.com/CosmWasm/wasmd v0.9.1
-	github.com/cosmos/cosmos-sdk v0.38.3
-	github.com/otiai10/copy v1.0.2
-	github.com/pkg/errors v0.9.1
-	github.com/snikch/goodman v0.0.0-20171125024755-10e37e294daa
-	github.com/spf13/cobra v1.0.0
-	github.com/spf13/viper v1.6.3
-	github.com/stretchr/testify v1.5.1
-	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/tendermint v0.33.9
-	github.com/tendermint/tm-db v0.5.1
+	github.com/CosmWasm/wasmd v0.16.0
+	github.com/cosmos/cosmos-sdk v0.42.5
+	github.com/prometheus/client_golang v1.10.0
+	github.com/spf13/cast v1.3.1
+	github.com/spf13/cobra v1.1.3
+	github.com/tendermint/tendermint v0.34.10
+	github.com/tendermint/tm-db v0.6.4
 )
 
-replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
+// fix for "invalid Go type types.Dec for field ..." errors
+// see: https://github.com/cosmos/cosmos-sdk/issues/8426
+replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
-// this include a few extra debug helpers on top of cosmos v0.38.3 but original also works fine
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.16.5
+replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/tendermint/tendermint => github.com/fetchai/cosmos-consensus v0.16.3
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.16.6-0.20210630084815-8baea8e357b9
+
+replace github.com/tendermint/tendermint => github.com/fetchai/tendermint v1.0.0
