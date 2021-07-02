@@ -9,7 +9,7 @@ theme:
   feature:
     tabs: true
 
-strict: true
+strict: false
 
 nav:
   - Introduction: 'index.md'
@@ -19,6 +19,7 @@ nav:
   - Commandline Client:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'
+    - Multisig Keys: 'cli-multisig.md'
     - Tokens: 'cli-tokens.md'
     - Delegator Guide: 'delegator-guide-cli.md'
   - Validators:
@@ -32,7 +33,6 @@ nav:
   - Governance: 'governance.md'
   - Docker Images: 'docker-images.md'
   - Faucet: 'faucet.md'
-  - Python Examples: 'python-examples.md'
 
 extra_css:
   - css/my-styles.css
