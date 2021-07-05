@@ -36,7 +36,7 @@ which fetchd
 
 This should return a path such as `/go/bin/fetchd` (might be different depending on your actual go installation).
 
-> If you get an error such as `which: no fetchd in ...`, this mean either fetchd haven't been built properly or that your go binary folder is not in your `PATH`. Check the installation guide again.
+> If you get an error such as `which: no fetchd in ...`, this means either fetchd haven't been built properly or that your go binary folder is not in your `PATH`. Check the installation guide again.
 
 You can also verify that you are running the correct version 
 
