@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,6 +17,15 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
+
+// minAmount defines a minimum amount required to add a delegation.
+// It's set to 2FET as 1FET will be left on the account to allow paying for tx fees
+// for redelegating / unstaking or any other operation. Excess amount will be
+// added as a delegation on the specified validator.
+var minAmount = sdk.NewCoin("afet", sdk.NewInt(2000000000000000000))
+
+const defaultBondDenom = "afet"
+const flagBondDenom = "bond-denom"
 
 // AddGenesisDelegationCmd returns a command to add delegations to genesis.
 func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
@@ -46,10 +54,26 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to parse bech32 validator address: %w", err)
 			}
 
-			amount, err := sdk.ParseCoinNormalized(args[2])
+			totalAmount, err := sdk.ParseCoinNormalized(args[2])
 			if err != nil {
 				return fmt.Errorf("failed to parse amount: %w", err)
 			}
+
+			if totalAmount.IsLT(minAmount) {
+				return fmt.Errorf("amount must be greater or equal than %s", minAmount)
+			}
+
+			bondDenom, err := cmd.Flags().GetString(flagBondDenom)
+			if err != nil {
+				return fmt.Errorf("failed to get flag %q: %w", flagBondDenom, err)
+			}
+
+			if totalAmount.Denom != bondDenom {
+				return fmt.Errorf("invalid amount denom, expected %q, got %q", bondDenom, totalAmount.Denom)
+			}
+
+			accountAmount := sdk.NewCoin(totalAmount.Denom, sdk.NewInt(1000000000000000000))
+			delegatedAmount := totalAmount.Sub(accountAmount)
 
 			genFile := config.GenesisFile()
 			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -70,7 +94,6 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 			if !accs.Contains(addr) {
 				accs = append(accs, authtypes.NewBaseAccount(addr, nil, 0, 0))
 				accs = authtypes.SanitizeGenesisAccounts(accs)
-
 			}
 
 			genAccs, err := authtypes.PackAccounts(accs)
@@ -88,7 +111,7 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 			// update staking
 
 			stakingState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
-			shares := sdk.Dec(amount.Amount.Mul(sdk.PowerReduction))
+			shares := sdk.Dec(delegatedAmount.Amount.Mul(sdk.PowerReduction))
 
 			var currentDelegation *stakingtypes.Delegation
 			// check if this delegation already exists
@@ -123,7 +146,7 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 			}
 
 			currentValidator.DelegatorShares = currentValidator.DelegatorShares.Add(shares)
-			currentValidator.Tokens = currentValidator.Tokens.Add(amount.Amount)
+			currentValidator.Tokens = currentValidator.Tokens.Add(delegatedAmount.Amount)
 
 			stakingStateBz, err := cdc.MarshalJSON(stakingState)
 			if err != nil {
@@ -215,7 +238,7 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 				)
 			}
 
-			currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(currentValidator.Tokens.Sub(amount.Amount).ToDec())
+			currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(currentValidator.Tokens.Sub(delegatedAmount.Amount).ToDec())
 			newRatio := lastHistoricalRecord.Rewards.CumulativeRewardRatio.Add(currentRatio...)
 
 			distributionState.ValidatorHistoricalRewards = append(distributionState.ValidatorHistoricalRewards, distributiontypes.ValidatorHistoricalRewardsRecord{
@@ -238,20 +261,33 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 
 			// increment bonded pool account
 			successUpdatingBondedPool := false
+			updatedUserBank := false
 			bondedPoolAddr := authtypes.NewModuleAddress(stakingtypes.BondedPoolName)
 			for i, balance := range bankState.Balances {
-				if balance.Address == bondedPoolAddr.String() {
-					bankState.Balances[i].Coins = bankState.Balances[i].Coins.Add(amount)
+				switch balance.Address {
+				case bondedPoolAddr.String():
+					// add delegatedAmount to the bondedPool balance
+					bankState.Balances[i].Coins = bankState.Balances[i].Coins.Add(delegatedAmount)
 					successUpdatingBondedPool = true
-					break
+				case addr.String():
+					bankState.Balances[i].GetCoins().Add(accountAmount)
+					updatedUserBank = true
 				}
 			}
 			if !successUpdatingBondedPool {
 				return fmt.Errorf("failed to update bonded pool balance: cannot find account %q", bondedPoolAddr.String())
 			}
 
-			// increment total supply
-			bankState.Supply = bankState.Supply.Add(amount)
+			// user might not have a balance entry, so we can create it with the accountAmount balance
+			if !updatedUserBank {
+				bankState.Balances = append(bankState.Balances, banktypes.Balance{
+					Address: addr.String(),
+					Coins:   sdk.NewCoins(accountAmount),
+				})
+			}
+
+			// increment total supply by the total amount of new tokens
+			bankState.Supply = bankState.Supply.Add(totalAmount)
 
 			bankStateBz, err := cdc.MarshalJSON(bankState)
 			if err != nil {
@@ -270,7 +306,7 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
+	cmd.Flags().String(flagBondDenom, defaultBondDenom, "The bonding token denomination")
 
 	return cmd
 }
