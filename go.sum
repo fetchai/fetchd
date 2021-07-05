@@ -142,8 +142,6 @@ github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5m
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
-github.com/ejfitzgerald/cosmos-sdk v0.6.1-0.20210705102815-e3460985a74d h1:hOPPu5h3NWhHKOJJCJlGj4HpHfXkalEDEKBVN3Nzwmg=
-github.com/ejfitzgerald/cosmos-sdk v0.6.1-0.20210705102815-e3460985a74d/go.mod h1:zw5/pDukcWMZzwgvmwhqGighCFPmE9zkJ074UDfHdrg=
 github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25 h1:2vLKys4RBU4pn2T/hjXMbvwTr1Cvy5THHrQkbeY9HRk=
 github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25/go.mod h1:hTr8+TLQmkUkgcuh3mcr5fjrT9c64ZzsBCdCEC6UppY=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
@@ -157,6 +155,8 @@ github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870/go.mod h1:5tD+ne
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+github.com/fetchai/cosmos-sdk v0.17.2-0.20210705155714-a59a3d4770dc h1:12c+76YExgPiRqP08Np6ERsNwzLyjUQHj8WpQ5btUNM=
+github.com/fetchai/cosmos-sdk v0.17.2-0.20210705155714-a59a3d4770dc/go.mod h1:zw5/pDukcWMZzwgvmwhqGighCFPmE9zkJ074UDfHdrg=
 github.com/fetchai/tendermint v1.0.0 h1:O88hdRfO1BZn0J5+ifcAGjIm89PGdZj6uSXMhzjsECc=
 github.com/fetchai/tendermint v1.0.0/go.mod h1:aeHL7alPh4uTBIJQ8mgFEE8VwJLXI1VD3rVOmH2Mcy0=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
