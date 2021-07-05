@@ -18,6 +18,6 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.17.1
+replace github.com/cosmos/cosmos-sdk => github.com/ejfitzgerald/cosmos-sdk v0.6.1-0.20210705102815-e3460985a74d
 
 replace github.com/tendermint/tendermint => github.com/fetchai/tendermint v1.0.0
