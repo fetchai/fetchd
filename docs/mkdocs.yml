@@ -9,7 +9,7 @@ theme:
   feature:
     tabs: true
 
-strict: false
+strict: true
 
 nav:
   - Introduction: 'index.md'
