@@ -105,21 +105,15 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 
 [Revealing the Fetch.ai interoperability vision with our new virtual machine](https://fetch.ai/fetch-ai-announces-major-interoperability-update-to-its-network-enabling-fetch-ai-fet-technology-to-be-delivered-across-multiple-blockchains/)
 
-[Boötes: Building on the foundations of our mainnet](https://fetch.ai/bootes-building-on-the-foundations-of-our-mainnet/)
-
 [Lightning Fast Consensus Becomes a Reality Thanks to Fetch.ai Breakthrough](https://fetch.ai/lightning-fast-consensus-becomes-a-reality-thanks-to-fetch-ai-breakthrough/)
 
 [Lifting the hood on Mainnet: the good bits!](https://fetch.ai/lifting-the-hood-on-mainnet-the-good-bits/)
 
 [Achievement unlocked: mainnet release](https://fetch.ai/achievement-unlocked-mainnet-release/)
 
-[Aries: One small step to mainnet](https://fetch.ai/aries-one-small-step-to-mainnet/)
-
 [Ara: Making smart contract transactions smarter than ever](https://fetch.ai/ara-making-smart-contract-transactions-smarter-than-ever/)
 
 [How to learn Etch: A tool for Solidity developers](https://fetch.ai/how-to-learn-etch-a-tool-for-solidity-developers/)
-
-[Fetch.ai launches beta mainnet with Aquila release](https://fetch.ai/fetch-ai-launches-beta-mainnet-with-aquila-release/)
 
 [Fetch.ai’s latest release speaks your language](https://fetch.ai/fetch-ais-latest-release-speaks-your-language/)
 
@@ -129,17 +123,11 @@ The Agent World incentivized test network is phase 1 of our journey to Mainnet v
 
 [Fetch.ai Public Test Network: Foundation Release](https://fetch.ai/fetch-ai-public-test-network-foundation-release/)
 
-[Fetch.ai Ledger Benchmarking II — Single Lane Performance](https://fetch.ai/fetch-ai-ledger-benchmarking-ii-single-lane-performance/)
-
 [Removing the honesty box from the economy with an ANVIL](https://fetch.ai/removing-the-honesty-box-from-the-economy-with-an-anvil-2/)
 
 [Smart Contracts for Smart Markets](https://fetch.ai/smart-contracts-for-smart-markets-2/)
 
-[Fetch.ai Ledger Benchmarking I — Overview and Architecture](https://fetch.ai/fetch-ai-ledger-benchmarking-i-overview-and-architecture/)
-
 [Introducing the Fetch.ai Virtual Machine](https://fetch.ai/introducing-the-fetch-ai-virtual-machine/)
-
-[Design of the Fetch.ai Scalable Ledger](https://fetch.ai/design-of-the-fetch-ai-scalable-ledger/)
 
 [Understanding the Fetch.ai network: a guide](https://fetch.ai/understanding-the-fetch-ai-network-a-guide/)
 
