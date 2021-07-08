@@ -25,6 +25,10 @@ binary for `muslc`. (Or just use this Dockerfile for your production setup).
 First, install golang >= v1.16 (follow the guide from [https://golang.org/dl/](https://golang.org/dl/)) and execute the following commands:
 
 ```bash
+# make sure you have the following packages:
+apt-get update && apt-get install -y make gcc
+
+# install fetchd. This will output the binary in ~/go/bin/ folder by default.
 make install
 ```
 
@@ -34,9 +38,20 @@ You should now have `fetchd` successfully installed in your path. You can check 
 which fetchd
 ```
 
-This should return a path such as `/go/bin/fetchd` (might be different depending on your actual go installation).
+This should return a path such as `~/go/bin/fetchd` (might be different depending on your actual go installation).
 
-> If you get an error such as `which: no fetchd in ...`, this means either fetchd haven't been built properly or that your go binary folder is not in your `PATH`. Check the installation guide again.
+> If you get no output, or an error such as `which: no fetchd in ...`, possible cause can either be that `make install` failed with some errors or that your go binary folder (default: ~/go/bin) is not in your `PATH`.
+>
+> To add the ~/go/bin folder to your PATH, add this line at the end of your ~/.bashrc:
+>```
+>export PATH=$PATH:~/go/bin
+>```
+>
+>and reload it with:
+>
+>```
+>source ~/.bashrc
+>```
 
 You can also verify that you are running the correct version 
 
