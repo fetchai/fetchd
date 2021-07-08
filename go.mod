@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/CosmWasm/wasmd v0.16.0
-	github.com/cosmos/cosmos-sdk v0.42.5
+	github.com/cosmos/cosmos-sdk v0.42.6
 	github.com/prometheus/client_golang v1.10.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3
@@ -18,6 +18,6 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.17.2-0.20210705155714-a59a3d4770dc
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.17.2-0.20210707164030-d84e6fc3c59f
 
 replace github.com/tendermint/tendermint => github.com/fetchai/tendermint v1.0.0
