@@ -14,10 +14,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
+	airdrop "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	v038auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v038"
 	v039 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v039"
 	v040 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v040"
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
+	ibctransfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	ibccoretypes "github.com/cosmos/cosmos-sdk/x/ibc/core/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -103,6 +107,14 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 				return errors.Wrap(err, "failed to marshal wasm default genesis state")
 			}
 			v040GenState[wasm.ModuleName] = v040WasmDefaultState
+
+			// Add ibc defaults
+			cdc := clientCtx.JSONMarshaler
+			v040GenState[ibctransfer.ModuleName] = cdc.MustMarshalJSON(ibctransfer.DefaultGenesisState())
+			v040GenState[ibchost.ModuleName] = cdc.MustMarshalJSON(ibccoretypes.DefaultGenesisState())
+
+			// Add airdrop defaults
+			v040GenState[airdrop.ModuleName] = cdc.MustMarshalJSON(airdrop.DefaultGenesisState())
 
 			// Update genesis with migrated state
 			genDoc.AppState, err = json.Marshal(v040GenState)
