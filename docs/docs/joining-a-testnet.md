@@ -7,16 +7,6 @@ In order to join the test network you will need to have the correct version of t
 Assuming that you have followed the [installation guide](../building/). You should now have `fetchd` successfully installed in your path. You can check this with the following command:
 
 ```bash
-which fetchd
-```
-
-This should return a path such as `/go/bin/fetchd` (might be different depending on your actual go installation).
-
-> If you get an error such as `which: no fetchd in ...`, this mean either fetchd haven't been built properly or that your go binary folder is not in your `PATH`. Check the installation guide again.
-
-You can also verify that you are running the correct version 
-
-```bash
 fetchd version
 ```
 

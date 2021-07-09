@@ -7,13 +7,13 @@ In order to be able to take part in the governance you either need to be running
 In order to delegate stake to a validator the following command should be used:
 
 ```bash
-fetchcli tx staking delegate <VALOPER_ADDRESS> <AMOUNT> --from <KEY_NAME>
+fetchd tx staking delegate <VALOPER_ADDRESS> <AMOUNT> --from <KEY_NAME>
 ```
 
 Where the `<VALOPER_ADDRESS>` begins with the prefix `fetchvaloper1...` and the `<AMOUNT>` field contains the currency denomination. For example:
 
 ```bash
-fetchcli tx staking delegate fetchvaloper1cct4fhhksplu9m9wjljuthjqhjj93z0s97p3g7 1000atestfet --from agent
+fetchd tx staking delegate fetchvaloper1cct4fhhksplu9m9wjljuthjqhjj93z0s97p3g7 1000atestfet --from agent
 ```
 
 ## Proposals Overview
@@ -55,17 +55,17 @@ It is always recommended that the description of a text proposal has a link to a
 
 Once the user has created the JSON file, to generate the text propsal on chain run the following command:
 
-`fetchcli tx gov submit-proposal --proposal proposal.json --from <name of signing key>`
+`fetchd tx gov submit-proposal --proposal proposal.json --from <name of signing key>`
 
 ## Increasing the deposit for a proposal
 
 If a user wants to increase the deposit of a proposal they would run the following command:
 
-`fetchcli tx gov deposit <proposalID> 100atestfet --from <key name>`
+`fetchd tx gov deposit <proposalID> 100atestfet --from <key name>`
 
 For example:
 
-`fetchcli tx gov deposit 2 100atestfet --from validator`
+`fetchd tx gov deposit 2 100atestfet --from validator`
 
 ## Listing current proposals
 
@@ -73,17 +73,17 @@ Current proposals are visible from the block explorer and using the CLI.
 
 To get the list of current proposals and their corresponding *proposal-ids* the run the following command:
 
-`fetchcli query gov proposals`
+`fetchd query gov proposals`
 
 ## Voting on a proposal
 
 To vote for a proposal run the following command
 
-`fetchcli tx gov vote <proposalID> <option> --from <delegatorKeyName>`
+`fetchd tx gov vote <proposalID> <option> --from <delegatorKeyName>`
 
 For example:
 
-`fetchcli tx gov vote 5 yes --from validator`
+`fetchd tx gov vote 5 yes --from validator`
 
 <div class="admonition note">
   <p class="admonition-title">Note</p>

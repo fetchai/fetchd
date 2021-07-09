@@ -7,7 +7,7 @@ This guide assumes that you have successfuly [installed](../../building/), confi
 To create a validator on the network you will need to send a transaction to the network bonding / staking your FET tokens. This process registers you as a validator and if you are one of the chosen validators you will start to produce blocks.
 
 ```bash
-fetchcli tx staking create-validator \
+fetchd tx staking create-validator \
   --amount=<the amount to bond> \
   --pubkey=$(fetchd tendermint show-validator) \
   --moniker="choose a moniker" \
@@ -19,25 +19,23 @@ fetchcli tx staking create-validator \
   --from=<key_name>
 ```
 
-** Beacon World Example **
+** Stargateworld Example **
 
-In the case of Beaconworld the minimum self delegation amount (the amount of FET that the validator themselves must stake) is 1000TESTFET (i.e. 1000000000000000000000atestfet).
-
-Before trying to create a validator you should verify that you have this required minimum number of tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/).
+Before trying to create a validator you should verify that you have some tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/).
 
 Here is an sample of a typical command line command that will register the node as running the validator.
 
 ```bash
-fetchcli tx staking create-validator \
-  --amount=1000000000000000000000atestfet \
-  --pubkey=fetchvalconspub1zcjduepqa8ldmfnt6avct9x5h7269jjfmv2l22pnejezz37vh7syajfyku6stlj0s9 \
+fetchd tx staking create-validator \
+  --amount=1000000000000000000atestfet \
+  --pubkey=$(fetchd tendermint show-validator) \
   --moniker="my-test-validator" \
-  --chain-id=beaconworld-3 \
+  --chain-id=stargateworld-1 \
   --commission-rate="0.10" \
   --commission-max-rate="0.20" \
   --commission-max-change-rate="0.01" \
-  --min-self-delegation="1000000000000000000000" \
-  --from=beaonworld-test-key
+  --min-self-delegation="1000000000000000000" \
+  --from=test-key
 ```
 
 ## Editing a validator
@@ -47,7 +45,7 @@ Over time it is possible that validators will want to adjust various settings ab
 In either case, should a validator choose to make this update they would send an "edit-validator" transaction to the network. These can be created in a similar way to the "create-validator" transactions as shown below:
 
 ```bash
-fetchcli tx staking edit-validator
+fetchd tx staking edit-validator
   --moniker="choose a moniker" \
   --website="https://fetch.ai" \
   --details="To infinity and beyond!" \
@@ -59,10 +57,10 @@ fetchcli tx staking edit-validator
 ## Unbonding a validator
 
 
-When / if a validator wants to stop being a validator for any reason, they can unbond some or all of their staked FET. This is done with the following command.
+When / if a validator wants to stop being a validator for any reason, they can unbond some or all of their staked tokens. This is done with the following command.
 
 ```bash
-./build/fetchcli tx staking unbond \
+fetchd tx staking unbond \
   <validator operator address> \
   <amount to remove> \
   --from <key name>
@@ -71,10 +69,10 @@ When / if a validator wants to stop being a validator for any reason, they can u
 An example of the command is given in the following example:
 
 ```bash
-./build/fetchcli tx staking unbond \
+fetchd tx staking unbond \
   fetchvaloper1jqqwdch3jmzlmj4tjfn67s3sqm9elkd3wrpspf \
   1000000000000000000000atestfet \
-  --from beaonworld-test-key
+  --from test-key
 ```
 
 ** Note **

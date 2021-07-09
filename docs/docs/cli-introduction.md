@@ -16,6 +16,15 @@ fetchcli config trust-node false
 fetchcli config node https://rpc-fetchhub.fetch-ai.com:443
 ```
 
+### Connecting to stargateworld network
+
+On Stargate networks, the `fetchcli` binary **does not exists anymore**. Instead, every commands are now provided by `fetchd`. Beside this, the syntax is generaly the same. To connect to the stargateworld network run the following configuration steps:
+
+```bash
+fetchd config chain-id stargateworld-1
+fetchd config node https://rpc-stargateworld.fetch-ai.com:443
+```
+
 ### Connecting to Agent Land network
 
 To connect to the agent land network run the following configuration steps:

@@ -34,7 +34,7 @@ In the following steps we will need to create the public/private keypair for our
 
 To create a new key called "validator" use the following command.
 
-   `fetchcli keys add validator`
+   `fetchd keys add validator`
 
 * `validator` is the name of the key in the keyring
 
@@ -67,17 +67,9 @@ for the network.
 
 ## Running the local node
 
-To run the network use the following command. Please note that in general you will need to wait for the chain to
-generate entropy before normal transactions will be processed. This usually happens around block 45
+To run the network use the following command.
 
     `fetchd start`
-
-Should this 45 block delay be undesirable, this can be disabled by making the following change to the
-`~/.fetchd/config/config.toml` configuration file.
-
-```toml
-strict_tx_filtering = "false"
-```
 
 ## Resetting the network
 
