@@ -1,5 +1,23 @@
 # Networks
 
+## Stargate testnet: stargateworld
+
+A new network, updated with latest patches from the Cosmos ecosystem. It is **not compatible** with the current mainnet version.
+Note that with this version `fetchcli` has been removed and its functionality has been merged into `fetchd`. This means that with this version you will only need the single `fetchd` binary to either run a node or query the network.
+
+| Parameter      | Value                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID       | stargateworld-1                                                                            |
+| Denomination   | atestfet                                                                                   |
+| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
+| Version        | v0.8.x (fetchd >= v0.8.0-rc5)                                                              |
+| RPC Endpoint   | https://rpc-stargateworld.fetch.ai:443                                                     |
+| REST Endpoint  | https://rest-stargateworld.fetch.ai:443                                                    |
+| Block Explorer | [https://explore-stargateworld.fetch.ai/](https://explore-stargateworld.fetch.ai/)         |
+| Token Faucet   | Use block explorer                                                                         |
+| Seed Node(s)   | 0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.t-v2-london-c.fetch-ai.com:36656 |
+
+
 ## Mainnet v2: fetchhub
 
 Fetchhub is our mainnet v2 production network. 
@@ -31,25 +49,6 @@ Fetchhubtest is our testnet v2, running similar versions than our production net
 | Block Explorer | [https://explore-fetchhubtest.fetch.ai/](https://explore-fetchhubtest.fetch.ai/)           |
 | Token Faucet   | Use block explorer                                                                         |
 | Seed Node(s)   | 06da15abb82328a2fa7ba8b69925cf3fa73f1970@connect-fetchhubtest.t-v2-london-c.fetch-ai.com:36756 |
-
-# Upcomming networks
-
-## Stargate testnet: stargateworld
-
-A new network, updated with latest patches from the Cosmos ecosystem. It is **not compatible** with the current mainnet version.
-Note that with this version `fetchcli` has been removed and its functionality has been merged into `fetchd`. This means that with this version you will only need the single `fetchd` binary to either run a node or query the network.
-
-| Parameter      | Value                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------ |
-| Chain ID       | stargateworld-1                                                                            |
-| Denomination   | atestfet                                                                                   |
-| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | v0.8.x (fetchd >= v0.8.0-rc5)                                                              |
-| RPC Endpoint   | https://rpc-stargateworld.fetch.ai:443                                                     |
-| REST Endpoint  | https://rest-stargateworld.fetch.ai:443                                                    |
-| Block Explorer | [https://explore-stargateworld.fetch.ai/](https://explore-stargateworld.fetch.ai/)         |
-| Token Faucet   | Use block explorer                                                                         |
-| Seed Node(s)   | 0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.t-v2-london-c.fetch-ai.com:36656 |
 
 # Deprecated networks
 

@@ -1,7 +1,6 @@
 
 # CLI - Delegator guide
 
-
 ## Querying the state
 
 ### Querying the current staking holdings of the validators
@@ -9,10 +8,10 @@
 The following command can be used to retrieve the current staking holdings of all validators:
 
 ```bash
-fetchcli query staking validators
+fetchd query staking validators
 ```
 
-On `beacon-world` network, this will produce an output similar to the following, describing the status of all the existing validators:
+On `stargateworld` network, this will produce an output similar to the following, describing the status of all the existing validators:
 
 ```text
 - |
@@ -67,7 +66,7 @@ On `beacon-world` network, this will produce an output similar to the following,
 To obtain the same informations for a single validator, use the following command, providing the `operatoraddress` of the validator.
 
 ```bash
-fetchcli query staking validator fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
+fetchd query staking validator fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
 A delegator will be particularly interested in the following keys:
@@ -82,10 +81,10 @@ A delegator will be particularly interested in the following keys:
 From a validator address, we can retrieve the list of delegations it received:
 
 ```bash
-fetchcli query staking delegations-to fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
+fetchd query staking delegations-to fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-Here is a sample of delegations `validator5` received on `beacon-world`:
+Here is a sample of delegations `validator5` received on `stargateworld`:
 
 ```text
 - delegation:
@@ -111,13 +110,13 @@ Delegators can choose to redelegate the tokens they already delegated from one v
 To obtains the list of redelegations made from a validator, use the following command:
 
 ```bash
-fetchcli query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
+fetchd query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
 Which produce an output similar to the following, where delegator `fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m` issued 2 redelegations from `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` to `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`:
 
 ```text
-fetchcli query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
+fetchd query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 - redelegation:
     delegator_address: fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
     validator_src_address: fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
@@ -141,7 +140,7 @@ fetchcli query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputyka
 Similarly, the list of redelegations issued by a delegator can be obtained with the following:
 
 ```bash
-fetchcli query staking redelegations fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
+fetchd query staking redelegations fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
 ### Query the user rewards
@@ -151,10 +150,10 @@ After having delegated some tokens to a validator, the user is eligible to a sha
 To retrieve all the outstanding rewards for an address, issue the following command:
 
 ```bash
-fetchcli query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
+fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
-This address having delegated tokens to 2 validators on `beacon-world`, it produces the following output:
+This address having delegated tokens to 2 validators on `stargateworld`, it produces the following output:
 
 ```text
 rewards:
@@ -174,7 +173,7 @@ total:
 Rewards can also be filtered for a given validator, like `validator5` here:
 
 ```bash
-fetchcli query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
+fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
 we now get only the reward from this validator:
@@ -191,7 +190,7 @@ we now get only the reward from this validator:
 To delegate `1000000 atestfet` tokens to  the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator from the account `myKey`, the following command can be used:
 
 ```bash
-fetchcli tx staking delegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 1000000atestfet --from myKey
+fetchd tx staking delegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 1000000atestfet --from myKey
 ```
 
 This will prompt for confirmation before issuing a transaction. After the transaction get processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
@@ -208,7 +207,7 @@ Redelegating tokens allows to transfer already delegated tokens from one validat
 From the above example where we delegated `1000000 atestfet` to `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w`, we can now redelegate parts or all of those tokens to another validator. For example, we redelegate `400000 atestfet` from `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` to `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu` with the following command:
 
 ```bash
-fetchcli tx staking redelegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu 400000atestfet --from myKey
+fetchd tx staking redelegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu 400000atestfet --from myKey
 ```
 
 This will prompt for confirmation and issue a new transaction once accepted.
@@ -224,7 +223,7 @@ Now thoses `400000 atestfet` we redelegated can't be redelegated anymore for 21 
 At any time, we can transfer parts or all of our delegated tokens back to our account:
 
 ```bash
-fetchcli tx staking unbond fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 300000atestfet --from myKey
+fetchd tx staking unbond fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 300000atestfet --from myKey
 ```
 
 Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 days period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
@@ -234,7 +233,7 @@ Once again, this will prompt for confirmation and issue a transaction, initiatin
 In order to transfer rewards to the wallet, the following command can be used:
 
 ```bash
-fetchcli tx distribution withdraw-rewards fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w --from myKey
+fetchd tx distribution withdraw-rewards fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w --from myKey
 ```
 
 It requires the validator address from where the reward is withdrawn, and the name of the account private key having delegated tokens to the validator.
@@ -242,7 +241,7 @@ It requires the validator address from where the reward is withdrawn, and the na
 When having delegated tokens to multiple validators, all rewards can be claimed in a single command:
 
 ```bash
-fetchcli tx distribution withdraw-all-rewards --from myKey
+fetchd tx distribution withdraw-all-rewards --from myKey
 ```
 
 The rewards then appears on the account as soon as the transaction is processed.

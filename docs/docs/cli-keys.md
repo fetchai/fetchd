@@ -7,7 +7,7 @@ Managing your keys is an essential part of working with the Ledger, since all in
 To create a new local key you need run the following command:
 
 ```bash
-fetchcli keys add <your_key_name>
+fetchd keys add <your_key_name>
 ```
 
 <div class="admonition note">
@@ -15,7 +15,7 @@ fetchcli keys add <your_key_name>
   <p>These keys are stored locally on your system. By default, these keys will be stored in the OS level keychain, however, in general these keys are considered less secure than using a hardware device</p>
 </div>
 
-After running the command `fetchcli` will print out a summary of the new key. An example of this output is shown below:
+After running the command `fetchd` will print out a summary of the new key. An example of this output is shown below:
 
 ```text
 - name: test
@@ -34,7 +34,7 @@ This will be followed by a 24-word mnemonic that can be used to re-generate the 
 A common operation that you will want to do is to lookup the address for a specified key. This can be done quickly using the following command:
 
 ```bash
-fetchcli keys show -a <name of key>
+fetchd keys show -a <name of key>
 ```
 
 An example of the expected output is shown below:
@@ -46,7 +46,7 @@ fetch142tawq2rj397mctc3jtw9dfzf03ns0ze4swat0
 A less common operation, but still useful, would be to lookup the public key for a specified key. The can be achieved with the following command:
 
 ```bash
-fetchcli keys show -p <name of the key>
+fetchd keys show -p <name of the key>
 ```
 
 An example of the expected output is shown below:
@@ -60,7 +60,7 @@ fetchpub1addwnpepqvtmze0ekffynnjx9n85g6sexzl49ze2vpgc2f52fteyyghjtvvqw682nkx
 To lookup more detailed information for all keys on your system use the following command:
 
 ```bash
-fetchcli keys list
+fetchd keys list
 ```
 
 This will output all of your keys information in a yaml format that is similar to the one generated when you first created the key.
@@ -75,6 +75,17 @@ This will output all of your keys information in a yaml format that is similar t
   pubkeys: []
 ```
 
+## Recovering a key
+
+You can import a key from a 24-word mnemonic by running:
+
+```bash
+fetchd keys add <name> --recover
+> Enter your bip39 mnemonic
+<type or paste your mnemonic>
+```
+You'll be prompted to enter the mnemonic phrase, and it will then print the matching address and key details as when creating a new key.
+
 ## Hardware Wallets
 
 ### Setup
@@ -87,14 +98,14 @@ We recommend hardware wallets as a solution for managing private keys. The Fetch
 
 ### Adding a new key
 
-In order to use the hardware wallet address with the cli, the user must first add it via `fetchcli`. This process only records the public information about the key.
+In order to use the hardware wallet address with the cli, the user must first add it via `fetchd`. This process only records the public information about the key.
 
 To import the key first plug in the device and enter the device pin. Once you have unlocked the device navigate to the Cosmos app on the device and open it.
 
 To add the key use the following command:
 
 ```bash
-fetchcli keys add <name for the key> --ledger --index 0
+fetchd keys add <name for the key> --ledger --index 0
 ```
 
 <div class="admonition note">
@@ -121,13 +132,13 @@ It is also possible to import private keys from the agent framework. For example
 To import this key into the local keychain simply run the following command:
 
 ```bash
-fetchcli keys import --agent-raw-key <name of the new key> <path to the key file>
+fetchd keys import --agent-raw-key <name of the new key> <path to the key file>
 ```
 
 For example:
 
 ```bash
-fetchcli keys import --agent-raw-key agent /home/user/fetchai_private_key.txt
+fetchd keys import --agent-raw-key agent /home/user/fetchai_private_key.txt
 ```
 
 <div class="admonition note">
