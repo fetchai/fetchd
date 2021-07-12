@@ -62,3 +62,13 @@ fetchd version
 ```
 
 This should print a version number that must be compatible with the network you're connecting to (see the [network page](../networks/) for the list of supported versions per network).
+
+## FAQ
+
+- **Error: failed to parse log level (main:info,state:info,:error): Unknown Level String: 'main:info,state:info,:error', defaulting to NoLevel**
+
+This means you had a  pre-stargate version of fetchd (<= v0.7.x), and just installed a stargate version (>= v0.8.x), you'll need to remove the previous configuration files with:
+
+```bash
+rm ~/.fetchd/config/app.toml ~/.fetchd/config/config.toml
+```
