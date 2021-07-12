@@ -10,6 +10,8 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/tendermint/tendermint v0.34.11
 	github.com/tendermint/tm-db v0.6.4
+	github.com/rakyll/statik v0.1.7
+	github.com/gorilla/mux v1.8.0
 )
 
 // fix for "invalid Go type types.Dec for field ..." errors
