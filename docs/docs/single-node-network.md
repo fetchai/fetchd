@@ -52,7 +52,7 @@ to the validator which can be bonded.
 To get your validator to sign the genesis block (and to agree that this is the correct genesis starting point) use the
 following command.
 
-   `fetchd gentx --name validator`
+   `fetchd gentx validator 100000000000000000000stake --chain-id localnet-1`
 
 * `validator` here is the name that you have given to the key
 
