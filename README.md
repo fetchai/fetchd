@@ -60,8 +60,7 @@ fetchd keys add bob $KEYRING --algo bls12381
 fetchd tx bank send $(fetchd keys show alice -a $KEYRING) $(fetchd keys show bob -a $KEYRING) 1000000stake  --chain-id testing
 
 
-# Check if funds were transfered from validator to alice
-fetchd query bank balances $(fetchd keys show -a validator $KEYRING)
+# Check if funds were transfered from validator to alice and from alice to bob
 fetchd query bank balances $(fetchd keys show -a alice $KEYRING)
 fetchd query bank balances $(fetchd keys show -a bob $KEYRING)
 ```
