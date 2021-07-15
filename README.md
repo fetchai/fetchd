@@ -44,6 +44,7 @@ sed -i '/^\[api\]$/,/^\[/ s/^enable = false/enable = true/' ~/.fetchd/config/app
 # Configure
 fetchd config chain-id testing
 fetchd config keyring-backend test
+fetchd config broadcast-mode block
 
 # run the node
 fetchd start
@@ -57,7 +58,7 @@ fetchd keys add alice $KEYRING --algo bls12381
 fetchd tx bank send $(fetchd keys show validator -a $KEYRING) $(fetchd keys show alice -a $KEYRING) 10000000stake --chain-id testing
 
 fetchd keys add bob $KEYRING --algo bls12381
-fetchd tx bank send $(fetchd keys show alice -a $KEYRING) $(fetchd keys show bob -a $KEYRING) 1000000stake  --chain-id testing
+fetchd tx bank send $(fetchd keys show alice -a $KEYRING) $(fetchd keys show bob -a $KEYRING) 1000000stake   --chain-id testing
 
 
 # Check if funds were transfered from validator to alice and from alice to bob
