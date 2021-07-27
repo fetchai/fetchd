@@ -60,6 +60,12 @@ fetchd tx bank send $(fetchd keys show validator -a $KEYRING) $(fetchd keys show
 fetchd keys add bob $KEYRING --algo bls12381
 fetchd tx bank send $(fetchd keys show alice -a $KEYRING) $(fetchd keys show bob -a $KEYRING) 1000000stake   --chain-id testing
 
+# Create and sign transaction offline
+mkdir $HOME/.fetchd/examples
+fetchd tx bank send $(fetchd keys show alice -a $KEYRING) $(fetchd keys show bob -a $KEYRING) 1000000stake --generate-only  --chain-id testing  > $HOME/.fetchd/examples/tx.json
+fetchd tx sign $HOME/.fetchd/examples/tx.json --from $(fetchd keys show alice -a $KEYRING) --output-document $HOME/.fetchd/examples/tx_signed.json --chain-id testing 
+fetchd tx broadcast $HOME/.fetchd/examples/tx_signed.json
+
 
 # Check if funds were transfered from validator to alice and from alice to bob
 fetchd query bank balances $(fetchd keys show -a alice $KEYRING)
