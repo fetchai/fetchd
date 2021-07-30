@@ -20,6 +20,7 @@ nav:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'
     - Multisig Keys: 'cli-multisig.md'
+    - BLS Signatures: 'cli-bls.md
     - Tokens: 'cli-tokens.md'
     - Delegator Guide: 'delegator-guide-cli.md'
   - Validators:
