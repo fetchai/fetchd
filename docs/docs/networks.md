@@ -4,12 +4,17 @@
 
 Fetchhub is our mainnet v2 production network. 
 
+<div class="admonition note">
+  <p class="admonition-title">Note</p>
+  <p>If when running the first time you have an error similar to: <b>panic: Any JSON doesn't have '@type'</b>, this mean you have installed the <b>Stargate version</b> of fetchd. Make sure you have switched to the proper branch as mentionned in the <b>Version field</b></p>
+</div>
+
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
 | Chain ID       | fetchhub-1                                                                                 |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | v0.7.x (fetchcli >= v0.7.2)                                                                |
+| Version        | [v0.7.x (fetchcli >= v0.7.2)](https://github.com/fetchai/fetchd/tree/release/v0.7.x)               |
 | RPC Endpoint   | https://rpc-fetchhub.fetch-ai.com:443                                                      |
 | REST Endpoint  | https://rest-fetchhub.fetch-ai.com:443                                                     |
 | Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai)                     |
@@ -28,7 +33,7 @@ Fetchhubtest is our testnet v2, running similar versions than our production net
 | Chain ID       | fetchhubtest-2                                                                             |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | v0.7.x (fetchcli >= v0.7.2)                                                                |
+| Version        | [v0.7.x (fetchcli >= v0.7.2)](https://github.com/fetchai/fetchd/tree/release/v0.7.x)       |
 | RPC Endpoint   | https://rpc-fetchhubtest.fetch.ai:443                                                      |
 | REST Endpoint  | https://rest-fetchhubtest.fetch.ai:443                                                     |
 | Block Explorer | [https://explore-fetchhubtest.fetch.ai/](https://explore-fetchhubtest.fetch.ai/)           |
@@ -48,7 +53,7 @@ Note that with this version `fetchcli` has been removed and its functionality ha
 | Chain ID       | stargateworld-2                                                                            |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | v0.8.x (fetchd >= v0.8.2)                                                                  |
+| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)                 |
 | RPC Endpoint   | https://rpc-stargateworld.fetch.ai:443                                                     |
 | GRPC Endpoint  | https://grpc-stargateworld.t-v2-london-c.fetch-ai.com:443                                  |
 | REST Endpoint  | https://rest-stargateworld.fetch.ai:443                                                    |
@@ -66,7 +71,7 @@ Note that with this version `fetchcli` has been removed and its functionality ha
 | Chain ID       | andromeda-1                                                                                |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | v0.8.x (fetchd >= v0.8.2)                                                                  |
+| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)                 |
 | RPC Endpoint   | https://rpc-andromeda.fetch.ai:443                                                         |
 | REST Endpoint  | https://rest-andromeda.fetch.ai:443                                                        |
 | Block Explorer | [https://explore-andromeda.fetch.ai/](https://explore-andromeda.fetch.ai/)                 |
