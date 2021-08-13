@@ -22,6 +22,7 @@ nav:
     - Multisig Keys: 'cli-multisig.md'
     - Tokens: 'cli-tokens.md'
     - Delegator Guide: 'delegator-guide-cli.md'
+    - Governance Proposals: 'cli-governance.md'
   - Validators:
     - Overview: 'validators/overview.md'
     - Security: 'validators/security.md'
