@@ -1,0 +1,45 @@
+accounts:
+  - name: alice
+    coins: ["1000000000000000000000atestfet", "500stake"]
+  - name: bob
+    coins: ["1000000000000000000000atestfet"]
+validator:
+  name: alice
+  staked: "10000000000000000000atestfet"
+# FIXME: current faucet implementation can't parse 18 decimals coins.
+# faucet:
+#   name: faucet
+#   coins: ["1000000000000000000000atestfet"]
+#   # coins_max: ["1000000000000000000atestfet"]
+#   port: 4500
+
+host:
+  rpc: ":26657"
+  p2p: ":26656"
+  prof: ":6060"
+  grpc: ":9090"
+  api: ":1317"
+
+init:
+  # FETCHD_HOME (default ~/.fetchd)
+  home: "/tmp/fetchd"
+  keyring-backend: "test"
+  # custom config.toml
+  config:
+    consensus.timeout_commit: "5s"
+    consensus.create_empty_blocks_interval: "5s"
+  # custom app.toml
+  app:
+
+# custom genesis
+genesis:
+  app_state:
+    staking:
+      params:
+        bond_denom: "atestfet"
+    mint:
+      params:
+        mint_denom: "atestfet"
+
+build:
+  binary: fetchd
