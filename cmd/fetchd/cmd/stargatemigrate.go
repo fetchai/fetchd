@@ -108,9 +108,13 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 			}
 			v040GenState[wasm.ModuleName] = v040WasmDefaultState
 
-			// Add ibc defaults
+			// Add ibc defaults - but disable transfers for now
 			cdc := clientCtx.JSONMarshaler
-			v040GenState[ibctransfer.ModuleName] = cdc.MustMarshalJSON(ibctransfer.DefaultGenesisState())
+			v040GenState[ibctransfer.ModuleName] = cdc.MustMarshalJSON(ibctransfer.NewGenesisState(
+				ibctransfer.PortID,
+				ibctransfer.Traces{},
+				ibctransfer.NewParams(false, false), // disable send and receive for now
+			))
 			v040GenState[ibchost.ModuleName] = cdc.MustMarshalJSON(ibccoretypes.DefaultGenesisState())
 
 			// Add airdrop defaults
