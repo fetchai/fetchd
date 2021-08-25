@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/CosmWasm/wasmd/x/wasm"
-	"github.com/spf13/cobra"
-
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -22,6 +21,7 @@ import (
 	ibctransfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	ibccoretypes "github.com/cosmos/cosmos-sdk/x/ibc/core/types"
+	"github.com/spf13/cobra"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -29,6 +29,7 @@ import (
 const flagGenesisTime = "genesis-time"
 const flagConsensusEvidenceMaxBytes = "consensus-evidence-max-bytes"
 const flagInitialHeight = "initial-height"
+const flagWasmUploadAddress = "wasm-code-upload-address"
 
 // AddStargateMigrateCmd returns a command to migrate genesis to stargate version.
 func AddStargateMigrateCmd() *cobra.Command {
@@ -100,8 +101,20 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 			v040GenState := v040.Migrate(v039GenState, clientCtx)
 
 			// Reset wasm module to genesis
+			wasmCodeUploadAddressBech32, err := cmd.Flags().GetString(flagWasmUploadAddress)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagWasmUploadAddress, err)
+			}
+			wasmCodeUploadAddress, err := sdk.AccAddressFromBech32(wasmCodeUploadAddressBech32)
+			if err != nil {
+				return fmt.Errorf("failed to parse bech32  wasm-upload-code-address: %v", err)
+			}
 			v040WasmDefaultState, err := json.Marshal(&wasm.GenesisState{
-				Params: wasm.DefaultParams(),
+				Params: wasmtypes.Params{
+					CodeUploadAccess:             wasmtypes.AccessTypeOnlyAddress.With(wasmCodeUploadAddress),
+					InstantiateDefaultPermission: wasmtypes.AccessTypeOnlyAddress,
+					MaxWasmCodeSize:              wasmtypes.DefaultMaxWasmCodeSize, // ~600kb
+				},
 			})
 			if err != nil {
 				return errors.Wrap(err, "failed to marshal wasm default genesis state")
@@ -169,6 +182,7 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 	cmd.Flags().Int64(flagInitialHeight, 0, "override initial_height with this flag")
 	cmd.Flags().Int64(flagConsensusEvidenceMaxBytes, 150000, "override consensus.evidence.max_bytes with this flag")
 	cmd.Flags().String(flags.FlagChainID, "", "override chain_id with this flag")
+	cmd.Flags().String(flagWasmUploadAddress, "fetch1m3evl6dqkhmwtp597wq8hhr9vtdasaktaq6wlj", "set wasm upload permissions for this address only")
 
 	return cmd
 }
