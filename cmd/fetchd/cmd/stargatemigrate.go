@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	airdrop "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	v038auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v038"
+	capability "github.com/cosmos/cosmos-sdk/x/capability/types"
 	v039 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v039"
 	v040 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v040"
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -132,6 +133,9 @@ and then migrate the given genesis to version v0.39, and then v0.40 of the cosmo
 
 			// Add airdrop defaults
 			v040GenState[airdrop.ModuleName] = cdc.MustMarshalJSON(airdrop.DefaultGenesisState())
+
+			// Add capability defaults
+			v040GenState[capability.ModuleName] = cdc.MustMarshalJSON(capability.DefaultGenesis())
 
 			// Update genesis with migrated state
 			genDoc.AppState, err = json.Marshal(v040GenState)
