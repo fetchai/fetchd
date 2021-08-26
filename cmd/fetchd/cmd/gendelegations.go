@@ -164,7 +164,7 @@ and the full amount is stored on the account balance.`,
 					bankState.Balances[i].Coins = bankState.Balances[i].Coins.Add(delegatedCoin)
 					successUpdatingBondedPool = true
 				case addr.String():
-					bankState.Balances[i].GetCoins().Add(accountCoin)
+					bankState.Balances[i].Coins = bankState.Balances[i].Coins.Add(accountCoin)
 					updatedUserBank = true
 				}
 			}
