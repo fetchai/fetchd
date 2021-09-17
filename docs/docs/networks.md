@@ -11,15 +11,15 @@ Fetchhub is our mainnet v2 production network.
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Chain ID       | fetchhub-1                                                                                 |
+| Chain ID       | fetchhub-2                                                                                 |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | [v0.7.x (fetchcli >= v0.7.2)](https://github.com/fetchai/fetchd/tree/release/v0.7.x)               |
-| RPC Endpoint   | https://rpc-fetchhub.fetch-ai.com:443                                                      |
-| REST Endpoint  | https://rest-fetchhub.fetch-ai.com:443                                                     |
+| Version        | [v0.8.x (fetchcli >= v0.8.7)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)               |
+| RPC Endpoint   | https://rpc-fetchhub.fetch.ai:443                                                      |
+| REST Endpoint  | https://rest-fetchhub.fetch.ai:443                                                     |
 | Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai)                     |
 | Token Faucet   | N/A                                                                                        |
-| Seed Node(s)   | 9f9774d88bb6ff9f43b395baf0e7a4baba27dec6@connect-fetchhub.m-v2-london-c.fetch-ai.com:36856 |
+| Seed Node(s)   | c240ca38b990a7d3f25621eb848d0222d5b50278@connect-fetchhub2.m-v2-london-c.fetch-ai.com:36656 |
 
 
 ## Launchpad testnets
