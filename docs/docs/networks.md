@@ -50,7 +50,7 @@ Note that with this version `fetchcli` has been removed and its functionality ha
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Chain ID       | stargateworld-2                                                                            |
+| Chain ID       | stargateworld-3                                                                            |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
 | Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)                 |
