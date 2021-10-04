@@ -32,7 +32,6 @@ nav:
   - Single Node Testnet: 'single-node-network.md'
   - Block Explorer: 'block-explorer.md'
   - Governance: 'governance.md'
-  - Docker Images: 'docker-images.md'
   - Faucet: 'faucet.md'
 
 extra_css:
