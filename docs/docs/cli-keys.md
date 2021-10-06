@@ -124,24 +124,3 @@ When running this command, the Ledger device will prompt you to verify the gener
   threshold: 0
   pubkeys: []
 ```
-
-### Importing a private key generated from the Agent Framework
-
-It is also possible to import private keys from the agent framework. For example the private key that you generated for your agent as part of the AW-1 challenge.
-
-To import this key into the local keychain simply run the following command:
-
-```bash
-fetchd keys import --agent-raw-key <name of the new key> <path to the key file>
-```
-
-For example:
-
-```bash
-fetchd keys import --agent-raw-key agent /home/user/fetchai_private_key.txt
-```
-
-<div class="admonition note">
-  <p class="admonition-title">Note</p>
-  <p>The <code>--agent-raw-key</code> flag is very important here. Also note that this flag only allows the user to import scep265k1 private keys</p>
-</div>
