@@ -38,7 +38,7 @@ func (r *rootModuleKey) Invoker(methodName string) (types.Invoker, error) {
 	})
 }
 
-func (r *rootModuleKey) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, _ ...grpc.CallOption) error {
+func (r *rootModuleKey) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
 	invoker, err := r.Invoker(method)
 	if err != nil {
 		return err

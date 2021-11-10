@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/fetchai/fetchd/testutil"
+	"github.com/fetchai/fetchd/types/testutil"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
