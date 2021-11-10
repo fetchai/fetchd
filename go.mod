@@ -9,6 +9,7 @@ require (
 	github.com/cockroachdb/apd/v2 v2.0.2
 	github.com/cosmos/cosmos-sdk v0.44.2
 	github.com/gogo/protobuf v1.3.3
+	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/lib/pq v1.10.3 // indirect
@@ -22,12 +23,12 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tendermint/tendermint v0.34.13
 	github.com/tendermint/tm-db v0.6.4
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
-	golang.org/x/sys v0.0.0-20210903071746-97244b99971b // indirect
+	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
+	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247
 	google.golang.org/grpc v1.40.0
+	google.golang.org/protobuf v1.27.1
+	pgregory.net/rapid v0.4.7
 )
 
 // fix for "invalid Go type types.Dec for field ..." errors
@@ -36,6 +37,5 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.0.0-20211102151651-096fa237324a
-
-replace github.com/tendermint/tendermint => github.com/fetchai/tendermint v1.0.0
+//replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.0.0-20211102151651-096fa237324a
+replace github.com/cosmos/cosmos-sdk => /home/flavien/workspace/fetchai/cosmos-sdk

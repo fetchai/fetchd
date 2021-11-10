@@ -1,10 +1,17 @@
 #!/usr/bin/make -f
 
+PACKAGES_NOSIMULATION=$(shell go list ./... | grep -v '/simulation')
 PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
-VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
+VERSION := $(shell echo $(shell git describe --tags))
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
-SDK_PACK := $(shell go list -m github.com/cosmos/cosmos-sdk | sed  's/ /\@/g')
+BINDIR ?= $(GOPATH)/bin
+BUILDDIR ?= $(CURDIR)/build
+APP_DIR = ./app
+MOCKS_DIR = $(CURDIR)/tests/mocks
+HTTPS_GIT := https://github.com/fetchai/fetchd.git
+DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuild/buf
+PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 
 export GO111MODULE = on
 
@@ -157,30 +164,39 @@ localnet-stop:
 ###                                Protobuf                                 ###
 ###############################################################################
 
+containerProtoVer=v0.2
+containerProtoImage=tendermintdev/sdk-proto-gen:$(containerProtoVer)
+containerProtoGen=${PROJECT_NAME}-proto-gen-$(containerProtoVer)
+containerProtoFmt=${PROJECT_NAME}-proto-fmt-$(containerProtoVer)
+containerProtoGenSwagger=${PROJECT_NAME}-proto-gen-swagger-$(containerProtoVer)
+
 proto-all: proto-gen proto-lint proto-check-breaking proto-format
 .PHONY: proto-all proto-gen proto-gen-docker proto-lint proto-check-breaking proto-format
 
 proto-gen:
-	@./scripts/protocgen.sh
-
-proto-gen-docker:
 	@echo "Generating Protobuf files"
-	docker run -v $(shell pwd):/workspace --workdir /workspace tendermintdev/sdk-proto-gen sh ./scripts/protocgen.sh
+	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoGen}$$"; then docker start -a $(containerProtoGen); else docker run --name $(containerProtoGen) -v $(CURDIR):/workspace --workdir /workspace $(containerProtoImage) \
+		sh ./scripts/protocgen.sh; fi
 
 proto-format:
-	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
+	@echo "Formatting Protobuf files"
+	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoFmt}$$"; then docker start -a $(containerProtoFmt); else docker run --name $(containerProtoFmt) -v $(CURDIR):/workspace --workdir /workspace tendermintdev/docker-build-proto \
+		find ./ -not -path "./third_party/*" -name "*.proto" -exec clang-format -i {} \; ; fi
+
+proto-format-direct:
+	find ./ -not -path "./third_party/*" -name "*.proto" -exec clang-format -i {} \;
 
 proto-lint:
+	@$(DOCKER_BUF) lint --error-format=json
+
+proto-lint-direct:
 	@buf lint --error-format=json
 
 proto-check-breaking:
+	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=master
+
+proto-check-breaking-direct:
 	@buf breaking --against '.git#branch=master'
-
-proto-lint-docker:
-	@$(DOCKER_BUF) lint --error-format=json
-
-proto-check-breaking-docker:
-	@$(DOCKER_BUF) breaking --against-input $(HTTPS_GIT)#branch=master
 
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 REGEN_COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
@@ -199,3 +215,4 @@ proto-update-deps:
 
 	@mkdir -p $(COSMOS_PROTO_TYPES)/base/query/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/query/v1beta1/pagination.proto > $(COSMOS_PROTO_TYPES)/base/query/v1beta1/pagination.proto
+	@curl -sSL $(COSMOS_PROTO_URL)/base/v1beta1/coin.proto > $(COSMOS_PROTO_TYPES)/base/v1beta1/coin.proto
