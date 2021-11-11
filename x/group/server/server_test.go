@@ -81,7 +81,10 @@ func TestServer(t *testing.T) {
 	baseApp.MountStore(mintKey, sdk.StoreTypeIAVL)
 
 	ff.SetModules([]module.Module{
-		group.Module{AccountKeeper: accountKeeper},
+		group.Module{
+			AccountKeeper: accountKeeper,
+			BankKeeper:    bankKeeper,
+		},
 	})
 
 	s := testsuite.NewIntegrationTestSuite(ff, accountKeeper, bankKeeper, mintKeeper)
