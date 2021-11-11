@@ -25,7 +25,7 @@ require (
 	github.com/tendermint/tm-db v0.6.4
 	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247
+	google.golang.org/genproto v0.0.0-20211111162719-482062a4217b
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	pgregory.net/rapid v0.4.7
@@ -37,5 +37,4 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-//replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.0.0-20211102151651-096fa237324a
-replace github.com/cosmos/cosmos-sdk => /home/flavien/workspace/fetchai/cosmos-sdk
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.0.0-20211111081858-378a1bbeac5c
