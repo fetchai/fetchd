@@ -398,16 +398,6 @@ func TestGroupAccountInfo(t *testing.T) {
 			derivationKey: []byte("derivationKey"),
 			expErr:        true,
 		},
-		"valid variable length group account address": {
-			group:         1,
-			groupAccount:  []byte("any-group-address"),
-			admin:         []byte("valid--admin-address"),
-			version:       1,
-			threshold:     "1",
-			timeout:       proto.Duration{Seconds: 1},
-			derivationKey: []byte("derivationKey"),
-			expErr:        false,
-		},
 		"empty group account address": {
 			group:         1,
 			admin:         []byte("valid--admin-address"),
@@ -425,16 +415,6 @@ func TestGroupAccountInfo(t *testing.T) {
 			timeout:       proto.Duration{Seconds: 1},
 			derivationKey: []byte("derivationKey"),
 			expErr:        true,
-		},
-		"valid variable length admin account address": {
-			group:         1,
-			groupAccount:  []byte("valid--group-address"),
-			admin:         []byte("any-admin-address"),
-			version:       1,
-			threshold:     "1",
-			timeout:       proto.Duration{Seconds: 1},
-			derivationKey: []byte("derivationKey"),
-			expErr:        false,
 		},
 		"empty version number": {
 			group:         1,
