@@ -27,6 +27,7 @@ type router struct {
 	providedServices map[reflect.Type]bool
 	authzMiddleware  AuthorizationMiddleware
 	msgServiceRouter *baseapp.MsgServiceRouter
+	legacyRouter     sdk.Router // TODO: remove once sdk v0.44 is landed
 }
 
 type registrar struct {
@@ -126,14 +127,25 @@ func (rtr *router) invoker(methodName string, writeCondition func(context.Contex
 			} else {
 				// routing using baseapp.MsgServiceRouter
 				sdkCtx := sdk.UnwrapSDKContext(ctx)
-				handler := rtr.msgServiceRouter.HandlerByTypeURL(typeURL)
+				handler := rtr.msgServiceRouter.Handler(typeURL)
 				if handler == nil {
-					return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s;", typeURL)
-				}
-
-				_, err = handler(sdkCtx, msg)
-				if err != nil {
-					return err
+					// TODO: remove once sdk v0.44 is landed
+					// it's required on sdk v0.42 as ServiceMessages are not registered yet
+					// ie: here we receive a cosmos.bank.v1beta1.MsgSend but have registered cosmos.bank.v1beta1.Msg/Send
+					// with no way to obtain Msg/Send from MsgSend ?
+					handler := rtr.legacyRouter.Route(sdkCtx, msg.Route())
+					if handler == nil {
+						return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s;", typeURL)
+					}
+					_, err = handler(sdkCtx, msg)
+					if err != nil {
+						return err
+					}
+				} else {
+					_, err = handler(sdkCtx, msg)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
