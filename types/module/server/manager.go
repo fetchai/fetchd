@@ -53,6 +53,7 @@ func NewManager(baseApp *baseapp.BaseApp, cdc *codec.ProtoCodec) *Manager {
 			handlers:         map[string]handler{},
 			providedServices: map[reflect.Type]bool{},
 			msgServiceRouter: baseApp.MsgServiceRouter(),
+			legacyRouter:     baseApp.Router(), // TODO: remove once sdk v0.44 is landed
 		},
 		requiredServices:           map[reflect.Type]bool{},
 		weightedOperationsHandlers: []WeightedOperationsHandler{},
