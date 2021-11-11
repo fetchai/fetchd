@@ -75,6 +75,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.ctx = types.Context{Context: s.sdkCtx}
 
 	s.genesisCtx = types.Context{Context: sdkCtx}
+	s.bankKeeper.SetSupply(sdkCtx, banktypes.NewSupply(sdk.Coins{}))
 	s.Require().NoError(s.bankKeeper.MintCoins(s.sdkCtx, minttypes.ModuleName, sdk.NewCoins(sdk.NewInt64Coin("test", 400000000))))
 
 	s.bankKeeper.SetParams(sdkCtx, banktypes.DefaultParams())
