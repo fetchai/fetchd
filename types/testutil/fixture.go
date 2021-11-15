@@ -13,6 +13,8 @@ import (
 	"context"
 	"encoding/json"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -42,6 +44,10 @@ type Fixture interface {
 	// Signers are a list of addresses which can be used to sign transactions. They may either be
 	// random or correspond to nodes in a test network which have keyrings.
 	Signers() []sdk.AccAddress
+
+	SignersBls() []sdk.AccAddress
+
+	SksBls() []cryptotypes.PrivKey
 
 	// InitGenesis initializes genesis for all modules with provided genesisData.
 	InitGenesis(ctx sdk.Context, genesisData map[string]json.RawMessage) (abci.ResponseInitChain, error)
