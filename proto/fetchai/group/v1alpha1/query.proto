@@ -65,6 +65,36 @@ service Query {
   rpc VotesByVoter(QueryVotesByVoterRequest) returns (QueryVotesByVoterResponse) {
     option (google.api.http).get = "/regen/group/v1alpha1/voters/{voter}";
   }
+
+  // Poll queries a poll based on poll id.
+  rpc Poll(QueryPollRequest) returns (QueryPollResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/polls/{poll_id}";
+  }
+
+  // PollsByGroup queries polls based on group id.
+  rpc PollsByGroup(QueryPollsByGroupRequest) returns (QueryPollsByGroupResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/group/polls";
+  }
+
+  // PollsByCreator queries polls by creator address.
+  rpc PollsByCreator(QueryPollsByCreatorRequest) returns (QueryPollsByCreatorResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/creators/{creator}/polls";
+  }
+
+  // VoteForPollByPollVoter queries a vote by poll id and voter.
+  rpc VoteForPollByPollVoter(QueryVoteForPollByPollVoterRequest) returns (QueryVoteForPollByPollVoterResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/polls/{poll_id}/votes/{voter}";
+  }
+
+  // VotesForPollByPoll queries votes by poll.
+  rpc VotesForPollByPoll(QueryVotesForPollByPollRequest) returns (QueryVotesForPollByPollResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/polls/{poll_id}/votes";
+  }
+
+  // VotesForPollByVoter queries votes for poll by voter.
+  rpc VotesForPollByVoter(QueryVotesForPollByVoterRequest) returns (QueryVotesForPollByVoterResponse) {
+    option (google.api.http).get = "/regen/group/v1alpha1/voters/{voter}";
+  }
 }
 
 // QueryGroupInfoRequest is the Query/GroupInfo request type.
@@ -260,6 +290,116 @@ message QueryVotesByVoterResponse {
 
   // votes are the list of votes by given voter.
   repeated Vote votes = 1;
+
+  // pagination defines the pagination in the response.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryPollRequest is the Query/Poll request type.
+message QueryPollRequest {
+
+  // poll_id is the unique ID of a poll.
+  uint64 poll_id = 1;
+}
+
+// QueryPollResponse is the Query/Poll response type.
+message QueryPollResponse {
+
+  // poll is the poll info.
+  Poll poll = 1;
+}
+
+// QueryPollsByGroupRequest is the Query/PollByGroup request type.
+message QueryPollsByGroupRequest {
+
+  // group_id is the group id related to polls.
+  uint64 group_id = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryPollsByGroupResponse is the Query/PollByGroup response type.
+message QueryPollsByGroupResponse {
+
+  // polls are the polls with given group id.
+  repeated Poll polls = 1;
+
+  // pagination defines the pagination in the response.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryPollsByCreatorRequest is the Query/PollByCreator request type.
+message QueryPollsByCreatorRequest {
+
+  // creator is the creator address related to polls.
+  string creator = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryPollsByCreatorResponse is the Query/PollsByCreator response type.
+message QueryPollsByCreatorResponse {
+
+  // polls are the polls with given creator.
+  repeated Poll polls = 1;
+
+  // pagination defines the pagination in the response.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryVoteForPollByPollVoterRequest is the Query/VotePollByPollVoter request type.
+message QueryVoteForPollByPollVoterRequest {
+
+  // poll_id is the unique ID of a poll.
+  uint64 poll_id = 1;
+
+  // voter is a poll voter account address.
+  string voter = 2;
+}
+
+// QueryVotesForPollByPollVoterResponse is the Query/VotePollByPollVoter response type.
+message QueryVoteForPollByPollVoterResponse {
+
+  // vote is the vote with given poll_id and voter.
+  VotePoll vote = 1;
+}
+
+// QueryVotesForPollByPollRequest is the Query/VotePollsByPoll request type.
+message QueryVotesForPollByPollRequest {
+
+  // poll_id is the unique ID of a poll.
+  uint64 poll_id = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryVotesForPollByPollResponse is the Query/VotePollsByPoll response type.
+message QueryVotesForPollByPollResponse {
+
+  // votes are the list of votes for given poll_id.
+  repeated VotePoll votes = 1;
+
+  // pagination defines the pagination in the response.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryVotesForPollByVoterRequest is the Query/VotePollsByVoter request type.
+message QueryVotesForPollByVoterRequest {
+  // voter is a poll voter account address.
+  string voter = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryVotesForPollByVoterResponse is the Query/VotePollsByVoter response type.
+message QueryVotesForPollByVoterResponse {
+
+  // votes are the list of votes for poll by given voter.
+  repeated VotePoll votes = 1;
 
   // pagination defines the pagination in the response.
   cosmos.base.query.v1beta1.PageResponse pagination = 2;

@@ -36,4 +36,14 @@ message GenesisState {
 
   // votes is the list of votes.
   repeated Vote votes = 8;
+
+  // polls is the list of polls.
+  repeated Poll polls = 9;
+
+  // poll_seq is the poll table orm.Sequence,
+  // it is used to get the next poll ID.
+  uint64 poll_seq = 10;
+
+  // votes is the list of votes for poll.
+  repeated VotePoll votes_for_poll = 11;
 }

@@ -7,6 +7,7 @@ option go_package = "github.com/fetchai/fetchd/x/group";
 import "gogoproto/gogo.proto";
 import "cosmos_proto/cosmos.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 import "fetchai/group/v1alpha1/types.proto";
 
 // Msg is the regen.group.v1alpha1 Msg service.
@@ -42,8 +43,20 @@ service Msg {
     // Vote allows a voter to vote on a proposal.
     rpc Vote(MsgVote) returns (MsgVoteResponse);
 
+    // VoteAgg allows a sender to submit a set of votes
+    rpc VoteAgg(MsgVoteAgg)  returns (MsgVoteAggResponse);
+
     // Exec executes a proposal.
     rpc Exec(MsgExec) returns (MsgExecResponse);
+
+    // CreatePoll submits a new poll.
+    rpc CreatePoll(MsgCreatePoll) returns (MsgCreatePollResponse);
+
+    // VotePoll allows a voter to vote on a poll.
+    rpc VotePoll(MsgVotePoll) returns (MsgVotePollResponse);
+
+    // VotePollAgg allows a sender to submit a set of votes
+    rpc VotePollAgg(MsgVotePollAgg)  returns (MsgVotePollAggResponse);
 }
 
 //
@@ -61,6 +74,9 @@ message MsgCreateGroup {
     
     // metadata is any arbitrary metadata to attached to the group.
     bytes metadata = 3;
+
+    // bls_only requires all the group members to use bls public keys so their votes can be aggregated together
+    bool bls_only = 4;
 }
 
 // MsgCreateGroupResponse is the Msg/CreateGroup response type.
@@ -267,6 +283,74 @@ message MsgVote {
 // MsgVoteResponse is the Msg/Vote response type.
 message MsgVoteResponse { }
 
+
+// MsgVoteBasicRequest is the Msg/Vote request type.
+message MsgVoteBasic {
+
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 1;
+
+    // choice is the voter's choice on the proposal.
+    Choice choice = 2;
+
+    // expiry is the timestamp after which the basic vote expires.
+    google.protobuf.Timestamp expiry = 3 [(gogoproto.nullable) = false];
+}
+
+// MsgVoteResponse is the basic vote that can be aggregated together
+message MsgVoteBasicResponse {
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 1;
+
+    // choice is the voter's choice on the proposal.
+    Choice choice = 2;
+
+    // expiry is the timestamp after which the basic vote expires.
+    google.protobuf.Timestamp expiry = 3 [(gogoproto.nullable) = false];
+
+    // voter is the account address of the voter.
+    string voter = 4;
+
+    // pub_key is the voter's public key
+    google.protobuf.Any pub_key = 5
+    [(gogoproto.jsontag) = "public_key,omitempty", (gogoproto.moretags) = "yaml:\"public_key\""];
+
+    // sig is the individual signature which will be aggregated with other signatures
+    bytes sig = 6;
+}
+
+// MsgVoteAgg is the Msg/VoteAgg request type.
+message MsgVoteAgg {
+    // sender is the person who submits the votes
+    string sender = 1;
+
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 2;
+
+    // votes are the list of voters' choices on the proposal.
+    repeated Choice votes = 3;
+
+    // expiry is the timestamp after which the basic vote expires.
+    // All the basic votes to be aggregated must have the same expiry.
+    // Expiry should be set to be before the proposal timeout in order to
+    // prevent replay attacks and also prevent the aggregator from removing
+    // some basic votes.
+    google.protobuf.Timestamp expiry = 4 [(gogoproto.nullable) = false];
+
+    // agg_sig is the bls aggregated signature for all the votes
+    bytes agg_sig = 5;
+
+    // metadata is any arbitrary metadata attached to the vote.
+    bytes metadata = 6;
+
+    // exec defines whether the proposal should be executed
+    // immediately after voting or not.
+    Exec exec = 7;
+}
+
+// MsgVoteResponse is the Msg/Vote response type.
+message MsgVoteAggResponse { }
+
 // MsgExec is the Msg/Exec request type.
 message MsgExec {
 
@@ -279,3 +363,117 @@ message MsgExec {
 
 // MsgExecResponse is the Msg/Exec request type.
 message MsgExecResponse { }
+
+
+
+// MsgCreateProposal is the Msg/CreateProposal request type.
+message MsgCreatePoll {
+    option (gogoproto.goproto_getters) = false;
+
+    // group_id is the unique ID of the group.
+    uint64 group_id = 1;
+
+    string title = 2;
+
+    Options options = 3 [(gogoproto.nullable) = false];;
+
+    string creator = 4;
+
+    // vote_limit is the number of options each voter can choose.
+    int32 vote_limit = 5;
+
+    // metadata is any arbitrary metadata to attached to the proposal.
+    bytes metadata = 6;
+
+    // timeout is the deadline of the poll.
+    google.protobuf.Timestamp timeout = 7 [(gogoproto.nullable) = false];
+}
+
+// MsgCreateProposalResponse is the Msg/CreateProposal response type.
+message MsgCreatePollResponse {
+
+    // poll_id is the unique ID of the poll.
+    uint64 poll_id = 1;
+}
+
+// MsgVotePoll is the Msg/VotePoll request type.
+message MsgVotePoll {
+
+    // poll_id is the unique ID of the poll.
+    uint64 poll_id = 1;
+
+    // voter is the voter account address.
+    string voter = 2;
+
+    // options are the voter's choices on the poll.
+    Options options = 3 [(gogoproto.nullable) = false];
+
+    // metadata is any arbitrary metadata to attached to the vote.
+    bytes metadata = 4;
+}
+
+// MsgVotePollResponse is the Msg/VotePoll response type.
+message MsgVotePollResponse { }
+
+// MsgVoteBasicRequest is the Msg/Vote request type.
+message MsgVotePollBasic {
+
+    // poll_id is the unique ID of the poll.
+    uint64 poll_id = 1;
+
+    // option is one of the voter's choices on the poll.
+    string option = 2;
+
+    // expiry is the unique timestamp after which the basic vote expires.
+    google.protobuf.Timestamp expiry = 3 [(gogoproto.nullable) = false];
+}
+
+// MsgVoteResponse is the basic vote that can be aggregated together
+message MsgVotePollBasicResponse {
+    // proposal is the unique ID of the proposal.
+    uint64 poll_id = 1;
+
+    // options are the voter's choices on the poll.
+    Options options = 2 [(gogoproto.nullable) = false];
+
+    // expiry is the timestamp after which the basic vote expires.
+    google.protobuf.Timestamp expiry = 3 [(gogoproto.nullable) = false];
+
+    // voter is the account address of the voter.
+    string voter = 4;
+
+    // pub_key is the voter's public key
+    google.protobuf.Any pub_key = 5
+    [(gogoproto.jsontag) = "public_key,omitempty", (gogoproto.moretags) = "yaml:\"public_key\""];
+
+    // sig is the individual signature which will be aggregated with other voters' signatures
+    bytes sig = 6;
+}
+
+// MsgVoteAgg is the Msg/VoteAgg request type.
+message MsgVotePollAgg {
+    // sender is the person who submits the votes
+    string sender = 1;
+
+    // poll_id is the unique ID of the poll.
+    uint64 poll_id = 2;
+
+    // votes are the full list of voters' choices on the proposal.
+    repeated Options votes = 3 [(gogoproto.nullable) = false];
+
+    // expiry is the timestamp after which the basic vote expires.
+    // All the basic votes to be aggregated must have the same expiry.
+    // Expiry should be set to be before the poll timeout in order to
+    // prevent replay attacks and also prevent the aggregator from removing
+    // some basic votes.
+    google.protobuf.Timestamp expiry = 4 [(gogoproto.nullable) = false];
+
+    // agg_sig is the bls aggregated signature for all the votes
+    bytes agg_sig = 5;
+
+    // metadata is any arbitrary metadata to attached to the vote.
+    bytes metadata = 6;
+}
+
+// MsgVoteResponse is the Msg/Vote response type.
+message MsgVotePollAggResponse { }
