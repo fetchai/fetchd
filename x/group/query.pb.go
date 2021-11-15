@@ -1177,6 +1177,639 @@ func (m *QueryVotesByVoterResponse) GetPagination() *query.PageResponse {
 	return nil
 }
 
+// QueryPollRequest is the Query/Poll request type.
+type QueryPollRequest struct {
+	// poll_id is the unique ID of a poll.
+	PollId uint64 `protobuf:"varint,1,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
+}
+
+func (m *QueryPollRequest) Reset()         { *m = QueryPollRequest{} }
+func (m *QueryPollRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryPollRequest) ProtoMessage()    {}
+func (*QueryPollRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{22}
+}
+func (m *QueryPollRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollRequest.Merge(m, src)
+}
+func (m *QueryPollRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollRequest proto.InternalMessageInfo
+
+func (m *QueryPollRequest) GetPollId() uint64 {
+	if m != nil {
+		return m.PollId
+	}
+	return 0
+}
+
+// QueryPollResponse is the Query/Poll response type.
+type QueryPollResponse struct {
+	// poll is the poll info.
+	Poll *Poll `protobuf:"bytes,1,opt,name=poll,proto3" json:"poll,omitempty"`
+}
+
+func (m *QueryPollResponse) Reset()         { *m = QueryPollResponse{} }
+func (m *QueryPollResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryPollResponse) ProtoMessage()    {}
+func (*QueryPollResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{23}
+}
+func (m *QueryPollResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollResponse.Merge(m, src)
+}
+func (m *QueryPollResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollResponse proto.InternalMessageInfo
+
+func (m *QueryPollResponse) GetPoll() *Poll {
+	if m != nil {
+		return m.Poll
+	}
+	return nil
+}
+
+// QueryPollsByGroupRequest is the Query/PollByGroup request type.
+type QueryPollsByGroupRequest struct {
+	// group_id is the group id related to polls.
+	GroupId uint64 `protobuf:"varint,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryPollsByGroupRequest) Reset()         { *m = QueryPollsByGroupRequest{} }
+func (m *QueryPollsByGroupRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryPollsByGroupRequest) ProtoMessage()    {}
+func (*QueryPollsByGroupRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{24}
+}
+func (m *QueryPollsByGroupRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollsByGroupRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollsByGroupRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollsByGroupRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollsByGroupRequest.Merge(m, src)
+}
+func (m *QueryPollsByGroupRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollsByGroupRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollsByGroupRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollsByGroupRequest proto.InternalMessageInfo
+
+func (m *QueryPollsByGroupRequest) GetGroupId() uint64 {
+	if m != nil {
+		return m.GroupId
+	}
+	return 0
+}
+
+func (m *QueryPollsByGroupRequest) GetPagination() *query.PageRequest {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryPollsByGroupResponse is the Query/PollByGroup response type.
+type QueryPollsByGroupResponse struct {
+	// polls are the polls with given group id.
+	Polls []*Poll `protobuf:"bytes,1,rep,name=polls,proto3" json:"polls,omitempty"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryPollsByGroupResponse) Reset()         { *m = QueryPollsByGroupResponse{} }
+func (m *QueryPollsByGroupResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryPollsByGroupResponse) ProtoMessage()    {}
+func (*QueryPollsByGroupResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{25}
+}
+func (m *QueryPollsByGroupResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollsByGroupResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollsByGroupResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollsByGroupResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollsByGroupResponse.Merge(m, src)
+}
+func (m *QueryPollsByGroupResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollsByGroupResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollsByGroupResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollsByGroupResponse proto.InternalMessageInfo
+
+func (m *QueryPollsByGroupResponse) GetPolls() []*Poll {
+	if m != nil {
+		return m.Polls
+	}
+	return nil
+}
+
+func (m *QueryPollsByGroupResponse) GetPagination() *query.PageResponse {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryPollsByCreatorRequest is the Query/PollByCreator request type.
+type QueryPollsByCreatorRequest struct {
+	// creator is the creator address related to polls.
+	Creator string `protobuf:"bytes,1,opt,name=creator,proto3" json:"creator,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryPollsByCreatorRequest) Reset()         { *m = QueryPollsByCreatorRequest{} }
+func (m *QueryPollsByCreatorRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryPollsByCreatorRequest) ProtoMessage()    {}
+func (*QueryPollsByCreatorRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{26}
+}
+func (m *QueryPollsByCreatorRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollsByCreatorRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollsByCreatorRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollsByCreatorRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollsByCreatorRequest.Merge(m, src)
+}
+func (m *QueryPollsByCreatorRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollsByCreatorRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollsByCreatorRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollsByCreatorRequest proto.InternalMessageInfo
+
+func (m *QueryPollsByCreatorRequest) GetCreator() string {
+	if m != nil {
+		return m.Creator
+	}
+	return ""
+}
+
+func (m *QueryPollsByCreatorRequest) GetPagination() *query.PageRequest {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryPollsByCreatorResponse is the Query/PollsByCreator response type.
+type QueryPollsByCreatorResponse struct {
+	// polls are the polls with given creator.
+	Polls []*Poll `protobuf:"bytes,1,rep,name=polls,proto3" json:"polls,omitempty"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryPollsByCreatorResponse) Reset()         { *m = QueryPollsByCreatorResponse{} }
+func (m *QueryPollsByCreatorResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryPollsByCreatorResponse) ProtoMessage()    {}
+func (*QueryPollsByCreatorResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{27}
+}
+func (m *QueryPollsByCreatorResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryPollsByCreatorResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryPollsByCreatorResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryPollsByCreatorResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryPollsByCreatorResponse.Merge(m, src)
+}
+func (m *QueryPollsByCreatorResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryPollsByCreatorResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryPollsByCreatorResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryPollsByCreatorResponse proto.InternalMessageInfo
+
+func (m *QueryPollsByCreatorResponse) GetPolls() []*Poll {
+	if m != nil {
+		return m.Polls
+	}
+	return nil
+}
+
+func (m *QueryPollsByCreatorResponse) GetPagination() *query.PageResponse {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryVoteForPollByPollVoterRequest is the Query/VotePollByPollVoter request type.
+type QueryVoteForPollByPollVoterRequest struct {
+	// poll_id is the unique ID of a poll.
+	PollId uint64 `protobuf:"varint,1,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
+	// voter is a poll voter account address.
+	Voter string `protobuf:"bytes,2,opt,name=voter,proto3" json:"voter,omitempty"`
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) Reset()         { *m = QueryVoteForPollByPollVoterRequest{} }
+func (m *QueryVoteForPollByPollVoterRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryVoteForPollByPollVoterRequest) ProtoMessage()    {}
+func (*QueryVoteForPollByPollVoterRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{28}
+}
+func (m *QueryVoteForPollByPollVoterRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVoteForPollByPollVoterRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVoteForPollByPollVoterRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVoteForPollByPollVoterRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVoteForPollByPollVoterRequest.Merge(m, src)
+}
+func (m *QueryVoteForPollByPollVoterRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVoteForPollByPollVoterRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVoteForPollByPollVoterRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVoteForPollByPollVoterRequest proto.InternalMessageInfo
+
+func (m *QueryVoteForPollByPollVoterRequest) GetPollId() uint64 {
+	if m != nil {
+		return m.PollId
+	}
+	return 0
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) GetVoter() string {
+	if m != nil {
+		return m.Voter
+	}
+	return ""
+}
+
+// QueryVotesForPollByPollVoterResponse is the Query/VotePollByPollVoter response type.
+type QueryVoteForPollByPollVoterResponse struct {
+	// vote is the vote with given poll_id and voter.
+	Vote *VotePoll `protobuf:"bytes,1,opt,name=vote,proto3" json:"vote,omitempty"`
+}
+
+func (m *QueryVoteForPollByPollVoterResponse) Reset()         { *m = QueryVoteForPollByPollVoterResponse{} }
+func (m *QueryVoteForPollByPollVoterResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryVoteForPollByPollVoterResponse) ProtoMessage()    {}
+func (*QueryVoteForPollByPollVoterResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{29}
+}
+func (m *QueryVoteForPollByPollVoterResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVoteForPollByPollVoterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVoteForPollByPollVoterResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVoteForPollByPollVoterResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVoteForPollByPollVoterResponse.Merge(m, src)
+}
+func (m *QueryVoteForPollByPollVoterResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVoteForPollByPollVoterResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVoteForPollByPollVoterResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVoteForPollByPollVoterResponse proto.InternalMessageInfo
+
+func (m *QueryVoteForPollByPollVoterResponse) GetVote() *VotePoll {
+	if m != nil {
+		return m.Vote
+	}
+	return nil
+}
+
+// QueryVotesForPollByPollRequest is the Query/VotePollsByPoll request type.
+type QueryVotesForPollByPollRequest struct {
+	// poll_id is the unique ID of a poll.
+	PollId uint64 `protobuf:"varint,1,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryVotesForPollByPollRequest) Reset()         { *m = QueryVotesForPollByPollRequest{} }
+func (m *QueryVotesForPollByPollRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryVotesForPollByPollRequest) ProtoMessage()    {}
+func (*QueryVotesForPollByPollRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{30}
+}
+func (m *QueryVotesForPollByPollRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVotesForPollByPollRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVotesForPollByPollRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVotesForPollByPollRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVotesForPollByPollRequest.Merge(m, src)
+}
+func (m *QueryVotesForPollByPollRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVotesForPollByPollRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVotesForPollByPollRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVotesForPollByPollRequest proto.InternalMessageInfo
+
+func (m *QueryVotesForPollByPollRequest) GetPollId() uint64 {
+	if m != nil {
+		return m.PollId
+	}
+	return 0
+}
+
+func (m *QueryVotesForPollByPollRequest) GetPagination() *query.PageRequest {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryVotesForPollByPollResponse is the Query/VotePollsByPoll response type.
+type QueryVotesForPollByPollResponse struct {
+	// votes are the list of votes for given poll_id.
+	Votes []*VotePoll `protobuf:"bytes,1,rep,name=votes,proto3" json:"votes,omitempty"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryVotesForPollByPollResponse) Reset()         { *m = QueryVotesForPollByPollResponse{} }
+func (m *QueryVotesForPollByPollResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryVotesForPollByPollResponse) ProtoMessage()    {}
+func (*QueryVotesForPollByPollResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{31}
+}
+func (m *QueryVotesForPollByPollResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVotesForPollByPollResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVotesForPollByPollResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVotesForPollByPollResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVotesForPollByPollResponse.Merge(m, src)
+}
+func (m *QueryVotesForPollByPollResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVotesForPollByPollResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVotesForPollByPollResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVotesForPollByPollResponse proto.InternalMessageInfo
+
+func (m *QueryVotesForPollByPollResponse) GetVotes() []*VotePoll {
+	if m != nil {
+		return m.Votes
+	}
+	return nil
+}
+
+func (m *QueryVotesForPollByPollResponse) GetPagination() *query.PageResponse {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryVotesForPollByVoterRequest is the Query/VotePollsByVoter request type.
+type QueryVotesForPollByVoterRequest struct {
+	// voter is a poll voter account address.
+	Voter string `protobuf:"bytes,1,opt,name=voter,proto3" json:"voter,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryVotesForPollByVoterRequest) Reset()         { *m = QueryVotesForPollByVoterRequest{} }
+func (m *QueryVotesForPollByVoterRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryVotesForPollByVoterRequest) ProtoMessage()    {}
+func (*QueryVotesForPollByVoterRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{32}
+}
+func (m *QueryVotesForPollByVoterRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVotesForPollByVoterRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVotesForPollByVoterRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVotesForPollByVoterRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVotesForPollByVoterRequest.Merge(m, src)
+}
+func (m *QueryVotesForPollByVoterRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVotesForPollByVoterRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVotesForPollByVoterRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVotesForPollByVoterRequest proto.InternalMessageInfo
+
+func (m *QueryVotesForPollByVoterRequest) GetVoter() string {
+	if m != nil {
+		return m.Voter
+	}
+	return ""
+}
+
+func (m *QueryVotesForPollByVoterRequest) GetPagination() *query.PageRequest {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
+// QueryVotesForPollByVoterResponse is the Query/VotePollsByVoter response type.
+type QueryVotesForPollByVoterResponse struct {
+	// votes are the list of votes for poll by given voter.
+	Votes []*VotePoll `protobuf:"bytes,1,rep,name=votes,proto3" json:"votes,omitempty"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryVotesForPollByVoterResponse) Reset()         { *m = QueryVotesForPollByVoterResponse{} }
+func (m *QueryVotesForPollByVoterResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryVotesForPollByVoterResponse) ProtoMessage()    {}
+func (*QueryVotesForPollByVoterResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_bd9f6c6abda9f2c0, []int{33}
+}
+func (m *QueryVotesForPollByVoterResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryVotesForPollByVoterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryVotesForPollByVoterResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryVotesForPollByVoterResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryVotesForPollByVoterResponse.Merge(m, src)
+}
+func (m *QueryVotesForPollByVoterResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryVotesForPollByVoterResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryVotesForPollByVoterResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryVotesForPollByVoterResponse proto.InternalMessageInfo
+
+func (m *QueryVotesForPollByVoterResponse) GetVotes() []*VotePoll {
+	if m != nil {
+		return m.Votes
+	}
+	return nil
+}
+
+func (m *QueryVotesForPollByVoterResponse) GetPagination() *query.PageResponse {
+	if m != nil {
+		return m.Pagination
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*QueryGroupInfoRequest)(nil), "fetchai.group.v1alpha1.QueryGroupInfoRequest")
 	proto.RegisterType((*QueryGroupInfoResponse)(nil), "fetchai.group.v1alpha1.QueryGroupInfoResponse")
@@ -1200,6 +1833,18 @@ func init() {
 	proto.RegisterType((*QueryVotesByProposalResponse)(nil), "fetchai.group.v1alpha1.QueryVotesByProposalResponse")
 	proto.RegisterType((*QueryVotesByVoterRequest)(nil), "fetchai.group.v1alpha1.QueryVotesByVoterRequest")
 	proto.RegisterType((*QueryVotesByVoterResponse)(nil), "fetchai.group.v1alpha1.QueryVotesByVoterResponse")
+	proto.RegisterType((*QueryPollRequest)(nil), "fetchai.group.v1alpha1.QueryPollRequest")
+	proto.RegisterType((*QueryPollResponse)(nil), "fetchai.group.v1alpha1.QueryPollResponse")
+	proto.RegisterType((*QueryPollsByGroupRequest)(nil), "fetchai.group.v1alpha1.QueryPollsByGroupRequest")
+	proto.RegisterType((*QueryPollsByGroupResponse)(nil), "fetchai.group.v1alpha1.QueryPollsByGroupResponse")
+	proto.RegisterType((*QueryPollsByCreatorRequest)(nil), "fetchai.group.v1alpha1.QueryPollsByCreatorRequest")
+	proto.RegisterType((*QueryPollsByCreatorResponse)(nil), "fetchai.group.v1alpha1.QueryPollsByCreatorResponse")
+	proto.RegisterType((*QueryVoteForPollByPollVoterRequest)(nil), "fetchai.group.v1alpha1.QueryVoteForPollByPollVoterRequest")
+	proto.RegisterType((*QueryVoteForPollByPollVoterResponse)(nil), "fetchai.group.v1alpha1.QueryVoteForPollByPollVoterResponse")
+	proto.RegisterType((*QueryVotesForPollByPollRequest)(nil), "fetchai.group.v1alpha1.QueryVotesForPollByPollRequest")
+	proto.RegisterType((*QueryVotesForPollByPollResponse)(nil), "fetchai.group.v1alpha1.QueryVotesForPollByPollResponse")
+	proto.RegisterType((*QueryVotesForPollByVoterRequest)(nil), "fetchai.group.v1alpha1.QueryVotesForPollByVoterRequest")
+	proto.RegisterType((*QueryVotesForPollByVoterResponse)(nil), "fetchai.group.v1alpha1.QueryVotesForPollByVoterResponse")
 }
 
 func init() {
@@ -1207,76 +1852,97 @@ func init() {
 }
 
 var fileDescriptor_bd9f6c6abda9f2c0 = []byte{
-	// 1091 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x58, 0xdd, 0x6b, 0x1c, 0x55,
-	0x1c, 0xed, 0xad, 0x69, 0x93, 0xfc, 0xd2, 0x5a, 0xb9, 0xc6, 0xba, 0x1d, 0xe3, 0x36, 0x99, 0x96,
-	0x1a, 0x34, 0x3b, 0x37, 0xbb, 0x49, 0xc8, 0xc6, 0xb4, 0x62, 0x57, 0xb0, 0xe4, 0x41, 0x5a, 0x17,
-	0x15, 0x11, 0x44, 0x66, 0x77, 0x27, 0x93, 0x85, 0xec, 0xdc, 0xe9, 0xce, 0x6c, 0x68, 0x08, 0x0b,
-	0x22, 0xa8, 0xaf, 0x82, 0x2f, 0x82, 0x20, 0x15, 0x1f, 0x15, 0x7c, 0xd5, 0x07, 0x5f, 0x04, 0xc1,
-	0x17, 0xa1, 0x20, 0x88, 0x8f, 0x92, 0xf8, 0x4f, 0xf8, 0x26, 0x73, 0x3f, 0xe6, 0x63, 0x77, 0x3e,
-	0xc3, 0x52, 0xfa, 0x94, 0xbd, 0x93, 0xdf, 0xb9, 0xf7, 0x9c, 0xf3, 0xbb, 0x73, 0xef, 0x61, 0x40,
-	0xdd, 0x35, 0xdc, 0xf6, 0x9e, 0xde, 0x25, 0x66, 0x9f, 0x0e, 0x6c, 0x72, 0x50, 0xd5, 0xf7, 0xed,
-	0x3d, 0xbd, 0x4a, 0xee, 0x0f, 0x8c, 0xfe, 0xa1, 0x66, 0xf7, 0xa9, 0x4b, 0xf1, 0x65, 0x51, 0xa3,
-	0xb1, 0x1a, 0x4d, 0xd6, 0x28, 0x49, 0x58, 0xf7, 0xd0, 0x36, 0x1c, 0x8e, 0x55, 0x16, 0x4c, 0x4a,
-	0xcd, 0x7d, 0x83, 0xe8, 0x76, 0x97, 0xe8, 0x96, 0x45, 0x5d, 0xdd, 0xed, 0x52, 0x4b, 0xfe, 0x77,
-	0xde, 0xa4, 0x26, 0x65, 0x3f, 0x89, 0xf7, 0x4b, 0x3c, 0x7d, 0xb9, 0x4d, 0x9d, 0x1e, 0x75, 0x48,
-	0x4b, 0x77, 0x0c, 0x4e, 0x84, 0x1c, 0x54, 0x5b, 0x86, 0xab, 0x57, 0x89, 0xad, 0x9b, 0x5d, 0x8b,
-	0x4d, 0xc1, 0x6b, 0xd5, 0x1a, 0x3c, 0xf7, 0xb6, 0x57, 0x71, 0xc7, 0xa3, 0xb0, 0x63, 0xed, 0xd2,
-	0xa6, 0x71, 0x7f, 0x60, 0x38, 0x2e, 0xbe, 0x02, 0x33, 0x8c, 0xd6, 0x47, 0xdd, 0x4e, 0x09, 0x2d,
-	0xa2, 0xe5, 0xa9, 0xe6, 0x34, 0x1b, 0xef, 0x74, 0xd4, 0xbb, 0x70, 0x79, 0x14, 0xe3, 0xd8, 0xd4,
-	0x72, 0x0c, 0xbc, 0x01, 0x53, 0x5d, 0x6b, 0x97, 0x32, 0xc0, 0x5c, 0x6d, 0x49, 0x8b, 0x17, 0xae,
-	0x05, 0x40, 0x56, 0xae, 0xd6, 0x61, 0x21, 0x98, 0xf0, 0x76, 0xbb, 0x4d, 0x07, 0x96, 0x1b, 0xe6,
-	0x52, 0x82, 0x69, 0xbd, 0xd3, 0xe9, 0x1b, 0x8e, 0xc3, 0x66, 0x9e, 0x6d, 0xca, 0xa1, 0xfa, 0x21,
-	0xbc, 0x98, 0x80, 0x14, 0x8c, 0x6e, 0x46, 0x18, 0x2d, 0xa7, 0x32, 0x0a, 0xe3, 0x39, 0xb1, 0x21,
-	0x94, 0x82, 0xe9, 0xdf, 0x32, 0x7a, 0x2d, 0xa3, 0xef, 0x64, 0x1b, 0x84, 0xdf, 0x04, 0x08, 0x8c,
-	0x2e, 0x9d, 0x65, 0x4b, 0xdf, 0xd0, 0x78, 0x57, 0x34, 0xaf, 0x2b, 0x1a, 0xdf, 0x1e, 0xa2, 0x2b,
-	0xda, 0x3d, 0xdd, 0x34, 0xc4, 0xb4, 0xcd, 0x10, 0x52, 0xfd, 0x0e, 0xc1, 0x95, 0x98, 0xf5, 0x85,
-	0xb4, 0x5b, 0x30, 0xdd, 0xe3, 0x8f, 0x4a, 0x68, 0xf1, 0xa9, 0xe5, 0xb9, 0xda, 0xb5, 0x54, 0x75,
-	0x1c, 0xde, 0x94, 0x18, 0x7c, 0x27, 0x86, 0xe4, 0x4b, 0x99, 0x24, 0xf9, 0xda, 0x11, 0x96, 0x87,
-	0x61, 0x92, 0x4e, 0xe3, 0xf0, 0x76, 0xa7, 0xd7, 0xb5, 0xa4, 0x4b, 0xf3, 0x70, 0x4e, 0xf7, 0xc6,
-	0xa2, 0x71, 0x7c, 0x30, 0x31, 0x83, 0x1e, 0x22, 0x50, 0xe2, 0xd6, 0x16, 0x0e, 0x6d, 0xc1, 0x79,
-	0xe6, 0x84, 0x34, 0x28, 0xc7, 0x86, 0x14, 0x80, 0xc9, 0xb9, 0xf3, 0x29, 0x82, 0xc5, 0xb1, 0x2d,
-	0xea, 0x34, 0xf8, 0xf0, 0x31, 0xee, 0xa5, 0x5f, 0x10, 0x2c, 0xa5, 0xf0, 0x10, 0x8e, 0xdd, 0x85,
-	0xa7, 0x39, 0x11, 0x5d, 0x14, 0x08, 0xe7, 0xf2, 0xbf, 0x38, 0x17, 0xcd, 0xf0, 0xfc, 0x93, 0xf3,
-	0xf1, 0xe3, 0x04, 0x1f, 0x1f, 0xe3, 0x6e, 0x4b, 0xb2, 0x30, 0xba, 0xe9, 0x9e, 0x5c, 0x0b, 0x37,
-	0x61, 0x9e, 0xd1, 0xbf, 0xd7, 0xa7, 0x36, 0x75, 0xf4, 0x7d, 0xe9, 0xda, 0x55, 0x98, 0xb3, 0xc5,
-	0xa3, 0x60, 0x03, 0x82, 0x7c, 0xb4, 0xd3, 0x51, 0xdf, 0x15, 0x97, 0x44, 0x00, 0xf4, 0x4f, 0xd7,
-	0x19, 0x59, 0x26, 0x4e, 0xd8, 0xc5, 0x24, 0x95, 0x3e, 0xd6, 0x47, 0xa8, 0x9f, 0x23, 0xb8, 0x16,
-	0x99, 0x57, 0x6e, 0x47, 0x21, 0x3d, 0xf3, 0xf8, 0x9f, 0x58, 0x67, 0x7f, 0x44, 0x70, 0x3d, 0x9d,
-	0x89, 0x10, 0xfc, 0x1a, 0xcc, 0x4a, 0xfa, 0xb2, 0xaf, 0xd9, 0x8a, 0x03, 0xc8, 0xe4, 0x7a, 0xf9,
-	0x3e, 0x5c, 0x65, 0x84, 0xdf, 0xa3, 0xae, 0xd1, 0xf0, 0x69, 0x7b, 0xa3, 0x7e, 0xde, 0xb6, 0x7a,
-	0x6f, 0xcb, 0x81, 0x07, 0x60, 0x3c, 0x66, 0x9b, 0x7c, 0xa0, 0xbe, 0x23, 0xde, 0xb3, 0xd8, 0x99,
-	0x85, 0x0d, 0xab, 0x30, 0xe5, 0x15, 0x8b, 0x9e, 0x2f, 0x24, 0x39, 0xe0, 0x81, 0x9a, 0xac, 0x52,
-	0xfd, 0x0c, 0xc1, 0x0b, 0xfe, 0xb4, 0x4e, 0xa3, 0xf0, 0x1e, 0x9c, 0x58, 0xab, 0xbf, 0x46, 0x22,
-	0x6c, 0x8c, 0x11, 0x11, 0xda, 0x6a, 0xdc, 0x15, 0xd9, 0xde, 0x74, 0x71, 0xbc, 0x74, 0x72, 0x6d,
-	0x7d, 0x20, 0x02, 0x87, 0x20, 0x17, 0xe9, 0xa7, 0xdf, 0x2e, 0x14, 0x6a, 0xd7, 0xc4, 0x7c, 0xf9,
-	0x4a, 0x66, 0x8d, 0xe8, 0xd2, 0x4f, 0x80, 0x29, 0xb5, 0xff, 0x2e, 0xc1, 0x39, 0x46, 0x0d, 0x3f,
-	0x44, 0x30, 0xeb, 0xdf, 0xd5, 0xb8, 0x92, 0xc4, 0x22, 0x36, 0xd1, 0x2a, 0x5a, 0xde, 0x72, 0x4e,
-	0x41, 0x5d, 0xff, 0xe4, 0xcf, 0x7f, 0xbf, 0x3c, 0xab, 0xe1, 0x15, 0xd2, 0x37, 0x4c, 0xc3, 0x1a,
-	0x4d, 0xe9, 0x3c, 0x28, 0x90, 0x23, 0x79, 0x71, 0x0f, 0x89, 0x17, 0x19, 0xf1, 0x4f, 0x08, 0x9e,
-	0x19, 0x3d, 0xd1, 0xf1, 0x7a, 0xf6, 0xd2, 0xe3, 0xb1, 0x57, 0xd9, 0x28, 0x88, 0x12, 0xbc, 0x37,
-	0x19, 0xef, 0x2a, 0x26, 0xa9, 0xbc, 0xe5, 0xed, 0x44, 0x8e, 0xc4, 0x61, 0x3a, 0xc4, 0x3f, 0x20,
-	0xb8, 0x10, 0x4e, 0x9a, 0x78, 0x35, 0x9b, 0x40, 0x34, 0x14, 0x2b, 0xd5, 0x02, 0x88, 0x42, 0x74,
-	0x43, 0x36, 0xcb, 0x00, 0xfb, 0x3d, 0x82, 0x8b, 0x91, 0xdc, 0x87, 0x73, 0xac, 0x3e, 0x92, 0x18,
-	0x94, 0x5a, 0x11, 0x88, 0x60, 0xbc, 0xc6, 0x18, 0x57, 0xf0, 0x2b, 0xe9, 0x06, 0x7b, 0x18, 0x66,
-	0x6f, 0xaf, 0x6b, 0x0d, 0xf1, 0x6f, 0x08, 0xe6, 0xe3, 0xa2, 0x17, 0xae, 0xe7, 0xee, 0xf2, 0x48,
-	0x6a, 0x54, 0xb6, 0x4e, 0x81, 0x14, 0x12, 0xea, 0x4c, 0x42, 0x0d, 0xaf, 0xe6, 0x35, 0x5d, 0x6e,
-	0x17, 0xfc, 0xeb, 0xb8, 0x0e, 0x6e, 0x7e, 0x21, 0x1d, 0x91, 0x1e, 0x6c, 0x9d, 0x02, 0x29, 0x74,
-	0x6c, 0x30, 0x1d, 0x04, 0x57, 0xe2, 0x75, 0x44, 0x7b, 0x10, 0x88, 0xf8, 0x06, 0xc1, 0x8c, 0x3c,
-	0xf8, 0xf1, 0x4a, 0xea, 0xf2, 0x23, 0x17, 0x95, 0x52, 0xc9, 0x59, 0x9d, 0x8f, 0xa0, 0x9f, 0x0c,
-	0xc8, 0x51, 0xe8, 0xfa, 0x1b, 0xe2, 0xbf, 0x10, 0x3c, 0x9f, 0x90, 0x45, 0xf0, 0x76, 0x2e, 0x06,
-	0xf1, 0x59, 0x4a, 0xb9, 0x79, 0x3a, 0xb0, 0x50, 0xf3, 0x3a, 0x53, 0xf3, 0x2a, 0xae, 0xa7, 0x6c,
-	0x9b, 0xca, 0xf8, 0xc9, 0x12, 0xc8, 0xc4, 0x7f, 0x20, 0x78, 0x36, 0x26, 0x59, 0xe0, 0xcd, 0x54,
-	0x5e, 0xc9, 0x29, 0x47, 0xa9, 0x17, 0x07, 0x0a, 0x31, 0x6f, 0x30, 0x31, 0xb7, 0xf0, 0x76, 0xa1,
-	0xd6, 0x10, 0x76, 0xb9, 0x91, 0x23, 0x76, 0xfb, 0x0e, 0xf1, 0xcf, 0x08, 0x2e, 0x8d, 0x24, 0x09,
-	0xbc, 0x96, 0x49, 0x69, 0x3c, 0x00, 0x29, 0xeb, 0xc5, 0x40, 0x42, 0xc3, 0x36, 0xd3, 0xb0, 0x81,
-	0xd7, 0x4e, 0xa1, 0x01, 0x7f, 0x8b, 0xe0, 0x42, 0xf8, 0xb6, 0xcf, 0x38, 0xef, 0x63, 0x32, 0x49,
-	0xc6, 0x79, 0x1f, 0x17, 0x25, 0xd4, 0x15, 0x46, 0xf9, 0x06, 0xbe, 0x1e, 0x4f, 0x99, 0xf9, 0xea,
-	0xfb, 0xdb, 0xd8, 0xfe, 0xfd, 0xb8, 0x8c, 0x1e, 0x1d, 0x97, 0xd1, 0x3f, 0xc7, 0x65, 0xf4, 0xc5,
-	0x49, 0xf9, 0xcc, 0xa3, 0x93, 0xf2, 0x99, 0xbf, 0x4f, 0xca, 0x67, 0x3e, 0x58, 0x32, 0xbb, 0xee,
-	0xde, 0xa0, 0xa5, 0xb5, 0x69, 0x8f, 0xc8, 0x0f, 0x69, 0xec, 0x6f, 0x87, 0x3c, 0xe0, 0x93, 0xb6,
-	0xce, 0xb3, 0x6f, 0x5c, 0x6b, 0xff, 0x07, 0x00, 0x00, 0xff, 0xff, 0xae, 0xf2, 0x65, 0x01, 0xa5,
-	0x13, 0x00, 0x00,
+	// 1440 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x59, 0xdd, 0x6b, 0x1c, 0x55,
+	0x14, 0xef, 0xad, 0x69, 0xd3, 0x9c, 0x7e, 0x58, 0xaf, 0xb1, 0xdd, 0x8e, 0x71, 0x9b, 0x4c, 0x6a,
+	0x9b, 0xda, 0xec, 0x4c, 0x76, 0xf3, 0xdd, 0xb4, 0x62, 0xb7, 0xd8, 0x92, 0x07, 0x69, 0x5d, 0x3f,
+	0x10, 0x45, 0x64, 0xb2, 0x3b, 0xd9, 0x2c, 0x64, 0xf7, 0x6e, 0x77, 0x36, 0xa1, 0x61, 0x59, 0xbf,
+	0x40, 0x05, 0x9f, 0x04, 0x5f, 0x44, 0x41, 0x6a, 0xfb, 0xa8, 0x20, 0xbe, 0x88, 0x0a, 0xbe, 0x08,
+	0x82, 0x2f, 0x4a, 0x41, 0x10, 0x1f, 0x25, 0xf1, 0x0f, 0x91, 0xb9, 0xf7, 0xcc, 0xd7, 0xee, 0x7c,
+	0x86, 0x21, 0xe6, 0x29, 0x73, 0x27, 0xe7, 0xdc, 0xfb, 0x3b, 0xbf, 0x73, 0xee, 0xb9, 0xf7, 0x37,
+	0x0b, 0xf2, 0xaa, 0xde, 0x2e, 0xaf, 0x69, 0x35, 0xb5, 0xda, 0x62, 0x1b, 0x4d, 0x75, 0x33, 0xaf,
+	0xad, 0x37, 0xd7, 0xb4, 0xbc, 0x7a, 0x67, 0x43, 0x6f, 0x6d, 0x29, 0xcd, 0x16, 0x6b, 0x33, 0x7a,
+	0x0a, 0x6d, 0x14, 0x6e, 0xa3, 0x58, 0x36, 0x52, 0x90, 0x6f, 0x7b, 0xab, 0xa9, 0x1b, 0xc2, 0x57,
+	0x1a, 0xa9, 0x32, 0x56, 0x5d, 0xd7, 0x55, 0xad, 0x59, 0x53, 0xb5, 0x46, 0x83, 0xb5, 0xb5, 0x76,
+	0x8d, 0x35, 0xac, 0xff, 0x0e, 0x57, 0x59, 0x95, 0xf1, 0x47, 0xd5, 0x7c, 0xc2, 0xb7, 0xcf, 0x94,
+	0x99, 0x51, 0x67, 0x86, 0xba, 0xa2, 0x19, 0xba, 0x00, 0xa2, 0x6e, 0xe6, 0x57, 0xf4, 0xb6, 0x96,
+	0x57, 0x9b, 0x5a, 0xb5, 0xd6, 0xe0, 0x53, 0x08, 0x5b, 0xb9, 0x00, 0x4f, 0xbc, 0x68, 0x5a, 0xdc,
+	0x34, 0x21, 0x2c, 0x37, 0x56, 0x59, 0x49, 0xbf, 0xb3, 0xa1, 0x1b, 0x6d, 0x7a, 0x06, 0x8e, 0x70,
+	0x58, 0x6f, 0xd5, 0x2a, 0x19, 0x32, 0x4a, 0x26, 0x06, 0x4a, 0x83, 0x7c, 0xbc, 0x5c, 0x91, 0x6f,
+	0xc1, 0xa9, 0x5e, 0x1f, 0xa3, 0xc9, 0x1a, 0x86, 0x4e, 0x67, 0x61, 0xa0, 0xd6, 0x58, 0x65, 0xdc,
+	0xe1, 0x68, 0x61, 0x4c, 0xf1, 0x0f, 0x5c, 0x71, 0x1c, 0xb9, 0xb9, 0xbc, 0x00, 0x23, 0xce, 0x84,
+	0xd7, 0xca, 0x65, 0xb6, 0xd1, 0x68, 0xbb, 0xb1, 0x64, 0x60, 0x50, 0xab, 0x54, 0x5a, 0xba, 0x61,
+	0xf0, 0x99, 0x87, 0x4a, 0xd6, 0x50, 0x7e, 0x13, 0x9e, 0x0a, 0xf0, 0x44, 0x44, 0x57, 0x3c, 0x88,
+	0x26, 0x42, 0x11, 0xb9, 0xfd, 0x05, 0xb0, 0x2e, 0x64, 0x9c, 0xe9, 0x5f, 0xd0, 0xeb, 0x2b, 0x7a,
+	0xcb, 0x88, 0x26, 0x88, 0xde, 0x00, 0x70, 0x88, 0xce, 0x1c, 0xe4, 0x4b, 0x9f, 0x57, 0x44, 0x56,
+	0x14, 0x33, 0x2b, 0x8a, 0x28, 0x0f, 0xcc, 0x8a, 0x72, 0x5b, 0xab, 0xea, 0x38, 0x6d, 0xc9, 0xe5,
+	0x29, 0x3f, 0x20, 0x70, 0xc6, 0x67, 0x7d, 0x0c, 0xed, 0x2a, 0x0c, 0xd6, 0xc5, 0xab, 0x0c, 0x19,
+	0x7d, 0x64, 0xe2, 0x68, 0x61, 0x3c, 0x34, 0x3a, 0xe1, 0x5e, 0xb2, 0x7c, 0xe8, 0x4d, 0x1f, 0x90,
+	0x17, 0x22, 0x41, 0x8a, 0xb5, 0x3d, 0x28, 0xb7, 0xdc, 0x20, 0x8d, 0xe2, 0xd6, 0xb5, 0x4a, 0xbd,
+	0xd6, 0xb0, 0x58, 0x1a, 0x86, 0x43, 0x9a, 0x39, 0xc6, 0xc4, 0x89, 0x41, 0x6a, 0x04, 0xdd, 0x23,
+	0x20, 0xf9, 0xad, 0x8d, 0x0c, 0x2d, 0xc2, 0x61, 0xce, 0x84, 0x45, 0x50, 0x8c, 0x82, 0x44, 0x87,
+	0xf4, 0xd8, 0xf9, 0x80, 0xc0, 0x68, 0x5f, 0x89, 0x1a, 0x45, 0x31, 0xdc, 0xc3, 0x5a, 0xfa, 0x99,
+	0xc0, 0x58, 0x08, 0x0e, 0x64, 0xec, 0x16, 0x9c, 0x10, 0x40, 0x34, 0x34, 0x40, 0xe6, 0xe2, 0x6f,
+	0x9c, 0xe3, 0x55, 0xf7, 0xfc, 0xe9, 0xf1, 0xf8, 0x6e, 0x00, 0x8f, 0x7b, 0x58, 0x6d, 0x41, 0x14,
+	0x7a, 0x8b, 0x6e, 0xff, 0x52, 0x38, 0x0f, 0xc3, 0x1c, 0xfe, 0xed, 0x16, 0x6b, 0x32, 0x43, 0x5b,
+	0xb7, 0x58, 0x3b, 0x0b, 0x47, 0x9b, 0xf8, 0xca, 0x29, 0x40, 0xb0, 0x5e, 0x2d, 0x57, 0xe4, 0x57,
+	0xf0, 0x90, 0x70, 0x1c, 0xed, 0xee, 0x7a, 0xc4, 0x32, 0xc3, 0x0e, 0x3b, 0x1a, 0x14, 0xa5, 0xed,
+	0x6b, 0x7b, 0xc8, 0x1f, 0x11, 0x18, 0xf7, 0xcc, 0x6b, 0x95, 0x23, 0x86, 0x1e, 0xd9, 0xfe, 0x53,
+	0xcb, 0xec, 0xb7, 0x04, 0xce, 0x85, 0x23, 0xc1, 0x80, 0x9f, 0x85, 0x21, 0x0b, 0xbe, 0x95, 0xd7,
+	0xe8, 0x88, 0x1d, 0x97, 0xf4, 0x72, 0xf9, 0x1a, 0x9c, 0xe5, 0x80, 0x5f, 0x65, 0x6d, 0xbd, 0x68,
+	0xc3, 0x36, 0x47, 0xad, 0xb8, 0x69, 0x35, 0x77, 0xcb, 0xa6, 0xe9, 0xc0, 0x71, 0x0c, 0x95, 0xc4,
+	0x40, 0x7e, 0x19, 0xf7, 0x99, 0xef, 0xcc, 0x48, 0xc3, 0x14, 0x0c, 0x98, 0xc6, 0x98, 0xf3, 0x91,
+	0x20, 0x06, 0x4c, 0xa7, 0x12, 0xb7, 0x94, 0x3f, 0x24, 0xf0, 0xa4, 0x3d, 0xad, 0x51, 0x4c, 0x5c,
+	0x83, 0xa9, 0xa5, 0xfa, 0x0b, 0x82, 0x97, 0x8d, 0x3e, 0x20, 0x18, 0x5b, 0x41, 0xb0, 0x62, 0xa5,
+	0x37, 0x3c, 0x38, 0x61, 0x9a, 0x5e, 0x5a, 0xef, 0xe2, 0x85, 0x03, 0xc1, 0x79, 0xf2, 0x69, 0xa7,
+	0x8b, 0xb8, 0xd2, 0x95, 0x1a, 0x2f, 0x9f, 0x59, 0x77, 0x0d, 0xef, 0xd2, 0xfb, 0x81, 0x94, 0x4b,
+	0x70, 0x52, 0x6c, 0x4e, 0xb6, 0x6e, 0xd7, 0xcb, 0x69, 0x18, 0x6c, 0xb2, 0x75, 0x57, 0xad, 0x1c,
+	0x36, 0x87, 0xcb, 0x15, 0xf9, 0x79, 0x78, 0xcc, 0x65, 0xec, 0xd4, 0xab, 0xf9, 0xef, 0xa8, 0x7a,
+	0xe5, 0x3e, 0xdc, 0xd2, 0xbe, 0xf9, 0x99, 0xaf, 0xfe, 0x87, 0xd3, 0xda, 0xce, 0x86, 0x77, 0x7d,
+	0x27, 0x1b, 0x26, 0xc8, 0xc8, 0x6c, 0xf0, 0x78, 0x84, 0x69, 0x7a, 0xd9, 0x78, 0x1b, 0xaf, 0x5c,
+	0x88, 0xec, 0x7a, 0x4b, 0xd7, 0xda, 0xac, 0xe5, 0xea, 0xd5, 0x65, 0xf1, 0xc6, 0xea, 0xd5, 0x38,
+	0x4c, 0x8d, 0x9a, 0xcf, 0xad, 0x4e, 0xd2, 0x0b, 0x60, 0x3f, 0x90, 0xf3, 0x12, 0xc8, 0xf6, 0x26,
+	0xba, 0xc1, 0x5a, 0xe6, 0x1a, 0x45, 0x0e, 0xd4, 0xb3, 0x93, 0x83, 0x8a, 0x37, 0xa0, 0x23, 0xbf,
+	0x81, 0xc7, 0x64, 0xd0, 0xa4, 0x18, 0xf8, 0x8c, 0xa7, 0x29, 0x8f, 0x86, 0x6d, 0x51, 0x51, 0xe8,
+	0xbc, 0x31, 0xbf, 0x47, 0x20, 0xeb, 0xec, 0x7b, 0xcf, 0xf4, 0x91, 0x70, 0xd3, 0x4a, 0xe9, 0x7d,
+	0xe2, 0x3a, 0xcd, 0x7a, 0x31, 0x60, 0x74, 0x73, 0xde, 0x0e, 0x14, 0x1d, 0x5e, 0xda, 0x5d, 0xe8,
+	0x1d, 0x5f, 0x8c, 0x7b, 0xd8, 0xa1, 0x1f, 0x10, 0xd7, 0xc9, 0xdc, 0x87, 0x60, 0x9f, 0xd0, 0x54,
+	0xb8, 0x9f, 0x81, 0x43, 0x1c, 0x25, 0xbd, 0x47, 0x60, 0xc8, 0x16, 0x56, 0x34, 0x17, 0x84, 0xc4,
+	0xf7, 0xf3, 0x83, 0xa4, 0xc4, 0x35, 0x17, 0x10, 0xe4, 0x99, 0xf7, 0xff, 0xfc, 0xf7, 0xd3, 0x83,
+	0x0a, 0x9d, 0x54, 0x5b, 0x7a, 0x55, 0x6f, 0xf4, 0x7e, 0x52, 0x11, 0xaa, 0x4e, 0xed, 0x58, 0x7d,
+	0xbb, 0xab, 0x9a, 0xfa, 0x9e, 0xfe, 0x40, 0xe0, 0x64, 0xef, 0xf5, 0x9b, 0xce, 0x44, 0x2f, 0xdd,
+	0xff, 0x8d, 0x42, 0x9a, 0x4d, 0xe8, 0x85, 0xb8, 0xe7, 0x39, 0xee, 0x3c, 0x55, 0x43, 0x71, 0x5b,
+	0x52, 0x42, 0xed, 0xe0, 0xcd, 0xb7, 0x4b, 0xbf, 0x21, 0x70, 0xcc, 0xfd, 0x59, 0x80, 0x4e, 0x45,
+	0x03, 0xf0, 0x7e, 0xc1, 0x90, 0xf2, 0x09, 0x3c, 0x12, 0xc1, 0x75, 0xd1, 0x6c, 0x7d, 0x6d, 0xf8,
+	0x9a, 0xc0, 0x71, 0x8f, 0x48, 0xa7, 0x31, 0x56, 0xef, 0x91, 0x77, 0x52, 0x21, 0x89, 0x0b, 0x22,
+	0x9e, 0xe6, 0x88, 0x73, 0xf4, 0x52, 0x38, 0xc1, 0xa6, 0x0f, 0xa7, 0xb7, 0x5e, 0x6b, 0x74, 0xe9,
+	0xaf, 0x04, 0x86, 0xfd, 0x74, 0x32, 0x5d, 0x88, 0x9d, 0xe5, 0x9e, 0x4b, 0x83, 0xb4, 0xb8, 0x0b,
+	0x4f, 0x0c, 0x61, 0x81, 0x87, 0x50, 0xa0, 0x53, 0x71, 0x49, 0xb7, 0xca, 0x85, 0xfe, 0xd2, 0x1f,
+	0x87, 0x20, 0x3f, 0x51, 0x1c, 0x9e, 0x1c, 0x2c, 0xee, 0xc2, 0x13, 0xe3, 0x98, 0xe5, 0x71, 0xa8,
+	0x34, 0xe7, 0x1f, 0x87, 0x37, 0x07, 0x4e, 0x10, 0x5f, 0x12, 0x38, 0x62, 0xdd, 0xd2, 0xe9, 0x64,
+	0xe8, 0xf2, 0x3d, 0xaa, 0x42, 0xca, 0xc5, 0xb4, 0x8e, 0x07, 0xd0, 0x96, 0x71, 0x6a, 0xc7, 0xa5,
+	0x55, 0xba, 0xf4, 0x2f, 0x02, 0xa7, 0x03, 0x84, 0x23, 0x5d, 0x8a, 0x85, 0xc0, 0x5f, 0xf8, 0x4a,
+	0x57, 0x76, 0xe7, 0x8c, 0xd1, 0x3c, 0xc7, 0xa3, 0xb9, 0x4c, 0x17, 0x42, 0xca, 0x26, 0xd7, 0xdf,
+	0x59, 0x9c, 0x30, 0xe9, 0xef, 0x04, 0x1e, 0xf7, 0x91, 0x81, 0x74, 0x3e, 0x14, 0x57, 0xb0, 0x24,
+	0x95, 0x16, 0x92, 0x3b, 0x62, 0x30, 0xd7, 0x79, 0x30, 0x57, 0xe9, 0x52, 0xa2, 0xd4, 0xa8, 0xfc,
+	0x70, 0x53, 0x3b, 0xfc, 0x20, 0xee, 0xd2, 0x1f, 0x09, 0x3c, 0xda, 0x23, 0xfb, 0xe8, 0x74, 0x24,
+	0xa4, 0x7e, 0xb5, 0x2a, 0xcd, 0x24, 0x73, 0xc2, 0x18, 0x96, 0x78, 0x0c, 0xb3, 0x74, 0x7a, 0x17,
+	0x31, 0xd0, 0xaf, 0x08, 0x1c, 0x73, 0x4b, 0xb3, 0x88, 0x7e, 0xef, 0x23, 0x20, 0x23, 0xfa, 0xbd,
+	0x9f, 0xee, 0x93, 0x27, 0x39, 0xe4, 0xf3, 0xf4, 0x9c, 0x3f, 0x64, 0xce, 0xab, 0xc3, 0xef, 0xc7,
+	0x04, 0x06, 0xcc, 0x4b, 0x05, 0x9d, 0x08, 0x2f, 0x5c, 0xe7, 0x6e, 0x29, 0x5d, 0x8c, 0x61, 0x89,
+	0x58, 0x72, 0x1c, 0xcb, 0x05, 0xfa, 0x74, 0x00, 0x7d, 0xe6, 0x4d, 0x5e, 0xed, 0xe0, 0x4d, 0xb5,
+	0x6b, 0xb6, 0x8d, 0x63, 0x6e, 0xf5, 0x14, 0x41, 0x98, 0x8f, 0xd0, 0x8b, 0x20, 0xcc, 0x4f, 0x9a,
+	0xc9, 0x17, 0x39, 0xc8, 0x71, 0x3a, 0x16, 0xb2, 0xe9, 0x04, 0x54, 0xfa, 0x1d, 0x81, 0x13, 0x5e,
+	0x0d, 0x43, 0x0b, 0x71, 0x16, 0xf4, 0x2a, 0x2e, 0x69, 0x3a, 0x91, 0x0f, 0xc2, 0x9c, 0xe3, 0x30,
+	0xa7, 0xa8, 0xe2, 0x0f, 0x13, 0x35, 0x9b, 0xa1, 0x76, 0xf0, 0xa9, 0x8b, 0x98, 0xff, 0x20, 0x70,
+	0xca, 0x5f, 0x86, 0xd0, 0xcb, 0x91, 0xd5, 0x15, 0x28, 0x88, 0xa4, 0xa5, 0x5d, 0xf9, 0xc6, 0xdc,
+	0x56, 0xde, 0xba, 0xe8, 0x69, 0x09, 0x3f, 0x11, 0xa0, 0xfd, 0xaa, 0x83, 0xce, 0x45, 0x6f, 0x15,
+	0x3f, 0xa9, 0x24, 0xcd, 0x27, 0xf6, 0x8b, 0x77, 0x4d, 0xf1, 0x0d, 0x82, 0x7e, 0x8f, 0xfd, 0xb9,
+	0x47, 0x0c, 0xd0, 0x24, 0x28, 0x12, 0xf6, 0xe7, 0x00, 0xdd, 0x91, 0xac, 0x51, 0x14, 0x97, 0x7e,
+	0xdb, 0xce, 0x92, 0x87, 0xdb, 0x59, 0xf2, 0xcf, 0x76, 0x96, 0x7c, 0xb2, 0x93, 0x3d, 0xf0, 0x70,
+	0x27, 0x7b, 0xe0, 0xef, 0x9d, 0xec, 0x81, 0xd7, 0xc7, 0xaa, 0xb5, 0xf6, 0xda, 0xc6, 0x8a, 0x52,
+	0x66, 0x75, 0xd5, 0xfa, 0x79, 0x94, 0xff, 0xad, 0xa8, 0x77, 0xc5, 0xa4, 0x2b, 0x87, 0xf9, 0x2f,
+	0x97, 0xd3, 0xff, 0x05, 0x00, 0x00, 0xff, 0xff, 0x04, 0x2a, 0xa9, 0xb6, 0x7b, 0x1d, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1313,6 +1979,18 @@ type QueryClient interface {
 	VotesByProposal(ctx context.Context, in *QueryVotesByProposalRequest, opts ...grpc.CallOption) (*QueryVotesByProposalResponse, error)
 	// VotesByVoter queries a vote by voter.
 	VotesByVoter(ctx context.Context, in *QueryVotesByVoterRequest, opts ...grpc.CallOption) (*QueryVotesByVoterResponse, error)
+	// Poll queries a poll based on poll id.
+	Poll(ctx context.Context, in *QueryPollRequest, opts ...grpc.CallOption) (*QueryPollResponse, error)
+	// PollsByGroup queries polls based on group id.
+	PollsByGroup(ctx context.Context, in *QueryPollsByGroupRequest, opts ...grpc.CallOption) (*QueryPollsByGroupResponse, error)
+	// PollsByCreator queries polls by creator address.
+	PollsByCreator(ctx context.Context, in *QueryPollsByCreatorRequest, opts ...grpc.CallOption) (*QueryPollsByCreatorResponse, error)
+	// VoteForPollByPollVoter queries a vote by poll id and voter.
+	VoteForPollByPollVoter(ctx context.Context, in *QueryVoteForPollByPollVoterRequest, opts ...grpc.CallOption) (*QueryVoteForPollByPollVoterResponse, error)
+	// VotesForPollByPoll queries votes by poll.
+	VotesForPollByPoll(ctx context.Context, in *QueryVotesForPollByPollRequest, opts ...grpc.CallOption) (*QueryVotesForPollByPollResponse, error)
+	// VotesForPollByVoter queries votes for poll by voter.
+	VotesForPollByVoter(ctx context.Context, in *QueryVotesForPollByVoterRequest, opts ...grpc.CallOption) (*QueryVotesForPollByVoterResponse, error)
 }
 
 type queryClient struct {
@@ -1422,6 +2100,60 @@ func (c *queryClient) VotesByVoter(ctx context.Context, in *QueryVotesByVoterReq
 	return out, nil
 }
 
+func (c *queryClient) Poll(ctx context.Context, in *QueryPollRequest, opts ...grpc.CallOption) (*QueryPollResponse, error) {
+	out := new(QueryPollResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/Poll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) PollsByGroup(ctx context.Context, in *QueryPollsByGroupRequest, opts ...grpc.CallOption) (*QueryPollsByGroupResponse, error) {
+	out := new(QueryPollsByGroupResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/PollsByGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) PollsByCreator(ctx context.Context, in *QueryPollsByCreatorRequest, opts ...grpc.CallOption) (*QueryPollsByCreatorResponse, error) {
+	out := new(QueryPollsByCreatorResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/PollsByCreator", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) VoteForPollByPollVoter(ctx context.Context, in *QueryVoteForPollByPollVoterRequest, opts ...grpc.CallOption) (*QueryVoteForPollByPollVoterResponse, error) {
+	out := new(QueryVoteForPollByPollVoterResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/VoteForPollByPollVoter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) VotesForPollByPoll(ctx context.Context, in *QueryVotesForPollByPollRequest, opts ...grpc.CallOption) (*QueryVotesForPollByPollResponse, error) {
+	out := new(QueryVotesForPollByPollResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/VotesForPollByPoll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) VotesForPollByVoter(ctx context.Context, in *QueryVotesForPollByVoterRequest, opts ...grpc.CallOption) (*QueryVotesForPollByVoterResponse, error) {
+	out := new(QueryVotesForPollByVoterResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.group.v1alpha1.Query/VotesForPollByVoter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	// GroupInfo queries group info based on group id.
@@ -1446,6 +2178,18 @@ type QueryServer interface {
 	VotesByProposal(context.Context, *QueryVotesByProposalRequest) (*QueryVotesByProposalResponse, error)
 	// VotesByVoter queries a vote by voter.
 	VotesByVoter(context.Context, *QueryVotesByVoterRequest) (*QueryVotesByVoterResponse, error)
+	// Poll queries a poll based on poll id.
+	Poll(context.Context, *QueryPollRequest) (*QueryPollResponse, error)
+	// PollsByGroup queries polls based on group id.
+	PollsByGroup(context.Context, *QueryPollsByGroupRequest) (*QueryPollsByGroupResponse, error)
+	// PollsByCreator queries polls by creator address.
+	PollsByCreator(context.Context, *QueryPollsByCreatorRequest) (*QueryPollsByCreatorResponse, error)
+	// VoteForPollByPollVoter queries a vote by poll id and voter.
+	VoteForPollByPollVoter(context.Context, *QueryVoteForPollByPollVoterRequest) (*QueryVoteForPollByPollVoterResponse, error)
+	// VotesForPollByPoll queries votes by poll.
+	VotesForPollByPoll(context.Context, *QueryVotesForPollByPollRequest) (*QueryVotesForPollByPollResponse, error)
+	// VotesForPollByVoter queries votes for poll by voter.
+	VotesForPollByVoter(context.Context, *QueryVotesForPollByVoterRequest) (*QueryVotesForPollByVoterResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -1484,6 +2228,24 @@ func (*UnimplementedQueryServer) VotesByProposal(ctx context.Context, req *Query
 }
 func (*UnimplementedQueryServer) VotesByVoter(ctx context.Context, req *QueryVotesByVoterRequest) (*QueryVotesByVoterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VotesByVoter not implemented")
+}
+func (*UnimplementedQueryServer) Poll(ctx context.Context, req *QueryPollRequest) (*QueryPollResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Poll not implemented")
+}
+func (*UnimplementedQueryServer) PollsByGroup(ctx context.Context, req *QueryPollsByGroupRequest) (*QueryPollsByGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PollsByGroup not implemented")
+}
+func (*UnimplementedQueryServer) PollsByCreator(ctx context.Context, req *QueryPollsByCreatorRequest) (*QueryPollsByCreatorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PollsByCreator not implemented")
+}
+func (*UnimplementedQueryServer) VoteForPollByPollVoter(ctx context.Context, req *QueryVoteForPollByPollVoterRequest) (*QueryVoteForPollByPollVoterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VoteForPollByPollVoter not implemented")
+}
+func (*UnimplementedQueryServer) VotesForPollByPoll(ctx context.Context, req *QueryVotesForPollByPollRequest) (*QueryVotesForPollByPollResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VotesForPollByPoll not implemented")
+}
+func (*UnimplementedQueryServer) VotesForPollByVoter(ctx context.Context, req *QueryVotesForPollByVoterRequest) (*QueryVotesForPollByVoterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VotesForPollByVoter not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -1688,6 +2450,114 @@ func _Query_VotesByVoter_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_Poll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryPollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).Poll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/Poll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).Poll(ctx, req.(*QueryPollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_PollsByGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryPollsByGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).PollsByGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/PollsByGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).PollsByGroup(ctx, req.(*QueryPollsByGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_PollsByCreator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryPollsByCreatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).PollsByCreator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/PollsByCreator",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).PollsByCreator(ctx, req.(*QueryPollsByCreatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_VoteForPollByPollVoter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryVoteForPollByPollVoterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).VoteForPollByPollVoter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/VoteForPollByPollVoter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).VoteForPollByPollVoter(ctx, req.(*QueryVoteForPollByPollVoterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_VotesForPollByPoll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryVotesForPollByPollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).VotesForPollByPoll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/VotesForPollByPoll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).VotesForPollByPoll(ctx, req.(*QueryVotesForPollByPollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_VotesForPollByVoter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryVotesForPollByVoterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).VotesForPollByVoter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.group.v1alpha1.Query/VotesForPollByVoter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).VotesForPollByVoter(ctx, req.(*QueryVotesForPollByVoterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "fetchai.group.v1alpha1.Query",
 	HandlerType: (*QueryServer)(nil),
@@ -1735,6 +2605,30 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VotesByVoter",
 			Handler:    _Query_VotesByVoter_Handler,
+		},
+		{
+			MethodName: "Poll",
+			Handler:    _Query_Poll_Handler,
+		},
+		{
+			MethodName: "PollsByGroup",
+			Handler:    _Query_PollsByGroup_Handler,
+		},
+		{
+			MethodName: "PollsByCreator",
+			Handler:    _Query_PollsByCreator_Handler,
+		},
+		{
+			MethodName: "VoteForPollByPollVoter",
+			Handler:    _Query_VoteForPollByPollVoter_Handler,
+		},
+		{
+			MethodName: "VotesForPollByPoll",
+			Handler:    _Query_VotesForPollByPoll_Handler,
+		},
+		{
+			MethodName: "VotesForPollByVoter",
+			Handler:    _Query_VotesForPollByVoter_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -2633,6 +3527,499 @@ func (m *QueryVotesByVoterResponse) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryPollRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.PollId != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.PollId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryPollResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Poll != nil {
+		{
+			size, err := m.Poll.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryPollsByGroupRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollsByGroupRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollsByGroupRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.GroupId != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.GroupId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryPollsByGroupResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollsByGroupResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollsByGroupResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Polls) > 0 {
+		for iNdEx := len(m.Polls) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Polls[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryPollsByCreatorRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollsByCreatorRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollsByCreatorRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Creator) > 0 {
+		i -= len(m.Creator)
+		copy(dAtA[i:], m.Creator)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Creator)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryPollsByCreatorResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryPollsByCreatorResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryPollsByCreatorResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Polls) > 0 {
+		for iNdEx := len(m.Polls) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Polls[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Voter) > 0 {
+		i -= len(m.Voter)
+		copy(dAtA[i:], m.Voter)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Voter)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.PollId != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.PollId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVoteForPollByPollVoterResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVoteForPollByPollVoterResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVoteForPollByPollVoterResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Vote != nil {
+		{
+			size, err := m.Vote.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVotesForPollByPollRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVotesForPollByPollRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVotesForPollByPollRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.PollId != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.PollId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVotesForPollByPollResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVotesForPollByPollResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVotesForPollByPollResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Votes) > 0 {
+		for iNdEx := len(m.Votes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Votes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVotesForPollByVoterRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVotesForPollByVoterRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVotesForPollByVoterRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Voter) > 0 {
+		i -= len(m.Voter)
+		copy(dAtA[i:], m.Voter)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Voter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryVotesForPollByVoterResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryVotesForPollByVoterResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryVotesForPollByVoterResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Votes) > 0 {
+		for iNdEx := len(m.Votes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Votes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -2980,6 +4367,202 @@ func (m *QueryVotesByVoterRequest) Size() (n int) {
 }
 
 func (m *QueryVotesByVoterResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Votes) > 0 {
+		for _, e := range m.Votes {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryPollRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PollId != 0 {
+		n += 1 + sovQuery(uint64(m.PollId))
+	}
+	return n
+}
+
+func (m *QueryPollResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Poll != nil {
+		l = m.Poll.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryPollsByGroupRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.GroupId != 0 {
+		n += 1 + sovQuery(uint64(m.GroupId))
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryPollsByGroupResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Polls) > 0 {
+		for _, e := range m.Polls {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryPollsByCreatorRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Creator)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryPollsByCreatorResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Polls) > 0 {
+		for _, e := range m.Polls {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVoteForPollByPollVoterRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PollId != 0 {
+		n += 1 + sovQuery(uint64(m.PollId))
+	}
+	l = len(m.Voter)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVoteForPollByPollVoterResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Vote != nil {
+		l = m.Vote.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVotesForPollByPollRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PollId != 0 {
+		n += 1 + sovQuery(uint64(m.PollId))
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVotesForPollByPollResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Votes) > 0 {
+		for _, e := range m.Votes {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVotesForPollByVoterRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Voter)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryVotesForPollByVoterResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -5235,6 +6818,1274 @@ func (m *QueryVotesByVoterResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Votes = append(m.Votes, &Vote{})
+			if err := m.Votes[len(m.Votes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageResponse{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PollId", wireType)
+			}
+			m.PollId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PollId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Poll", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Poll == nil {
+				m.Poll = &Poll{}
+			}
+			if err := m.Poll.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollsByGroupRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollsByGroupRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollsByGroupRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GroupId", wireType)
+			}
+			m.GroupId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GroupId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageRequest{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollsByGroupResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollsByGroupResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollsByGroupResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polls", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Polls = append(m.Polls, &Poll{})
+			if err := m.Polls[len(m.Polls)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageResponse{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollsByCreatorRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollsByCreatorRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollsByCreatorRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Creator", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Creator = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageRequest{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryPollsByCreatorResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryPollsByCreatorResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryPollsByCreatorResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polls", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Polls = append(m.Polls, &Poll{})
+			if err := m.Polls[len(m.Polls)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageResponse{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVoteForPollByPollVoterRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVoteForPollByPollVoterRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVoteForPollByPollVoterRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PollId", wireType)
+			}
+			m.PollId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PollId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Voter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Voter = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVoteForPollByPollVoterResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVoteForPollByPollVoterResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVoteForPollByPollVoterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Vote", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Vote == nil {
+				m.Vote = &VotePoll{}
+			}
+			if err := m.Vote.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVotesForPollByPollRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVotesForPollByPollRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVotesForPollByPollRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PollId", wireType)
+			}
+			m.PollId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PollId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageRequest{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVotesForPollByPollResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVotesForPollByPollResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVotesForPollByPollResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Votes", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Votes = append(m.Votes, &VotePoll{})
+			if err := m.Votes[len(m.Votes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageResponse{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVotesForPollByVoterRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVotesForPollByVoterRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVotesForPollByVoterRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Voter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Voter = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageRequest{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryVotesForPollByVoterResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryVotesForPollByVoterResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryVotesForPollByVoterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Votes", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Votes = append(m.Votes, &VotePoll{})
 			if err := m.Votes[len(m.Votes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
