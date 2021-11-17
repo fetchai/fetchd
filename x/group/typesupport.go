@@ -37,3 +37,29 @@ func (a AccAddresses) ValidateBasic() error {
 	}
 	return nil
 }
+
+// ValidateBasic verifies that check the length of options and if there is any duplication.
+func (ops Options) ValidateBasic() error {
+	if len(ops.Titles) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll options")
+	}
+
+	for i, x := range ops.Titles {
+		if len(x) == 0 {
+			return sdkerrors.Wrapf(ErrEmpty, "option %d", i)
+		}
+	}
+
+	if err := assertOptionsLength(ops, "options"); err != nil {
+		return err
+	}
+
+	index := make(map[string]struct{}, len(ops.Titles))
+	for _, x := range ops.Titles {
+		if _, exists := index[x]; exists {
+			return sdkerrors.Wrapf(ErrDuplicate, "option %s", x)
+		}
+		index[x] = struct{}{}
+	}
+	return nil
+}

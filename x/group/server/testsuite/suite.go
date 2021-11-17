@@ -3,12 +3,16 @@ package testsuite
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
@@ -40,8 +44,21 @@ type IntegrationTestSuite struct {
 	addr4            sdk.AccAddress
 	addr5            sdk.AccAddress
 	addr6            sdk.AccAddress
+	addrBls1         sdk.AccAddress
+	addrBls2         sdk.AccAddress
+	addrBls3         sdk.AccAddress
+	addrBls4         sdk.AccAddress
+	addrBls5         sdk.AccAddress
+	addrBls6         sdk.AccAddress
 	groupAccountAddr sdk.AccAddress
 	groupID          uint64
+
+	skBls1 cryptotypes.PrivKey
+	skBls2 cryptotypes.PrivKey
+	skBls3 cryptotypes.PrivKey
+	skBls4 cryptotypes.PrivKey
+	skBls5 cryptotypes.PrivKey
+	skBls6 cryptotypes.PrivKey
 
 	accountKeeper authkeeper.AccountKeeper
 	bankKeeper    bankkeeper.Keeper
@@ -78,6 +95,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.bankKeeper.SetSupply(sdkCtx, banktypes.NewSupply(sdk.Coins{}))
 	s.Require().NoError(s.bankKeeper.MintCoins(s.sdkCtx, minttypes.ModuleName, sdk.NewCoins(sdk.NewInt64Coin("test", 400000000))))
 
+	s.accountKeeper.SetParams(sdkCtx, authtypes.DefaultParams())
 	s.bankKeeper.SetParams(sdkCtx, banktypes.DefaultParams())
 
 	s.msgClient = group.NewMsgClient(s.fixture.TxConn())
@@ -90,6 +108,67 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.addr4 = s.fixture.Signers()[3]
 	s.addr5 = s.fixture.Signers()[4]
 	s.addr6 = s.fixture.Signers()[5]
+
+	s.addrBls1 = s.fixture.SignersBls()[0]
+	s.addrBls2 = s.fixture.SignersBls()[1]
+	s.addrBls3 = s.fixture.SignersBls()[2]
+	s.addrBls4 = s.fixture.SignersBls()[3]
+	s.addrBls5 = s.fixture.SignersBls()[4]
+	s.addrBls6 = s.fixture.SignersBls()[5]
+
+	s.skBls1 = s.fixture.SksBls()[0]
+	s.skBls2 = s.fixture.SksBls()[1]
+	s.skBls3 = s.fixture.SksBls()[2]
+	s.skBls4 = s.fixture.SksBls()[3]
+	s.skBls5 = s.fixture.SksBls()[4]
+	s.skBls6 = s.fixture.SksBls()[5]
+
+	accBls1 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls1)
+	accBls2 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls2)
+	accBls3 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls3)
+	accBls4 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls4)
+	accBls5 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls5)
+	accBls6 := s.accountKeeper.NewAccountWithAddress(s.sdkCtx, s.addrBls6)
+
+	pkBls1 := s.skBls1.PubKey()
+	pkBls2 := s.skBls2.PubKey()
+	pkBls3 := s.skBls3.PubKey()
+	pkBls4 := s.skBls4.PubKey()
+	pkBls5 := s.skBls5.PubKey()
+	pkBls6 := s.skBls6.PubKey()
+
+	err := accBls1.SetPubKey(pkBls1)
+	s.Require().NoError(err)
+	err = accBls2.SetPubKey(pkBls2)
+	s.Require().NoError(err)
+	err = accBls3.SetPubKey(pkBls3)
+	s.Require().NoError(err)
+	err = accBls4.SetPubKey(pkBls4)
+	s.Require().NoError(err)
+	err = accBls5.SetPubKey(pkBls5)
+	s.Require().NoError(err)
+	err = accBls6.SetPubKey(pkBls6)
+	s.Require().NoError(err)
+
+	err = accBls1.SetPopValid(true)
+	s.Require().NoError(err)
+	err = accBls2.SetPopValid(true)
+	s.Require().NoError(err)
+	err = accBls3.SetPopValid(true)
+	s.Require().NoError(err)
+	err = accBls4.SetPopValid(true)
+	s.Require().NoError(err)
+	err = accBls5.SetPopValid(true)
+	s.Require().NoError(err)
+	err = accBls6.SetPopValid(true)
+	s.Require().NoError(err)
+
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls1)
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls2)
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls3)
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls4)
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls5)
+	s.accountKeeper.SetAccount(s.sdkCtx, accBls6)
 
 	// Initial group, group account and balance setup
 	members := []group.Member{
@@ -145,6 +224,26 @@ func (s *IntegrationTestSuite) TestCreateGroup() {
 		Metadata: nil,
 	}}
 
+	blsMembers := []group.Member{{
+		Address:  s.addrBls1.String(),
+		Weight:   "3",
+		Metadata: nil,
+	}, {
+		Address:  s.addrBls2.String(),
+		Weight:   "5",
+		Metadata: nil,
+	}}
+
+	mixedMembers := []group.Member{{
+		Address:  s.addr5.String(),
+		Weight:   "2",
+		Metadata: nil,
+	}, {
+		Address:  s.addrBls1.String(),
+		Weight:   "3",
+		Metadata: nil,
+	}}
+
 	expGroups := []*group.GroupInfo{
 		{
 			GroupId:     s.groupID,
@@ -160,12 +259,28 @@ func (s *IntegrationTestSuite) TestCreateGroup() {
 			TotalWeight: "3",
 			Metadata:    nil,
 		},
+		{
+			GroupId:     2,
+			Version:     1,
+			Admin:       s.addr1.String(),
+			TotalWeight: "8",
+			Metadata:    nil,
+			BlsOnly:     true,
+		},
+		{
+			GroupId:     2,
+			Version:     1,
+			Admin:       s.addr1.String(),
+			TotalWeight: "5",
+			Metadata:    nil,
+		},
 	}
 
 	specs := map[string]struct {
-		req       *group.MsgCreateGroup
-		expErr    bool
-		expGroups []*group.GroupInfo
+		req             *group.MsgCreateGroup
+		expErr          bool
+		expGroups       []*group.GroupInfo
+		expectedMembers []group.Member
 	}{
 		"all good": {
 			req: &group.MsgCreateGroup{
@@ -173,27 +288,44 @@ func (s *IntegrationTestSuite) TestCreateGroup() {
 				Members:  members,
 				Metadata: nil,
 			},
-			expGroups: expGroups,
+			expGroups:       expGroups[0:2],
+			expectedMembers: members,
 		},
-		"group metadata too long": {
+		"all good with bls members": {
 			req: &group.MsgCreateGroup{
 				Admin:    s.addr1.String(),
-				Members:  members,
-				Metadata: bytes.Repeat([]byte{1}, 256),
-			},
-			expErr: true,
-		},
-		"member metadata too long": {
-			req: &group.MsgCreateGroup{
-				Admin: s.addr1.String(),
-				Members: []group.Member{{
-					Address:  s.addr3.String(),
-					Weight:   "1",
-					Metadata: bytes.Repeat([]byte{1}, 256),
-				}},
+				Members:  blsMembers,
 				Metadata: nil,
+				BlsOnly:  true,
 			},
-			expErr: true,
+			expGroups: []*group.GroupInfo{
+				expGroups[0],
+				expGroups[2],
+			},
+			expectedMembers: blsMembers,
+		},
+		"all good with mixed members": {
+			req: &group.MsgCreateGroup{
+				Admin:    s.addr1.String(),
+				Members:  mixedMembers,
+				Metadata: nil,
+				BlsOnly:  false,
+			},
+			expGroups: []*group.GroupInfo{
+				expGroups[0],
+				expGroups[3],
+			},
+			expectedMembers: mixedMembers,
+		},
+		"mixed members not allowed when bls only": {
+			req: &group.MsgCreateGroup{
+				Admin:    s.addr1.String(),
+				Members:  mixedMembers,
+				Metadata: nil,
+				BlsOnly:  true,
+			},
+			expErr:          true,
+			expectedMembers: mixedMembers,
 		},
 		"zero member weight": {
 			req: &group.MsgCreateGroup{
@@ -208,62 +340,65 @@ func (s *IntegrationTestSuite) TestCreateGroup() {
 			expErr: true,
 		},
 	}
+
 	var seq uint32 = 1
 	for msg, spec := range specs {
-		spec := spec
+		tc := spec
 		s.Run(msg, func() {
-			res, err := s.msgClient.CreateGroup(s.ctx, spec.req)
-			if spec.expErr {
+			sdkCtx, _ := s.sdkCtx.CacheContext()
+			ctx := types.Context{Context: sdkCtx}
+
+			res, err := s.msgClient.CreateGroup(ctx, tc.req)
+			if tc.expErr {
 				s.Require().Error(err)
-				_, err := s.queryClient.GroupInfo(s.ctx, &group.QueryGroupInfoRequest{GroupId: uint64(seq + 1)})
+				_, err := s.queryClient.GroupInfo(ctx, &group.QueryGroupInfoRequest{GroupId: uint64(seq + 1)})
 				s.Require().Error(err)
 				return
 			}
 			s.Require().NoError(err)
-			id := res.GroupId
 
-			seq++
-			s.Assert().Equal(uint64(seq), id)
+			s.Assert().Equal(uint64(2), res.GroupId)
 
 			// then all data persisted
-			loadedGroupRes, err := s.queryClient.GroupInfo(s.ctx, &group.QueryGroupInfoRequest{GroupId: id})
+			loadedGroupRes, err := s.queryClient.GroupInfo(ctx, &group.QueryGroupInfoRequest{GroupId: res.GroupId})
 			s.Require().NoError(err)
-			s.Assert().Equal(spec.req.Admin, loadedGroupRes.Info.Admin)
-			s.Assert().Equal(spec.req.Metadata, loadedGroupRes.Info.Metadata)
-			s.Assert().Equal(id, loadedGroupRes.Info.GroupId)
+			s.Assert().Equal(tc.req.Admin, loadedGroupRes.Info.Admin)
+			s.Assert().Equal(tc.req.Metadata, loadedGroupRes.Info.Metadata)
+			s.Assert().Equal(res.GroupId, loadedGroupRes.Info.GroupId)
 			s.Assert().Equal(uint64(1), loadedGroupRes.Info.Version)
 
 			// and members are stored as well
-			membersRes, err := s.queryClient.GroupMembers(s.ctx, &group.QueryGroupMembersRequest{GroupId: id})
+			membersRes, err := s.queryClient.GroupMembers(ctx, &group.QueryGroupMembersRequest{GroupId: res.GroupId})
 			s.Require().NoError(err)
 			loadedMembers := membersRes.Members
-			s.Require().Equal(len(members), len(loadedMembers))
+			s.Require().Equal(len(tc.expectedMembers), len(loadedMembers), "want %#v, got %#v", tc.expectedMembers, membersRes)
 			// we reorder members by address to be able to compare them
-			sort.Slice(members, func(i, j int) bool {
-				addri, err := sdk.AccAddressFromBech32(members[i].Address)
+			sort.Slice(tc.expectedMembers, func(i, j int) bool {
+				addri, err := sdk.AccAddressFromBech32(tc.expectedMembers[i].Address)
 				s.Require().NoError(err)
-				addrj, err := sdk.AccAddressFromBech32(members[j].Address)
+				addrj, err := sdk.AccAddressFromBech32(tc.expectedMembers[j].Address)
 				s.Require().NoError(err)
 				return bytes.Compare(addri, addrj) < 0
 			})
 			for i := range loadedMembers {
-				s.Assert().Equal(members[i].Metadata, loadedMembers[i].Member.Metadata)
-				s.Assert().Equal(members[i].Address, loadedMembers[i].Member.Address)
-				s.Assert().Equal(members[i].Weight, loadedMembers[i].Member.Weight)
-				s.Assert().Equal(id, loadedMembers[i].GroupId)
+				s.Assert().Equal(tc.expectedMembers[i].Metadata, loadedMembers[i].Member.Metadata)
+				s.Assert().Equal(tc.expectedMembers[i].Address, loadedMembers[i].Member.Address)
+				s.Assert().Equal(tc.expectedMembers[i].Weight, loadedMembers[i].Member.Weight)
+				s.Assert().Equal(res.GroupId, loadedMembers[i].GroupId)
 			}
 
 			// query groups by admin
-			groupsRes, err := s.queryClient.GroupsByAdmin(s.ctx, &group.QueryGroupsByAdminRequest{Admin: s.addr1.String()})
+			groupsRes, err := s.queryClient.GroupsByAdmin(ctx, &group.QueryGroupsByAdminRequest{Admin: s.addr1.String()})
 			s.Require().NoError(err)
 			loadedGroups := groupsRes.Groups
-			s.Require().Equal(len(spec.expGroups), len(loadedGroups))
+			s.Require().Equal(len(tc.expGroups), len(loadedGroups))
 			for i := range loadedGroups {
-				s.Assert().Equal(spec.expGroups[i].Metadata, loadedGroups[i].Metadata)
-				s.Assert().Equal(spec.expGroups[i].Admin, loadedGroups[i].Admin)
-				s.Assert().Equal(spec.expGroups[i].TotalWeight, loadedGroups[i].TotalWeight)
-				s.Assert().Equal(spec.expGroups[i].GroupId, loadedGroups[i].GroupId)
-				s.Assert().Equal(spec.expGroups[i].Version, loadedGroups[i].Version)
+				s.Assert().Equal(tc.expGroups[i].Metadata, loadedGroups[i].Metadata)
+				s.Assert().Equal(tc.expGroups[i].Admin, loadedGroups[i].Admin)
+				s.Assert().Equal(tc.expGroups[i].TotalWeight, loadedGroups[i].TotalWeight)
+				s.Assert().Equal(tc.expGroups[i].GroupId, loadedGroups[i].GroupId)
+				s.Assert().Equal(tc.expGroups[i].Version, loadedGroups[i].Version)
+				s.Assert().Equal(tc.expGroups[i].BlsOnly, loadedGroups[i].BlsOnly)
 			}
 		})
 	}
@@ -713,6 +848,138 @@ func (s *IntegrationTestSuite) TestUpdateGroupMembers() {
 	}
 }
 
+func (s *IntegrationTestSuite) TestUpdateGroupMembersBls() {
+	member := s.addr3.String()
+	memberBls1 := s.addrBls1.String()
+	memberBls2 := s.addrBls2.String()
+	memberBls3 := s.addrBls3.String()
+	membersBls := []group.Member{
+		{
+			Address:  memberBls1,
+			Weight:   "5",
+			Metadata: nil,
+		},
+		{
+			Address:  memberBls2,
+			Weight:   "7",
+			Metadata: nil,
+		},
+	}
+
+	myAdmin := s.addr4.String()
+	groupBlsRes, err := s.msgClient.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin:    myAdmin,
+		Members:  membersBls,
+		Metadata: nil,
+		BlsOnly:  true,
+	})
+	s.Require().NoError(err)
+	groupBlsID := groupBlsRes.GroupId
+
+	specs := map[string]struct {
+		req        *group.MsgUpdateGroupMembers
+		expErr     bool
+		expGroup   *group.GroupInfo
+		expMembers []*group.GroupMember
+	}{
+		"add new bls member": {
+			req: &group.MsgUpdateGroupMembers{
+				GroupId: groupBlsID,
+				Admin:   myAdmin,
+				MemberUpdates: []group.Member{{
+					Address:  memberBls3,
+					Weight:   "3",
+					Metadata: nil,
+				}},
+			},
+			expGroup: &group.GroupInfo{
+				GroupId:     groupBlsID,
+				Admin:       myAdmin,
+				Metadata:    nil,
+				TotalWeight: "15",
+				Version:     2,
+				BlsOnly:     true,
+			},
+			expMembers: []*group.GroupMember{
+				{
+					Member: &group.Member{
+						Address:  memberBls1,
+						Weight:   "5",
+						Metadata: nil,
+					},
+					GroupId: groupBlsID,
+				},
+				{
+					Member: &group.Member{
+						Address:  memberBls2,
+						Weight:   "7",
+						Metadata: nil,
+					},
+					GroupId: groupBlsID,
+				},
+				{
+					Member: &group.Member{
+						Address:  memberBls3,
+						Weight:   "3",
+						Metadata: nil,
+					},
+					GroupId: groupBlsID,
+				},
+			},
+		},
+		"add new non-bls member not allowed": {
+			req: &group.MsgUpdateGroupMembers{
+				GroupId: groupBlsID,
+				Admin:   myAdmin,
+				MemberUpdates: []group.Member{{
+					Address:  member,
+					Weight:   "1",
+					Metadata: nil,
+				}},
+			},
+			expErr: true,
+		},
+	}
+
+	for msg, spec := range specs {
+		spec := spec
+		s.Run(msg, func() {
+			sdkCtx, _ := s.sdkCtx.CacheContext()
+			ctx := types.Context{Context: sdkCtx}
+			_, err := s.msgClient.UpdateGroupMembers(ctx, spec.req)
+			if spec.expErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+
+			// then
+			res, err := s.queryClient.GroupInfo(ctx, &group.QueryGroupInfoRequest{GroupId: groupBlsID})
+			s.Require().NoError(err)
+			s.Assert().Equal(spec.expGroup, res.Info)
+
+			// and members persisted
+			membersRes, err := s.queryClient.GroupMembers(ctx, &group.QueryGroupMembersRequest{GroupId: groupBlsID})
+			s.Require().NoError(err)
+			loadedMembers := membersRes.Members
+			s.Require().Equal(len(spec.expMembers), len(loadedMembers))
+			// we reorder group members by address to be able to compare them
+			sort.Slice(spec.expMembers, func(i, j int) bool {
+				return spec.expMembers[i].Member.Address < spec.expMembers[j].Member.Address
+			})
+			sort.Slice(loadedMembers, func(i, j int) bool {
+				return loadedMembers[i].Member.Address < loadedMembers[j].Member.Address
+			})
+			for i := range loadedMembers {
+				s.Assert().Equal(spec.expMembers[i].Member.Metadata, loadedMembers[i].Member.Metadata)
+				s.Assert().Equal(spec.expMembers[i].Member.Address, loadedMembers[i].Member.Address)
+				s.Assert().Equal(spec.expMembers[i].Member.Weight, loadedMembers[i].Member.Weight)
+				s.Assert().Equal(spec.expMembers[i].GroupId, loadedMembers[i].GroupId)
+			}
+		})
+	}
+}
+
 func (s *IntegrationTestSuite) TestCreateGroupAccount() {
 	groupRes, err := s.msgClient.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin:    s.addr1.String(),
@@ -765,18 +1032,6 @@ func (s *IntegrationTestSuite) TestCreateGroupAccount() {
 			req: &group.MsgCreateGroupAccount{
 				Admin:    s.addr4.String(),
 				Metadata: nil,
-				GroupId:  myGroupID,
-			},
-			policy: group.NewThresholdDecisionPolicy(
-				"1",
-				gogotypes.Duration{Seconds: 1},
-			),
-			expErr: true,
-		},
-		"metadata too long": {
-			req: &group.MsgCreateGroupAccount{
-				Admin:    s.addr1.String(),
-				Metadata: []byte(strings.Repeat("a", 256)),
 				GroupId:  myGroupID,
 			},
 			policy: group.NewThresholdDecisionPolicy(
@@ -1198,15 +1453,6 @@ func (s *IntegrationTestSuite) TestCreateProposal() {
 			expProposal: defaultProposal,
 			postRun:     func(sdkCtx sdk.Context) {},
 		},
-		"metadata too long": {
-			req: &group.MsgCreateProposal{
-				Address:   accountAddr.String(),
-				Metadata:  bytes.Repeat([]byte{1}, 256),
-				Proposers: []string{s.addr2.String()},
-			},
-			expErr:  true,
-			postRun: func(sdkCtx sdk.Context) {},
-		},
 		"group account required": {
 			req: &group.MsgCreateProposal{
 				Metadata:  nil,
@@ -1599,16 +1845,6 @@ func (s *IntegrationTestSuite) TestVote() {
 			expErr:  true,
 			postRun: func(sdkCtx sdk.Context) {},
 		},
-		"metadata too long": {
-			req: &group.MsgVote{
-				ProposalId: myProposalID,
-				Voter:      s.addr4.String(),
-				Metadata:   bytes.Repeat([]byte{1}, 256),
-				Choice:     group.Choice_CHOICE_NO,
-			},
-			expErr:  true,
-			postRun: func(sdkCtx sdk.Context) {},
-		},
 		"existing proposal required": {
 			req: &group.MsgVote{
 				ProposalId: 999,
@@ -1839,6 +2075,316 @@ func (s *IntegrationTestSuite) TestVote() {
 	}
 }
 
+// todo: add test for timeout
+func (s *IntegrationTestSuite) TestVoteAgg() {
+	members := []group.Member{
+		{Address: s.addrBls1.String(), Weight: "1"},
+		{Address: s.addrBls2.String(), Weight: "2"},
+		{Address: s.addrBls3.String(), Weight: "3"},
+		{Address: s.addrBls4.String(), Weight: "4"},
+		{Address: s.addrBls5.String(), Weight: "5"},
+	}
+	groupRes, err := s.msgClient.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin:    s.addrBls6.String(),
+		Members:  members,
+		Metadata: nil,
+		BlsOnly:  true,
+	})
+	s.Require().NoError(err)
+	myGroupID := groupRes.GroupId
+
+	policy := group.NewThresholdDecisionPolicy(
+		"8",
+		gogotypes.Duration{Seconds: 20},
+	)
+	accountReq := &group.MsgCreateGroupAccount{
+		Admin:    s.addrBls6.String(),
+		GroupId:  myGroupID,
+		Metadata: nil,
+	}
+	err = accountReq.SetDecisionPolicy(policy)
+	s.Require().NoError(err)
+	accountRes, err := s.msgClient.CreateGroupAccount(s.ctx, accountReq)
+	s.Require().NoError(err)
+	accountAddr := accountRes.Address
+	groupAccount, err := sdk.AccAddressFromBech32(accountAddr)
+	s.Require().NoError(err)
+	s.Require().NotNil(groupAccount)
+
+	s.Require().NoError(fundAccount(s.bankKeeper, s.sdkCtx, groupAccount, sdk.Coins{sdk.NewInt64Coin("test", 10000)}))
+
+	req := &group.MsgCreateProposal{
+		Address:   accountAddr,
+		Metadata:  nil,
+		Proposers: []string{s.addrBls1.String()},
+		Msgs:      nil,
+	}
+	err = req.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
+		FromAddress: accountAddr,
+		ToAddress:   s.addrBls1.String(),
+		Amount:      sdk.Coins{sdk.NewInt64Coin("test", 100)},
+	}})
+	s.Require().NoError(err)
+
+	proposalRes, err := s.msgClient.CreateProposal(s.ctx, req)
+	s.Require().NoError(err)
+	myProposalID := proposalRes.ProposalId
+
+	// proposals by group account
+	proposalsRes, err := s.queryClient.ProposalsByGroupAccount(s.ctx, &group.QueryProposalsByGroupAccountRequest{
+		Address: accountAddr,
+	})
+	s.Require().NoError(err)
+	proposals := proposalsRes.Proposals
+	s.Require().Equal(len(proposals), 1)
+	s.Assert().Equal(req.Address, proposals[0].Address)
+	s.Assert().Equal(req.Metadata, proposals[0].Metadata)
+	s.Assert().Equal(req.Proposers, proposals[0].Proposers)
+
+	submittedAt, err := gogotypes.TimestampFromProto(&proposals[0].SubmittedAt)
+	s.Require().NoError(err)
+	s.Assert().Equal(s.blockTime, submittedAt)
+
+	s.Assert().Equal(uint64(1), proposals[0].GroupVersion)
+	s.Assert().Equal(uint64(1), proposals[0].GroupAccountVersion)
+	s.Assert().Equal(group.ProposalStatusSubmitted, proposals[0].Status)
+	s.Assert().Equal(group.ProposalResultUnfinalized, proposals[0].Result)
+	s.Assert().Equal(group.Tally{
+		YesCount:     "0",
+		NoCount:      "0",
+		AbstainCount: "0",
+		VetoCount:    "0",
+	}, proposals[0].VoteState)
+
+	voteAggTimeout, err := gogotypes.TimestampProto(submittedAt.Add(time.Second * 10))
+	s.Require().NoError(err)
+
+	type fullVote struct {
+		Address string
+		Choice  group.Choice
+	}
+
+	rawVotesAcc := []fullVote{
+		{Address: s.addrBls1.String(), Choice: group.Choice_CHOICE_YES},
+		{Address: s.addrBls2.String(), Choice: group.Choice_CHOICE_NO},
+		{Address: s.addrBls3.String(), Choice: group.Choice_CHOICE_YES},
+		{Address: s.addrBls4.String(), Choice: group.Choice_CHOICE_UNSPECIFIED},
+		{Address: s.addrBls5.String(), Choice: group.Choice_CHOICE_YES},
+	}
+	sort.Slice(rawVotesAcc, func(i, j int) bool { return rawVotesAcc[i].Address < rawVotesAcc[j].Address })
+	sortedVotesAcc := make([]group.Choice, len(rawVotesAcc))
+	validVotesAcc := make([]fullVote, 0, len(rawVotesAcc))
+	for i, v := range rawVotesAcc {
+		sortedVotesAcc[i] = v.Choice
+		if v.Choice != group.Choice_CHOICE_UNSPECIFIED {
+			validVotesAcc = append(validVotesAcc, v)
+		}
+	}
+
+	rawVotesRej := []fullVote{
+		{Address: s.addrBls1.String(), Choice: group.Choice_CHOICE_YES},
+		{Address: s.addrBls2.String(), Choice: group.Choice_CHOICE_ABSTAIN},
+		{Address: s.addrBls3.String(), Choice: group.Choice_CHOICE_NO},
+		{Address: s.addrBls4.String(), Choice: group.Choice_CHOICE_UNSPECIFIED},
+		{Address: s.addrBls5.String(), Choice: group.Choice_CHOICE_VETO},
+	}
+	sort.Slice(rawVotesRej, func(i, j int) bool { return rawVotesRej[i].Address < rawVotesRej[j].Address })
+	sortedVotesRej := make([]group.Choice, len(rawVotesRej))
+	validVotesRej := make([]fullVote, 0, len(rawVotesRej))
+	for i, v := range rawVotesRej {
+		sortedVotesRej[i] = v.Choice
+		if v.Choice != group.Choice_CHOICE_UNSPECIFIED {
+			validVotesRej = append(validVotesRej, v)
+		}
+	}
+
+	msgNo := &group.MsgVoteBasic{
+		ProposalId: myProposalID,
+		Choice:     group.Choice_CHOICE_NO,
+		Expiry:     *voteAggTimeout,
+	}
+	signBytesNo := msgNo.GetSignBytes()
+
+	msgYes := &group.MsgVoteBasic{
+		ProposalId: myProposalID,
+		Choice:     group.Choice_CHOICE_YES,
+		Expiry:     *voteAggTimeout,
+	}
+	signBytesYes := msgYes.GetSignBytes()
+
+	msgAbstain := &group.MsgVoteBasic{
+		ProposalId: myProposalID,
+		Choice:     group.Choice_CHOICE_ABSTAIN,
+		Expiry:     *voteAggTimeout,
+	}
+	signBytesAbstain := msgAbstain.GetSignBytes()
+
+	msgVeto := &group.MsgVoteBasic{
+		ProposalId: myProposalID,
+		Choice:     group.Choice_CHOICE_VETO,
+		Expiry:     *voteAggTimeout,
+	}
+	signBytesVeto := msgVeto.GetSignBytes()
+
+	sig1, err := s.skBls1.Sign(signBytesYes)
+	s.Require().NoError(err)
+	sig2, err := s.skBls2.Sign(signBytesNo)
+	s.Require().NoError(err)
+	sig3, err := s.skBls3.Sign(signBytesYes)
+	s.Require().NoError(err)
+	sig5, err := s.skBls5.Sign(signBytesYes)
+	s.Require().NoError(err)
+	sigmaAcc, err := bls12381.AggregateSignature([][]byte{sig1, sig2, sig3, sig5})
+	s.Require().NoError(err)
+
+	sig1, err = s.skBls1.Sign(signBytesYes)
+	s.Require().NoError(err)
+	sig2, err = s.skBls2.Sign(signBytesAbstain)
+	s.Require().NoError(err)
+	sig3, err = s.skBls3.Sign(signBytesNo)
+	s.Require().NoError(err)
+	sig5, err = s.skBls5.Sign(signBytesVeto)
+	s.Require().NoError(err)
+	sigmaRej, err := bls12381.AggregateSignature([][]byte{sig1, sig2, sig3, sig5})
+	s.Require().NoError(err)
+
+	specs := map[string]struct {
+		expVoteState      group.Tally
+		req               *group.MsgVoteAgg
+		votes             []fullVote
+		postRun           func(sdkCtx sdk.Context)
+		expProposalStatus group.Proposal_Status
+		expResult         group.Proposal_Result
+		expExecutorResult group.Proposal_ExecutorResult
+		expErr            bool
+	}{
+		"result accepted with exec": {
+			req: &group.MsgVoteAgg{
+				Sender:     s.addr1.String(),
+				ProposalId: myProposalID,
+				Votes:      sortedVotesAcc,
+				Expiry:     *voteAggTimeout,
+				AggSig:     sigmaAcc,
+				Exec:       group.Exec_EXEC_TRY,
+			},
+			votes: validVotesAcc,
+			expVoteState: group.Tally{
+				YesCount:     "9",
+				NoCount:      "2",
+				AbstainCount: "0",
+				VetoCount:    "0",
+			},
+			expProposalStatus: group.ProposalStatusClosed,
+			expResult:         group.ProposalResultAccepted,
+			expExecutorResult: group.ProposalExecutorResultSuccess,
+			postRun: func(sdkCtx sdk.Context) {
+				fromBalances := s.bankKeeper.GetAllBalances(sdkCtx, groupAccount)
+				s.Require().Equal(sdk.Coins{sdk.NewInt64Coin("test", 9900)}, fromBalances)
+				toBalances := s.bankKeeper.GetAllBalances(sdkCtx, s.addrBls1)
+				s.Require().Equal(sdk.Coins{sdk.NewInt64Coin("test", 100)}, toBalances)
+			},
+		},
+		"result rejected": {
+			req: &group.MsgVoteAgg{
+				Sender:     s.addr1.String(),
+				ProposalId: myProposalID,
+				Votes:      sortedVotesRej,
+				Expiry:     *voteAggTimeout,
+				AggSig:     sigmaRej,
+				Exec:       group.Exec_EXEC_TRY,
+			},
+			votes: validVotesRej,
+			expVoteState: group.Tally{
+				YesCount:     "1",
+				NoCount:      "3",
+				AbstainCount: "2",
+				VetoCount:    "5",
+			},
+			expProposalStatus: group.ProposalStatusClosed,
+			expResult:         group.ProposalResultRejected,
+			expExecutorResult: group.ProposalExecutorResultNotRun,
+			postRun: func(sdkCtx sdk.Context) {
+				fromBalances := s.bankKeeper.GetAllBalances(sdkCtx, groupAccount)
+				s.Require().Equal(sdk.Coins{sdk.NewInt64Coin("test", 10000)}, fromBalances)
+				toBalances := s.bankKeeper.GetAllBalances(sdkCtx, s.addrBls1)
+				s.Require().Equal(sdk.Coins{}, toBalances)
+			},
+		},
+		"invalid signature": {
+			req: &group.MsgVoteAgg{
+				Sender:     s.addr1.String(),
+				ProposalId: myProposalID,
+				Votes:      sortedVotesAcc,
+				Expiry:     *voteAggTimeout,
+				AggSig:     sigmaRej,
+				Exec:       group.Exec_EXEC_TRY,
+			},
+			expErr: true,
+		},
+	}
+
+	for msg, spec := range specs {
+		spec := spec
+		s.Run(msg, func() {
+			sdkCtx, _ := s.sdkCtx.CacheContext()
+			ctx := types.Context{Context: sdkCtx}
+
+			_, err := s.msgClient.VoteAgg(ctx, spec.req)
+			if spec.expErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+
+			// query votes by proposal
+			votesByProposalRes, err := s.queryClient.VotesByProposal(ctx, &group.QueryVotesByProposalRequest{
+				ProposalId: spec.req.ProposalId,
+			})
+			s.Require().NoError(err)
+			votesByProposal := votesByProposalRes.Votes
+			s.Require().Equal(len(spec.votes), len(votesByProposal))
+
+			for i, vote := range votesByProposal {
+				s.Assert().Equal(spec.req.ProposalId, vote.ProposalId)
+				s.Assert().Equal(spec.votes[i].Address, vote.Voter)
+				s.Assert().Equal(spec.votes[i].Choice, vote.Choice)
+				submittedAt, err = gogotypes.TimestampFromProto(&vote.SubmittedAt)
+				s.Require().NoError(err)
+				s.Assert().Equal(s.blockTime, submittedAt)
+			}
+
+			// query votes by voter
+			for _, vote := range spec.votes {
+				votesByVoterRes, err := s.queryClient.VotesByVoter(ctx, &group.QueryVotesByVoterRequest{
+					Voter: vote.Address,
+				})
+				s.Require().NoError(err)
+				votesByVoter := votesByVoterRes.Votes
+				s.Require().Equal(1, len(votesByVoter))
+				s.Assert().Equal(spec.req.ProposalId, votesByVoter[0].ProposalId)
+				s.Assert().Equal(vote.Address, votesByVoter[0].Voter)
+				s.Assert().Equal(vote.Choice, votesByVoter[0].Choice)
+				submittedAt, err = gogotypes.TimestampFromProto(&votesByVoter[0].SubmittedAt)
+				s.Require().NoError(err)
+				s.Assert().Equal(s.blockTime, submittedAt)
+			}
+
+			// and proposal is updated
+			proposalRes, err := s.queryClient.Proposal(ctx, &group.QueryProposalRequest{
+				ProposalId: spec.req.ProposalId,
+			})
+			s.Require().NoError(err)
+			proposal := proposalRes.Proposal
+			s.Assert().Equal(spec.expVoteState, proposal.VoteState)
+			s.Assert().Equal(spec.expResult, proposal.Result)
+			s.Assert().Equal(spec.expProposalStatus, proposal.Status)
+			s.Assert().Equal(spec.expExecutorResult, proposal.ExecutorResult)
+
+			spec.postRun(sdkCtx)
+		})
+	}
+}
+
 func (s *IntegrationTestSuite) TestExecProposal() {
 	msgSend1 := &banktypes.MsgSend{
 		FromAddress: s.groupAccountAddr.String(),
@@ -2043,6 +2589,754 @@ func (s *IntegrationTestSuite) TestExecProposal() {
 				toBalances := s.bankKeeper.GetAllBalances(sdkCtx, s.addr2)
 				s.Require().Equal(spec.expToBalances, toBalances)
 			}
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestCreatePoll() {
+	myGroupID := s.groupID
+	now := s.blockTime
+	endTime, err := gogotypes.TimestampProto(now.Add(time.Second * 100))
+	s.Require().NoError(err)
+	past := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	oldTime, err := gogotypes.TimestampProto(past)
+	s.Require().NoError(err)
+
+	defaultPoll := group.Poll{
+		Status: group.PollStatusSubmitted,
+	}
+
+	specs := map[string]struct {
+		req     *group.MsgCreatePoll
+		expPoll group.Poll
+		expErr  bool
+	}{
+		"all good": {
+			req: &group.MsgCreatePoll{
+				GroupId:   myGroupID,
+				Title:     "2021 Election",
+				Options:   group.Options{Titles: []string{"alice", "bob", "charlie"}},
+				Creator:   s.addr2.String(),
+				VoteLimit: 2,
+				Timeout:   *endTime,
+			},
+			expPoll: defaultPoll,
+		},
+		"only group members can create a poll": {
+			req: &group.MsgCreatePoll{
+				GroupId:   myGroupID,
+				Title:     "2021 Election",
+				Options:   group.Options{Titles: []string{"alice", "bob", "charlie"}},
+				Creator:   s.addr4.String(),
+				VoteLimit: 2,
+				Timeout:   *endTime,
+			},
+			expErr: true,
+		},
+		"admin that is not a group member can not create poll": {
+			req: &group.MsgCreatePoll{
+				GroupId:   myGroupID,
+				Title:     "2021 Election",
+				Options:   group.Options{Titles: []string{"alice", "bob", "charlie"}},
+				Creator:   s.addr1.String(),
+				VoteLimit: 2,
+				Timeout:   *endTime,
+			},
+			expErr: true,
+		},
+		"poll expired": {
+			req: &group.MsgCreatePoll{
+				GroupId:   myGroupID,
+				Title:     "2021 Election",
+				Options:   group.Options{Titles: []string{"alice", "bob", "charlie"}},
+				Creator:   s.addr2.String(),
+				VoteLimit: 2,
+				Timeout:   *oldTime,
+			},
+			expErr: true,
+		},
+	}
+	for msg, spec := range specs {
+		spec := spec
+		s.Run(msg, func() {
+			res, err := s.msgClient.CreatePoll(s.ctx, spec.req)
+			if spec.expErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			id := res.PollId
+
+			// then all data persisted
+			pollRes, err := s.queryClient.Poll(s.ctx, &group.QueryPollRequest{PollId: id})
+			s.Require().NoError(err)
+			poll := pollRes.Poll
+
+			s.Assert().Equal(spec.req.GroupId, poll.GroupId)
+			s.Assert().Equal(spec.req.Title, poll.Title)
+			s.Assert().Equal(spec.req.Options, poll.Options)
+			s.Assert().Equal(spec.req.Creator, poll.Creator)
+			s.Assert().Equal(spec.req.VoteLimit, poll.VoteLimit)
+			s.Assert().Equal(spec.req.Metadata, poll.Metadata)
+			s.Assert().Equal(spec.req.Timeout, poll.Timeout)
+
+			submittedAt, err := gogotypes.TimestampFromProto(&poll.SubmittedAt)
+			s.Require().NoError(err)
+			s.Assert().Equal(s.blockTime, submittedAt)
+
+			s.Assert().Equal(uint64(1), poll.GroupVersion)
+			s.Assert().Equal(spec.expPoll.Status, poll.Status)
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestVotePoll() {
+	members := []group.Member{
+		{Address: s.addr4.String(), Weight: "1"},
+		{Address: s.addr3.String(), Weight: "2"},
+	}
+	groupRes, err := s.msgClient.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin:    s.addr1.String(),
+		Members:  members,
+		Metadata: nil,
+	})
+	s.Require().NoError(err)
+	myGroupID := groupRes.GroupId
+
+	now := s.blockTime
+	endTime, err := gogotypes.TimestampProto(now.Add(time.Second * 100))
+	s.Require().NoError(err)
+
+	req := &group.MsgCreatePoll{
+		GroupId:   myGroupID,
+		Title:     "2021 Election",
+		Options:   group.Options{Titles: []string{"alice", "bob", "charlie", "linda", "tom"}},
+		Creator:   s.addr3.String(),
+		VoteLimit: 2,
+		Timeout:   *endTime,
+	}
+
+	pollRes, err := s.msgClient.CreatePoll(s.ctx, req)
+	s.Require().NoError(err)
+	myPollID := pollRes.PollId
+
+	_, err = s.queryClient.Poll(s.ctx, &group.QueryPollRequest{PollId: myPollID})
+	s.Require().NoError(err)
+
+	specs := map[string]struct {
+		srcCtx        sdk.Context
+		expVoteState  group.TallyPoll
+		req           *group.MsgVotePoll
+		doBefore      func(ctx context.Context)
+		expPollStatus group.Poll_Status
+		expErr        bool
+	}{
+		"all good": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"alice", "bob"}},
+			},
+			expVoteState: group.TallyPoll{
+				Counts: map[string]string{
+					"alice": "1",
+					"bob":   "1",
+				},
+			},
+			expPollStatus: group.PollStatusSubmitted,
+		},
+		"invalid option": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"eva"}},
+			},
+			expErr: true,
+		},
+		"on vote limit": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"alice", "bob", "charlie"}},
+			},
+			expErr: true,
+		},
+		"voter must be in group": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr2.String(),
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			expErr: true,
+		},
+		"voter must not be empty": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   "",
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			expErr: true,
+		},
+		"voters must not be nil": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			expErr: true,
+		},
+		"admin that is not a group member can not vote": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr1.String(),
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			expErr: true,
+		},
+		"on timeout": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			srcCtx: s.sdkCtx.WithBlockTime(s.blockTime.Add(time.Second * 101)),
+			expErr: true,
+		},
+		"multiple votes": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr3.String(),
+				Options: group.Options{Titles: []string{"alice", "bob"}},
+			},
+			doBefore: func(ctx context.Context) {
+				_, err := s.msgClient.VotePoll(ctx, &group.MsgVotePoll{
+					PollId:  myPollID,
+					Voter:   s.addr4.String(),
+					Options: group.Options{Titles: []string{"bob"}},
+				})
+				s.Require().NoError(err)
+			},
+			expVoteState: group.TallyPoll{
+				Counts: map[string]string{
+					"alice": "2",
+					"bob":   "3",
+				},
+			},
+			expPollStatus: group.PollStatusSubmitted,
+		},
+		"voted already": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			doBefore: func(ctx context.Context) {
+				_, err := s.msgClient.VotePoll(ctx, &group.MsgVotePoll{
+					PollId:  myPollID,
+					Voter:   s.addr4.String(),
+					Options: group.Options{Titles: []string{"bob"}},
+				})
+				s.Require().NoError(err)
+			},
+			expErr: true,
+		},
+		"with group modified": {
+			req: &group.MsgVotePoll{
+				PollId:  myPollID,
+				Voter:   s.addr4.String(),
+				Options: group.Options{Titles: []string{"alice"}},
+			},
+			doBefore: func(ctx context.Context) {
+				_, err = s.msgClient.UpdateGroupMetadata(ctx, &group.MsgUpdateGroupMetadata{
+					GroupId:  myGroupID,
+					Admin:    s.addr1.String(),
+					Metadata: []byte{1, 2, 3},
+				})
+				s.Require().NoError(err)
+			},
+			expErr: true,
+		},
+	}
+	for msg, spec := range specs {
+		spec := spec
+		s.Run(msg, func() {
+			sdkCtx := s.sdkCtx
+			if !spec.srcCtx.IsZero() {
+				sdkCtx = spec.srcCtx
+			}
+			sdkCtx, _ = sdkCtx.CacheContext()
+			ctx := types.Context{Context: sdkCtx}
+
+			if spec.doBefore != nil {
+				spec.doBefore(ctx)
+			}
+			_, err := s.msgClient.VotePoll(ctx, spec.req)
+			if spec.expErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+
+			// vote is stored and all data persisted
+			res, err := s.queryClient.VoteForPollByPollVoter(ctx, &group.QueryVoteForPollByPollVoterRequest{
+				PollId: spec.req.PollId,
+				Voter:  spec.req.Voter,
+			})
+			s.Require().NoError(err)
+			loaded := res.Vote
+			s.Assert().Equal(spec.req.PollId, loaded.PollId)
+			s.Assert().Equal(spec.req.Voter, loaded.Voter)
+			s.Assert().Equal(spec.req.Options, loaded.Options)
+			s.Assert().Equal(spec.req.Metadata, loaded.Metadata)
+			submittedAt, err := gogotypes.TimestampFromProto(&loaded.SubmittedAt)
+			s.Require().NoError(err)
+			s.Assert().Equal(s.blockTime, submittedAt)
+
+			// query votes by proposal
+			votesForPollByPollRes, err := s.queryClient.VotesForPollByPoll(ctx, &group.QueryVotesForPollByPollRequest{
+				PollId: spec.req.PollId,
+			})
+			s.Require().NoError(err)
+			votesByPoll := votesForPollByPollRes.Votes
+			foundVoter := false
+			for _, vote := range votesByPoll {
+				if vote.Voter == spec.req.Voter {
+					foundVoter = true
+					s.Assert().Equal(spec.req.PollId, vote.PollId)
+					s.Assert().Equal(spec.req.Voter, vote.Voter)
+					s.Assert().Equal(spec.req.Options, vote.Options)
+					s.Assert().Equal(spec.req.Metadata, vote.Metadata)
+					submittedAt, err = gogotypes.TimestampFromProto(&vote.SubmittedAt)
+					s.Require().NoError(err)
+					s.Assert().Equal(s.blockTime, submittedAt)
+				}
+			}
+			s.Require().True(foundVoter)
+
+			// query votes by voter
+			voter := spec.req.Voter
+			votesByVoterRes, err := s.queryClient.VotesForPollByVoter(ctx, &group.QueryVotesForPollByVoterRequest{
+				Voter: voter,
+			})
+			s.Require().NoError(err)
+			votesByVoter := votesByVoterRes.Votes
+			s.Require().Equal(1, len(votesByVoter))
+			s.Assert().Equal(spec.req.PollId, votesByVoter[0].PollId)
+			s.Assert().Equal(voter, votesByVoter[0].Voter)
+			s.Assert().Equal(spec.req.Options, votesByVoter[0].Options)
+			s.Assert().Equal(spec.req.Metadata, votesByVoter[0].Metadata)
+			submittedAt, err = gogotypes.TimestampFromProto(&votesByVoter[0].SubmittedAt)
+			s.Require().NoError(err)
+			s.Assert().Equal(s.blockTime, submittedAt)
+
+			// and poll is updated
+			pollRes, err := s.queryClient.Poll(ctx, &group.QueryPollRequest{
+				PollId: spec.req.PollId,
+			})
+			s.Require().NoError(err)
+			poll := pollRes.Poll
+			s.Assert().Equal(spec.expVoteState, poll.VoteState)
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestVotePollAgg() {
+	members := []group.Member{
+		{Address: s.addrBls1.String(), Weight: "1"},
+		{Address: s.addrBls2.String(), Weight: "2"},
+		{Address: s.addrBls3.String(), Weight: "3"},
+		{Address: s.addrBls4.String(), Weight: "4"},
+		{Address: s.addrBls5.String(), Weight: "5"},
+	}
+
+	groupRes, err := s.msgClient.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin:    s.addrBls6.String(),
+		Members:  members,
+		Metadata: nil,
+		BlsOnly:  true,
+	})
+	s.Require().NoError(err)
+	myGroupID := groupRes.GroupId
+
+	now := s.blockTime
+	endTime, err := gogotypes.TimestampProto(now.Add(time.Second * 20))
+	s.Require().NoError(err)
+
+	req := &group.MsgCreatePoll{
+		GroupId:   myGroupID,
+		Title:     "2021 Election",
+		Options:   group.Options{Titles: []string{"alice", "bob", "charlie", "linda", "tom"}},
+		Creator:   s.addrBls5.String(),
+		VoteLimit: 2,
+		Timeout:   *endTime,
+	}
+
+	pollRes, err := s.msgClient.CreatePoll(s.ctx, req)
+	s.Require().NoError(err)
+	myPollID := pollRes.PollId
+
+	pollQuery, err := s.queryClient.Poll(s.ctx, &group.QueryPollRequest{PollId: myPollID})
+	s.Require().NoError(err)
+	submittedAt, err := gogotypes.TimestampFromProto(&pollQuery.Poll.SubmittedAt)
+	s.Require().NoError(err)
+	s.Assert().Equal(s.blockTime, submittedAt)
+
+	s.Assert().Equal(uint64(1), pollQuery.Poll.GroupVersion)
+	s.Assert().Equal(group.PollStatusSubmitted, pollQuery.Poll.Status)
+
+	type fullVote struct {
+		Address string
+		Options group.Options
+	}
+
+	// valid votes
+	rawVotes := []fullVote{
+		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"alice", "bob"}}},
+		{Address: s.addrBls2.String()},
+		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
+		{Address: s.addrBls4.String()},
+		{Address: s.addrBls5.String()},
+	}
+	sort.Slice(rawVotes, func(i, j int) bool { return rawVotes[i].Address < rawVotes[j].Address })
+	sortedVotes := make([]group.Options, len(rawVotes))
+	validVotes := make([]fullVote, 0, len(rawVotes))
+	for i, v := range rawVotes {
+		sortedVotes[i] = v.Options
+		if len(v.Options.Titles) != 0 {
+			validVotes = append(validVotes, v)
+		}
+	}
+
+	voteExpiry, err := gogotypes.TimestampProto(submittedAt.Add(time.Second * 10))
+	s.Require().NoError(err)
+
+	msgs := make(map[string][]byte, len(req.Options.Titles))
+	for _, opt := range req.Options.Titles {
+		x := group.MsgVotePollBasic{
+			PollId: myPollID,
+			Option: opt,
+			Expiry: *voteExpiry,
+		}
+		msgs[opt] = x.GetSignBytes()
+	}
+
+	sig11, err := s.skBls1.Sign(msgs["alice"])
+	s.Require().NoError(err)
+	sig12, err := s.skBls1.Sign(msgs["bob"])
+	s.Require().NoError(err)
+	sig1, err := bls12381.AggregateSignature([][]byte{sig11, sig12})
+	s.Require().NoError(err)
+
+	sig3, err := s.skBls3.Sign(msgs["alice"])
+	s.Require().NoError(err)
+
+	sigma, err := bls12381.AggregateSignature([][]byte{sig1, sig3})
+	s.Require().NoError(err)
+
+	// vote too late
+	rawVotesLate := []fullVote{
+		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"alice", "bob"}}},
+		{Address: s.addrBls2.String()},
+		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
+		{Address: s.addrBls4.String()},
+		{Address: s.addrBls5.String()},
+	}
+	sort.Slice(rawVotesLate, func(i, j int) bool { return rawVotesLate[i].Address < rawVotesLate[j].Address })
+	sortedVotesLate := make([]group.Options, len(rawVotesLate))
+	for i, v := range rawVotesLate {
+		sortedVotesLate[i] = v.Options
+	}
+
+	voteExpiryLate, err := gogotypes.TimestampProto(submittedAt.Add(time.Second * 30))
+	s.Require().NoError(err)
+
+	msgsLate := make(map[string][]byte, len(req.Options.Titles))
+	for _, opt := range req.Options.Titles {
+		x := group.MsgVotePollBasic{
+			PollId: myPollID,
+			Option: opt,
+			Expiry: *voteExpiryLate,
+		}
+		msgsLate[opt] = x.GetSignBytes()
+	}
+
+	sigLate11, err := s.skBls1.Sign(msgsLate["alice"])
+	s.Require().NoError(err)
+	sigLate12, err := s.skBls1.Sign(msgsLate["bob"])
+	s.Require().NoError(err)
+	sigLate1, err := bls12381.AggregateSignature([][]byte{sigLate11, sigLate12})
+	s.Require().NoError(err)
+
+	sigLate3, err := s.skBls3.Sign(msgsLate["alice"])
+	s.Require().NoError(err)
+
+	sigmaLate, err := bls12381.AggregateSignature([][]byte{sigLate1, sigLate3})
+	s.Require().NoError(err)
+
+	// vote limit
+	rawVotesLong := []fullVote{
+		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"alice", "bob", "linda"}}},
+		{Address: s.addrBls2.String()},
+		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
+		{Address: s.addrBls4.String()},
+		{Address: s.addrBls5.String()},
+	}
+	sort.Slice(rawVotesLong, func(i, j int) bool { return rawVotesLong[i].Address < rawVotesLong[j].Address })
+	sortedVotesLong := make([]group.Options, len(rawVotesLong))
+	for i, v := range rawVotesLong {
+		sortedVotesLong[i] = v.Options
+	}
+
+	msgsLong := make(map[string][]byte, len(req.Options.Titles))
+	for _, opt := range req.Options.Titles {
+		x := group.MsgVotePollBasic{
+			PollId: myPollID,
+			Option: opt,
+			Expiry: *voteExpiry,
+		}
+		msgsLong[opt] = x.GetSignBytes()
+	}
+
+	sigLong11, err := s.skBls1.Sign(msgsLong["alice"])
+	s.Require().NoError(err)
+	sigLong12, err := s.skBls1.Sign(msgsLong["bob"])
+	s.Require().NoError(err)
+	sigLong13, err := s.skBls1.Sign(msgsLong["linda"])
+	s.Require().NoError(err)
+	sigLong1, err := bls12381.AggregateSignature([][]byte{sigLong11, sigLong12, sigLong13})
+	s.Require().NoError(err)
+
+	sigLong3, err := s.skBls3.Sign(msgsLong["alice"])
+	s.Require().NoError(err)
+
+	sigmaLong, err := bls12381.AggregateSignature([][]byte{sigLong1, sigLong3})
+	s.Require().NoError(err)
+
+	// vote invalid option
+	rawVotesInvalid := []fullVote{
+		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"alice", "eva"}}},
+		{Address: s.addrBls2.String()},
+		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
+		{Address: s.addrBls4.String()},
+		{Address: s.addrBls5.String()},
+	}
+	sort.Slice(rawVotesInvalid, func(i, j int) bool { return rawVotesInvalid[i].Address < rawVotesInvalid[j].Address })
+	sortedVotesInvalid := make([]group.Options, len(rawVotesInvalid))
+	for i, v := range rawVotesInvalid {
+		sortedVotesInvalid[i] = v.Options
+	}
+
+	msgsInvalid := make(map[string][]byte, len(req.Options.Titles))
+	for _, opt := range req.Options.Titles {
+		x := group.MsgVotePollBasic{
+			PollId: myPollID,
+			Option: opt,
+			Expiry: *voteExpiry,
+		}
+		msgsInvalid[opt] = x.GetSignBytes()
+	}
+
+	y := group.MsgVotePollBasic{
+		PollId: myPollID,
+		Option: "eva",
+		Expiry: *voteExpiry,
+	}
+	msgsInvalid["eva"] = y.GetSignBytes()
+
+	sigInvalid11, err := s.skBls1.Sign(msgsInvalid["alice"])
+	s.Require().NoError(err)
+	sigInvalid12, err := s.skBls1.Sign(msgsInvalid["eva"])
+	s.Require().NoError(err)
+	sigInvalid1, err := bls12381.AggregateSignature([][]byte{sigInvalid11, sigInvalid12})
+	s.Require().NoError(err)
+
+	sigInvalid3, err := s.skBls3.Sign(msgsInvalid["alice"])
+	s.Require().NoError(err)
+
+	sigmaInvalid, err := bls12381.AggregateSignature([][]byte{sigInvalid1, sigInvalid3})
+	s.Require().NoError(err)
+
+	// skip already voted
+	validVotesSkip := []fullVote{
+		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"charlie"}}},
+		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
+	}
+	sort.Slice(validVotesSkip, func(i, j int) bool { return validVotesSkip[i].Address < validVotesSkip[j].Address })
+
+	specs := map[string]struct {
+		srcCtx        sdk.Context
+		expVoteState  group.TallyPoll
+		req           *group.MsgVotePollAgg
+		votes         []fullVote
+		doBefore      func(ctx context.Context)
+		expPollStatus group.Poll_Status
+		expErr        bool
+	}{
+		"all good": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotes,
+				Expiry:   *voteExpiry,
+				AggSig:   sigma,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			votes: validVotes,
+			expVoteState: group.TallyPoll{
+				Counts: map[string]string{
+					"alice": "4",
+					"bob":   "1",
+				},
+			},
+			expPollStatus: group.PollStatusSubmitted,
+		},
+		"skip already voted": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotes,
+				Expiry:   *voteExpiry,
+				AggSig:   sigma,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			votes: validVotesSkip,
+			doBefore: func(ctx context.Context) {
+				_, err := s.msgClient.VotePoll(ctx, &group.MsgVotePoll{
+					PollId:  myPollID,
+					Voter:   s.addrBls1.String(),
+					Options: group.Options{Titles: []string{"charlie"}},
+				})
+				s.Require().NoError(err)
+			},
+			expVoteState: group.TallyPoll{
+				Counts: map[string]string{
+					"alice":   "3",
+					"bob":     "0",
+					"charlie": "1",
+				},
+			},
+			expPollStatus: group.PollStatusSubmitted,
+		},
+		"on vote expiry": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotes,
+				Expiry:   *voteExpiry,
+				AggSig:   sigma,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			srcCtx: s.sdkCtx.WithBlockTime(s.blockTime.Add(time.Second * 15)),
+			expErr: true,
+		},
+		"on vote late": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotesLate,
+				Expiry:   *voteExpiryLate,
+				AggSig:   sigmaLate,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			srcCtx: s.sdkCtx.WithBlockTime(s.blockTime.Add(time.Second * 35)),
+			expErr: true,
+		},
+		"on vote limit": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotesLong,
+				Expiry:   *voteExpiry,
+				AggSig:   sigmaLong,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			expErr: true,
+		},
+		"on vote option": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotesInvalid,
+				Expiry:   *voteExpiry,
+				AggSig:   sigmaInvalid,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			expErr: true,
+		},
+		"on poll expiry": {
+			req: &group.MsgVotePollAgg{
+				Sender:   s.addr1.String(),
+				PollId:   myPollID,
+				Votes:    sortedVotesLate,
+				Expiry:   *voteExpiryLate,
+				AggSig:   sigmaLate,
+				Metadata: []byte(fmt.Sprintf("aggregated votes submitted by %s", s.addr1.String())),
+			},
+			srcCtx: s.sdkCtx.WithBlockTime(s.blockTime.Add(time.Second * 25)),
+			expErr: true,
+		},
+	}
+
+	for msg, spec := range specs {
+		spec := spec
+		s.Run(msg, func() {
+			sdkCtx := s.sdkCtx
+			if !spec.srcCtx.IsZero() {
+				sdkCtx = spec.srcCtx
+			}
+			sdkCtx, _ = sdkCtx.CacheContext()
+			ctx := types.Context{Context: sdkCtx}
+
+			if spec.doBefore != nil {
+				spec.doBefore(ctx)
+			}
+			_, err := s.msgClient.VotePollAgg(ctx, spec.req)
+			if spec.expErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+
+			// query votes by poll
+			votesByPollRes, err := s.queryClient.VotesForPollByPoll(ctx, &group.QueryVotesForPollByPollRequest{
+				PollId: myPollID,
+			})
+			s.Require().NoError(err)
+			votesByPoll := votesByPollRes.Votes
+			s.Require().Equal(len(spec.votes), len(votesByPoll))
+
+			for i, vote := range votesByPoll {
+				s.Assert().Equal(spec.req.PollId, vote.PollId)
+				s.Assert().Equal(spec.votes[i].Address, vote.Voter)
+				s.Assert().Equal(spec.votes[i].Options.Titles, vote.Options.Titles)
+				submittedAt, err = gogotypes.TimestampFromProto(&vote.SubmittedAt)
+				s.Require().NoError(err)
+				s.Assert().Equal(s.blockTime, submittedAt)
+			}
+
+			// query votes by voter
+			for _, vote := range spec.votes {
+				votesByVoterRes, err := s.queryClient.VotesForPollByVoter(ctx, &group.QueryVotesForPollByVoterRequest{
+					Voter: vote.Address,
+				})
+				s.Require().NoError(err)
+				votesByVoter := votesByVoterRes.Votes
+				s.Require().Equal(1, len(votesByVoter))
+				s.Assert().Equal(spec.req.PollId, votesByVoter[0].PollId)
+				s.Assert().Equal(vote.Address, votesByVoter[0].Voter)
+				s.Assert().Equal(vote.Options.Titles, votesByVoter[0].Options.Titles)
+				submittedAt, err = gogotypes.TimestampFromProto(&votesByVoter[0].SubmittedAt)
+				s.Require().NoError(err)
+				s.Assert().Equal(s.blockTime, submittedAt)
+			}
+
+			// and poll is updated
+			pollRes, err := s.queryClient.Poll(ctx, &group.QueryPollRequest{
+				PollId: spec.req.PollId,
+			})
+			s.Require().NoError(err)
+			poll := pollRes.Poll
+			s.Assert().Equal(spec.expVoteState, poll.VoteState)
+			s.Assert().Equal(spec.expPollStatus, poll.Status)
 		})
 	}
 }
