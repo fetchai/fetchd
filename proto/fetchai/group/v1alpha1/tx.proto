@@ -10,7 +10,7 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "fetchai/group/v1alpha1/types.proto";
 
-// Msg is the regen.group.v1alpha1 Msg service.
+// Msg is the fetchai.group.v1alpha1 Msg service.
 service Msg {
 
     // CreateGroup creates a new group with an admin account address, a list of members and some optional metadata.

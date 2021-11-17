@@ -270,3 +270,145 @@ func (s serverImpl) getVotesByProposal(ctx types.Context, proposalID uint64, pag
 func (s serverImpl) getVotesByVoter(ctx types.Context, voter sdk.AccAddress, pageRequest *query.PageRequest) (orm.Iterator, error) {
 	return s.voteByVoterIndex.GetPaginated(ctx, voter.Bytes(), pageRequest)
 }
+
+func (s serverImpl) Poll(goCtx context.Context, request *group.QueryPollRequest) (*group.QueryPollResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	pollID := request.PollId
+	poll, err := s.getPoll(ctx, pollID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.QueryPollResponse{Poll: &poll}, nil
+}
+
+func (s serverImpl) getPoll(ctx types.Context, pollID uint64) (group.Poll, error) {
+	var p group.Poll
+	if _, err := s.pollTable.GetOne(ctx, pollID, &p); err != nil {
+		return group.Poll{}, sdkerrors.Wrap(err, "load poll")
+	}
+	return p, nil
+}
+
+func (s serverImpl) PollsByGroup(goCtx context.Context, request *group.QueryPollsByGroupRequest) (*group.QueryPollsByGroupResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	groupID := request.GroupId
+	it, err := s.getPollsByGroup(ctx, groupID, request.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var polls []*group.Poll
+	pageRes, err := orm.Paginate(it, request.Pagination, &polls)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.QueryPollsByGroupResponse{
+		Polls:      polls,
+		Pagination: pageRes,
+	}, nil
+}
+
+func (s serverImpl) getPollsByGroup(ctx types.Context, id uint64, pageRequest *query.PageRequest) (orm.Iterator, error) {
+	return s.pollByGroupIndex.GetPaginated(ctx, id, pageRequest)
+}
+
+func (s serverImpl) PollsByCreator(goCtx context.Context, request *group.QueryPollsByCreatorRequest) (*group.QueryPollsByCreatorResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	addr, err := sdk.AccAddressFromBech32(request.Creator)
+	if err != nil {
+		return nil, err
+	}
+	it, err := s.getPollsByCreator(ctx, addr, request.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var polls []*group.Poll
+	pageRes, err := orm.Paginate(it, request.Pagination, &polls)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.QueryPollsByCreatorResponse{
+		Polls:      polls,
+		Pagination: pageRes,
+	}, nil
+}
+
+func (s serverImpl) getPollsByCreator(ctx types.Context, account sdk.AccAddress, pageRequest *query.PageRequest) (orm.Iterator, error) {
+	return s.pollByCreatorIndex.GetPaginated(ctx, account.Bytes(), pageRequest)
+}
+
+func (s serverImpl) VoteForPollByPollVoter(goCtx context.Context, request *group.QueryVoteForPollByPollVoterRequest) (*group.QueryVoteForPollByPollVoterResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	addr, err := sdk.AccAddressFromBech32(request.Voter)
+	if err != nil {
+		return nil, err
+	}
+	pollID := request.PollId
+	vote, err := s.getVoteForPoll(ctx, pollID, addr)
+	if err != nil {
+		return nil, err
+	}
+	return &group.QueryVoteForPollByPollVoterResponse{
+		Vote: &vote,
+	}, nil
+}
+
+func (s serverImpl) VotesForPollByPoll(goCtx context.Context, request *group.QueryVotesForPollByPollRequest) (*group.QueryVotesForPollByPollResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	pollID := request.PollId
+	it, err := s.getVotesForPollByPoll(ctx, pollID, request.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var votes []*group.VotePoll
+	pageRes, err := orm.Paginate(it, request.Pagination, &votes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.QueryVotesForPollByPollResponse{
+		Votes:      votes,
+		Pagination: pageRes,
+	}, nil
+}
+
+func (s serverImpl) VotesForPollByVoter(goCtx context.Context, request *group.QueryVotesForPollByVoterRequest) (*group.QueryVotesForPollByVoterResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
+	addr, err := sdk.AccAddressFromBech32(request.Voter)
+	if err != nil {
+		return nil, err
+	}
+	it, err := s.getVotesForPollByVoter(ctx, addr, request.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var votes []*group.VotePoll
+	pageRes, err := orm.Paginate(it, request.Pagination, &votes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.QueryVotesForPollByVoterResponse{
+		Votes:      votes,
+		Pagination: pageRes,
+	}, nil
+}
+
+func (s serverImpl) getVoteForPoll(ctx types.Context, pollID uint64, voter sdk.AccAddress) (group.VotePoll, error) {
+	var v group.VotePoll
+	return v, s.votePollTable.GetOne(ctx, orm.PrimaryKey(&group.VotePoll{PollId: pollID, Voter: voter.String()}), &v)
+}
+
+func (s serverImpl) getVotesForPollByPoll(ctx types.Context, pollID uint64, pageRequest *query.PageRequest) (orm.Iterator, error) {
+	return s.votePollByPollIndex.GetPaginated(ctx, pollID, pageRequest)
+}
+
+func (s serverImpl) getVotesForPollByVoter(ctx types.Context, voter sdk.AccAddress, pageRequest *query.PageRequest) (orm.Iterator, error) {
+	return s.votePollByVoterIndex.GetPaginated(ctx, voter.Bytes(), pageRequest)
+}

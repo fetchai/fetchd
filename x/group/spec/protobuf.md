@@ -5,86 +5,86 @@
 ## Table of Contents
 
 - [regen/group/v1alpha1/events.proto](#regen/group/v1alpha1/events.proto)
-    - [EventCreateGroup](#regen.group.v1alpha1.EventCreateGroup)
-    - [EventCreateGroupAccount](#regen.group.v1alpha1.EventCreateGroupAccount)
-    - [EventCreateProposal](#regen.group.v1alpha1.EventCreateProposal)
-    - [EventExec](#regen.group.v1alpha1.EventExec)
-    - [EventUpdateGroup](#regen.group.v1alpha1.EventUpdateGroup)
-    - [EventUpdateGroupAccount](#regen.group.v1alpha1.EventUpdateGroupAccount)
-    - [EventVote](#regen.group.v1alpha1.EventVote)
+    - [EventCreateGroup](#fetchai.group.v1alpha1.EventCreateGroup)
+    - [EventCreateGroupAccount](#fetchai.group.v1alpha1.EventCreateGroupAccount)
+    - [EventCreateProposal](#fetchai.group.v1alpha1.EventCreateProposal)
+    - [EventExec](#fetchai.group.v1alpha1.EventExec)
+    - [EventUpdateGroup](#fetchai.group.v1alpha1.EventUpdateGroup)
+    - [EventUpdateGroupAccount](#fetchai.group.v1alpha1.EventUpdateGroupAccount)
+    - [EventVote](#fetchai.group.v1alpha1.EventVote)
   
 - [regen/group/v1alpha1/types.proto](#regen/group/v1alpha1/types.proto)
-    - [GroupAccountInfo](#regen.group.v1alpha1.GroupAccountInfo)
-    - [GroupInfo](#regen.group.v1alpha1.GroupInfo)
-    - [GroupMember](#regen.group.v1alpha1.GroupMember)
-    - [Member](#regen.group.v1alpha1.Member)
-    - [Members](#regen.group.v1alpha1.Members)
-    - [Proposal](#regen.group.v1alpha1.Proposal)
-    - [Tally](#regen.group.v1alpha1.Tally)
-    - [ThresholdDecisionPolicy](#regen.group.v1alpha1.ThresholdDecisionPolicy)
-    - [Vote](#regen.group.v1alpha1.Vote)
+    - [GroupAccountInfo](#fetchai.group.v1alpha1.GroupAccountInfo)
+    - [GroupInfo](#fetchai.group.v1alpha1.GroupInfo)
+    - [GroupMember](#fetchai.group.v1alpha1.GroupMember)
+    - [Member](#fetchai.group.v1alpha1.Member)
+    - [Members](#fetchai.group.v1alpha1.Members)
+    - [Proposal](#fetchai.group.v1alpha1.Proposal)
+    - [Tally](#fetchai.group.v1alpha1.Tally)
+    - [ThresholdDecisionPolicy](#fetchai.group.v1alpha1.ThresholdDecisionPolicy)
+    - [Vote](#fetchai.group.v1alpha1.Vote)
   
-    - [Choice](#regen.group.v1alpha1.Choice)
-    - [Proposal.ExecutorResult](#regen.group.v1alpha1.Proposal.ExecutorResult)
-    - [Proposal.Result](#regen.group.v1alpha1.Proposal.Result)
-    - [Proposal.Status](#regen.group.v1alpha1.Proposal.Status)
+    - [Choice](#fetchai.group.v1alpha1.Choice)
+    - [Proposal.ExecutorResult](#fetchai.group.v1alpha1.Proposal.ExecutorResult)
+    - [Proposal.Result](#fetchai.group.v1alpha1.Proposal.Result)
+    - [Proposal.Status](#fetchai.group.v1alpha1.Proposal.Status)
   
 - [regen/group/v1alpha1/genesis.proto](#regen/group/v1alpha1/genesis.proto)
-    - [GenesisState](#regen.group.v1alpha1.GenesisState)
+    - [GenesisState](#fetchai.group.v1alpha1.GenesisState)
   
 - [regen/group/v1alpha1/query.proto](#regen/group/v1alpha1/query.proto)
-    - [QueryGroupAccountInfoRequest](#regen.group.v1alpha1.QueryGroupAccountInfoRequest)
-    - [QueryGroupAccountInfoResponse](#regen.group.v1alpha1.QueryGroupAccountInfoResponse)
-    - [QueryGroupAccountsByAdminRequest](#regen.group.v1alpha1.QueryGroupAccountsByAdminRequest)
-    - [QueryGroupAccountsByAdminResponse](#regen.group.v1alpha1.QueryGroupAccountsByAdminResponse)
-    - [QueryGroupAccountsByGroupRequest](#regen.group.v1alpha1.QueryGroupAccountsByGroupRequest)
-    - [QueryGroupAccountsByGroupResponse](#regen.group.v1alpha1.QueryGroupAccountsByGroupResponse)
-    - [QueryGroupInfoRequest](#regen.group.v1alpha1.QueryGroupInfoRequest)
-    - [QueryGroupInfoResponse](#regen.group.v1alpha1.QueryGroupInfoResponse)
-    - [QueryGroupMembersRequest](#regen.group.v1alpha1.QueryGroupMembersRequest)
-    - [QueryGroupMembersResponse](#regen.group.v1alpha1.QueryGroupMembersResponse)
-    - [QueryGroupsByAdminRequest](#regen.group.v1alpha1.QueryGroupsByAdminRequest)
-    - [QueryGroupsByAdminResponse](#regen.group.v1alpha1.QueryGroupsByAdminResponse)
-    - [QueryProposalRequest](#regen.group.v1alpha1.QueryProposalRequest)
-    - [QueryProposalResponse](#regen.group.v1alpha1.QueryProposalResponse)
-    - [QueryProposalsByGroupAccountRequest](#regen.group.v1alpha1.QueryProposalsByGroupAccountRequest)
-    - [QueryProposalsByGroupAccountResponse](#regen.group.v1alpha1.QueryProposalsByGroupAccountResponse)
-    - [QueryVoteByProposalVoterRequest](#regen.group.v1alpha1.QueryVoteByProposalVoterRequest)
-    - [QueryVoteByProposalVoterResponse](#regen.group.v1alpha1.QueryVoteByProposalVoterResponse)
-    - [QueryVotesByProposalRequest](#regen.group.v1alpha1.QueryVotesByProposalRequest)
-    - [QueryVotesByProposalResponse](#regen.group.v1alpha1.QueryVotesByProposalResponse)
-    - [QueryVotesByVoterRequest](#regen.group.v1alpha1.QueryVotesByVoterRequest)
-    - [QueryVotesByVoterResponse](#regen.group.v1alpha1.QueryVotesByVoterResponse)
+    - [QueryGroupAccountInfoRequest](#fetchai.group.v1alpha1.QueryGroupAccountInfoRequest)
+    - [QueryGroupAccountInfoResponse](#fetchai.group.v1alpha1.QueryGroupAccountInfoResponse)
+    - [QueryGroupAccountsByAdminRequest](#fetchai.group.v1alpha1.QueryGroupAccountsByAdminRequest)
+    - [QueryGroupAccountsByAdminResponse](#fetchai.group.v1alpha1.QueryGroupAccountsByAdminResponse)
+    - [QueryGroupAccountsByGroupRequest](#fetchai.group.v1alpha1.QueryGroupAccountsByGroupRequest)
+    - [QueryGroupAccountsByGroupResponse](#fetchai.group.v1alpha1.QueryGroupAccountsByGroupResponse)
+    - [QueryGroupInfoRequest](#fetchai.group.v1alpha1.QueryGroupInfoRequest)
+    - [QueryGroupInfoResponse](#fetchai.group.v1alpha1.QueryGroupInfoResponse)
+    - [QueryGroupMembersRequest](#fetchai.group.v1alpha1.QueryGroupMembersRequest)
+    - [QueryGroupMembersResponse](#fetchai.group.v1alpha1.QueryGroupMembersResponse)
+    - [QueryGroupsByAdminRequest](#fetchai.group.v1alpha1.QueryGroupsByAdminRequest)
+    - [QueryGroupsByAdminResponse](#fetchai.group.v1alpha1.QueryGroupsByAdminResponse)
+    - [QueryProposalRequest](#fetchai.group.v1alpha1.QueryProposalRequest)
+    - [QueryProposalResponse](#fetchai.group.v1alpha1.QueryProposalResponse)
+    - [QueryProposalsByGroupAccountRequest](#fetchai.group.v1alpha1.QueryProposalsByGroupAccountRequest)
+    - [QueryProposalsByGroupAccountResponse](#fetchai.group.v1alpha1.QueryProposalsByGroupAccountResponse)
+    - [QueryVoteByProposalVoterRequest](#fetchai.group.v1alpha1.QueryVoteByProposalVoterRequest)
+    - [QueryVoteByProposalVoterResponse](#fetchai.group.v1alpha1.QueryVoteByProposalVoterResponse)
+    - [QueryVotesByProposalRequest](#fetchai.group.v1alpha1.QueryVotesByProposalRequest)
+    - [QueryVotesByProposalResponse](#fetchai.group.v1alpha1.QueryVotesByProposalResponse)
+    - [QueryVotesByVoterRequest](#fetchai.group.v1alpha1.QueryVotesByVoterRequest)
+    - [QueryVotesByVoterResponse](#fetchai.group.v1alpha1.QueryVotesByVoterResponse)
   
-    - [Query](#regen.group.v1alpha1.Query)
+    - [Query](#fetchai.group.v1alpha1.Query)
   
 - [regen/group/v1alpha1/tx.proto](#regen/group/v1alpha1/tx.proto)
-    - [MsgCreateGroup](#regen.group.v1alpha1.MsgCreateGroup)
-    - [MsgCreateGroupAccount](#regen.group.v1alpha1.MsgCreateGroupAccount)
-    - [MsgCreateGroupAccountResponse](#regen.group.v1alpha1.MsgCreateGroupAccountResponse)
-    - [MsgCreateGroupResponse](#regen.group.v1alpha1.MsgCreateGroupResponse)
-    - [MsgCreateProposal](#regen.group.v1alpha1.MsgCreateProposal)
-    - [MsgCreateProposalResponse](#regen.group.v1alpha1.MsgCreateProposalResponse)
-    - [MsgExec](#regen.group.v1alpha1.MsgExec)
-    - [MsgExecResponse](#regen.group.v1alpha1.MsgExecResponse)
-    - [MsgUpdateGroupAccountAdmin](#regen.group.v1alpha1.MsgUpdateGroupAccountAdmin)
-    - [MsgUpdateGroupAccountAdminResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountAdminResponse)
-    - [MsgUpdateGroupAccountDecisionPolicy](#regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy)
-    - [MsgUpdateGroupAccountDecisionPolicyResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse)
-    - [MsgUpdateGroupAccountMetadata](#regen.group.v1alpha1.MsgUpdateGroupAccountMetadata)
-    - [MsgUpdateGroupAccountMetadataResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse)
-    - [MsgUpdateGroupAdmin](#regen.group.v1alpha1.MsgUpdateGroupAdmin)
-    - [MsgUpdateGroupAdminResponse](#regen.group.v1alpha1.MsgUpdateGroupAdminResponse)
-    - [MsgUpdateGroupMembers](#regen.group.v1alpha1.MsgUpdateGroupMembers)
-    - [MsgUpdateGroupMembersResponse](#regen.group.v1alpha1.MsgUpdateGroupMembersResponse)
-    - [MsgUpdateGroupMetadata](#regen.group.v1alpha1.MsgUpdateGroupMetadata)
-    - [MsgUpdateGroupMetadataResponse](#regen.group.v1alpha1.MsgUpdateGroupMetadataResponse)
-    - [MsgVote](#regen.group.v1alpha1.MsgVote)
-    - [MsgVoteResponse](#regen.group.v1alpha1.MsgVoteResponse)
+    - [MsgCreateGroup](#fetchai.group.v1alpha1.MsgCreateGroup)
+    - [MsgCreateGroupAccount](#fetchai.group.v1alpha1.MsgCreateGroupAccount)
+    - [MsgCreateGroupAccountResponse](#fetchai.group.v1alpha1.MsgCreateGroupAccountResponse)
+    - [MsgCreateGroupResponse](#fetchai.group.v1alpha1.MsgCreateGroupResponse)
+    - [MsgCreateProposal](#fetchai.group.v1alpha1.MsgCreateProposal)
+    - [MsgCreateProposalResponse](#fetchai.group.v1alpha1.MsgCreateProposalResponse)
+    - [MsgExec](#fetchai.group.v1alpha1.MsgExec)
+    - [MsgExecResponse](#fetchai.group.v1alpha1.MsgExecResponse)
+    - [MsgUpdateGroupAccountAdmin](#fetchai.group.v1alpha1.MsgUpdateGroupAccountAdmin)
+    - [MsgUpdateGroupAccountAdminResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountAdminResponse)
+    - [MsgUpdateGroupAccountDecisionPolicy](#fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy)
+    - [MsgUpdateGroupAccountDecisionPolicyResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse)
+    - [MsgUpdateGroupAccountMetadata](#fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadata)
+    - [MsgUpdateGroupAccountMetadataResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse)
+    - [MsgUpdateGroupAdmin](#fetchai.group.v1alpha1.MsgUpdateGroupAdmin)
+    - [MsgUpdateGroupAdminResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAdminResponse)
+    - [MsgUpdateGroupMembers](#fetchai.group.v1alpha1.MsgUpdateGroupMembers)
+    - [MsgUpdateGroupMembersResponse](#fetchai.group.v1alpha1.MsgUpdateGroupMembersResponse)
+    - [MsgUpdateGroupMetadata](#fetchai.group.v1alpha1.MsgUpdateGroupMetadata)
+    - [MsgUpdateGroupMetadataResponse](#fetchai.group.v1alpha1.MsgUpdateGroupMetadataResponse)
+    - [MsgVote](#fetchai.group.v1alpha1.MsgVote)
+    - [MsgVoteResponse](#fetchai.group.v1alpha1.MsgVoteResponse)
   
-    - [Exec](#regen.group.v1alpha1.Exec)
+    - [Exec](#fetchai.group.v1alpha1.Exec)
   
-    - [Msg](#regen.group.v1alpha1.Msg)
+    - [Msg](#fetchai.group.v1alpha1.Msg)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -97,7 +97,7 @@
 
 
 
-<a name="regen.group.v1alpha1.EventCreateGroup"></a>
+<a name="fetchai.group.v1alpha1.EventCreateGroup"></a>
 
 ### EventCreateGroup
 EventCreateGroup is an event emitted when a group is created.
@@ -112,7 +112,7 @@ EventCreateGroup is an event emitted when a group is created.
 
 
 
-<a name="regen.group.v1alpha1.EventCreateGroupAccount"></a>
+<a name="fetchai.group.v1alpha1.EventCreateGroupAccount"></a>
 
 ### EventCreateGroupAccount
 EventCreateGroupAccount is an event emitted when a group account is created.
@@ -127,7 +127,7 @@ EventCreateGroupAccount is an event emitted when a group account is created.
 
 
 
-<a name="regen.group.v1alpha1.EventCreateProposal"></a>
+<a name="fetchai.group.v1alpha1.EventCreateProposal"></a>
 
 ### EventCreateProposal
 EventCreateProposal is an event emitted when a proposal is created.
@@ -142,7 +142,7 @@ EventCreateProposal is an event emitted when a proposal is created.
 
 
 
-<a name="regen.group.v1alpha1.EventExec"></a>
+<a name="fetchai.group.v1alpha1.EventExec"></a>
 
 ### EventExec
 EventExec is an event emitted when a proposal is executed.
@@ -157,7 +157,7 @@ EventExec is an event emitted when a proposal is executed.
 
 
 
-<a name="regen.group.v1alpha1.EventUpdateGroup"></a>
+<a name="fetchai.group.v1alpha1.EventUpdateGroup"></a>
 
 ### EventUpdateGroup
 EventUpdateGroup is an event emitted when a group is updated.
@@ -172,7 +172,7 @@ EventUpdateGroup is an event emitted when a group is updated.
 
 
 
-<a name="regen.group.v1alpha1.EventUpdateGroupAccount"></a>
+<a name="fetchai.group.v1alpha1.EventUpdateGroupAccount"></a>
 
 ### EventUpdateGroupAccount
 EventUpdateGroupAccount is an event emitted when a group account is updated.
@@ -187,7 +187,7 @@ EventUpdateGroupAccount is an event emitted when a group account is updated.
 
 
 
-<a name="regen.group.v1alpha1.EventVote"></a>
+<a name="fetchai.group.v1alpha1.EventVote"></a>
 
 ### EventVote
 EventVote is an event emitted when a voter votes on a proposal.
@@ -218,7 +218,7 @@ EventVote is an event emitted when a voter votes on a proposal.
 
 
 
-<a name="regen.group.v1alpha1.GroupAccountInfo"></a>
+<a name="fetchai.group.v1alpha1.GroupAccountInfo"></a>
 
 ### GroupAccountInfo
 GroupAccountInfo represents the high-level on-chain information for a group account.
@@ -239,7 +239,7 @@ GroupAccountInfo represents the high-level on-chain information for a group acco
 
 
 
-<a name="regen.group.v1alpha1.GroupInfo"></a>
+<a name="fetchai.group.v1alpha1.GroupInfo"></a>
 
 ### GroupInfo
 GroupInfo represents the high-level on-chain information for a group.
@@ -258,7 +258,7 @@ GroupInfo represents the high-level on-chain information for a group.
 
 
 
-<a name="regen.group.v1alpha1.GroupMember"></a>
+<a name="fetchai.group.v1alpha1.GroupMember"></a>
 
 ### GroupMember
 GroupMember represents the relationship between a group and a member.
@@ -267,14 +267,14 @@ GroupMember represents the relationship between a group and a member.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | group_id | [uint64](#uint64) |  | group_id is the unique ID of the group. |
-| member | [Member](#regen.group.v1alpha1.Member) |  | member is the member data. |
+| member | [Member](#fetchai.group.v1alpha1.Member) |  | member is the member data. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.Member"></a>
+<a name="fetchai.group.v1alpha1.Member"></a>
 
 ### Member
 Member represents a group member with an account address,
@@ -292,7 +292,7 @@ non-zero weight and metadata.
 
 
 
-<a name="regen.group.v1alpha1.Members"></a>
+<a name="fetchai.group.v1alpha1.Members"></a>
 
 ### Members
 Members defines a repeated slice of Member objects.
@@ -300,14 +300,14 @@ Members defines a repeated slice of Member objects.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| members | [Member](#regen.group.v1alpha1.Member) | repeated | members is the list of members. |
+| members | [Member](#fetchai.group.v1alpha1.Member) | repeated | members is the list of members. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.Proposal"></a>
+<a name="fetchai.group.v1alpha1.Proposal"></a>
 
 ### Proposal
 Proposal defines a group proposal. Any member of a group can submit a proposal
@@ -325,11 +325,11 @@ passes as well as some optional metadata associated with the proposal.
 | submitted_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | submitted_at is a timestamp specifying when a proposal was submitted. |
 | group_version | [uint64](#uint64) |  | group_version tracks the version of the group that this proposal corresponds to. When group membership is changed, existing proposals from previous group versions will become invalid. |
 | group_account_version | [uint64](#uint64) |  | group_account_version tracks the version of the group account that this proposal corresponds to. When a decision policy is changed, existing proposals from previous policy versions will become invalid. |
-| status | [Proposal.Status](#regen.group.v1alpha1.Proposal.Status) |  | Status represents the high level position in the life cycle of the proposal. Initial value is Submitted. |
-| result | [Proposal.Result](#regen.group.v1alpha1.Proposal.Result) |  | result is the final result based on the votes and election rule. Initial value is unfinalized. The result is persisted so that clients can always rely on this state and not have to replicate the logic. |
-| vote_state | [Tally](#regen.group.v1alpha1.Tally) |  | vote_state contains the sums of all weighted votes for this proposal. |
+| status | [Proposal.Status](#fetchai.group.v1alpha1.Proposal.Status) |  | Status represents the high level position in the life cycle of the proposal. Initial value is Submitted. |
+| result | [Proposal.Result](#fetchai.group.v1alpha1.Proposal.Result) |  | result is the final result based on the votes and election rule. Initial value is unfinalized. The result is persisted so that clients can always rely on this state and not have to replicate the logic. |
+| vote_state | [Tally](#fetchai.group.v1alpha1.Tally) |  | vote_state contains the sums of all weighted votes for this proposal. |
 | timeout | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | timeout is the timestamp of the block where the proposal execution times out. Header times of the votes and execution messages must be before this end time to be included in the election. After the timeout timestamp the proposal can not be executed anymore and should be considered pending delete. |
-| executor_result | [Proposal.ExecutorResult](#regen.group.v1alpha1.Proposal.ExecutorResult) |  | executor_result is the final result based on the votes and election rule. Initial value is NotRun. |
+| executor_result | [Proposal.ExecutorResult](#fetchai.group.v1alpha1.Proposal.ExecutorResult) |  | executor_result is the final result based on the votes and election rule. Initial value is NotRun. |
 | msgs | [google.protobuf.Any](#google.protobuf.Any) | repeated | msgs is a list of Msgs that will be executed if the proposal passes. |
 
 
@@ -337,7 +337,7 @@ passes as well as some optional metadata associated with the proposal.
 
 
 
-<a name="regen.group.v1alpha1.Tally"></a>
+<a name="fetchai.group.v1alpha1.Tally"></a>
 
 ### Tally
 Tally represents the sum of weighted votes.
@@ -355,7 +355,7 @@ Tally represents the sum of weighted votes.
 
 
 
-<a name="regen.group.v1alpha1.ThresholdDecisionPolicy"></a>
+<a name="fetchai.group.v1alpha1.ThresholdDecisionPolicy"></a>
 
 ### ThresholdDecisionPolicy
 ThresholdDecisionPolicy implements the DecisionPolicy interface
@@ -371,7 +371,7 @@ ThresholdDecisionPolicy implements the DecisionPolicy interface
 
 
 
-<a name="regen.group.v1alpha1.Vote"></a>
+<a name="fetchai.group.v1alpha1.Vote"></a>
 
 ### Vote
 Vote represents a vote for a proposal.
@@ -381,7 +381,7 @@ Vote represents a vote for a proposal.
 | ----- | ---- | ----- | ----------- |
 | proposal_id | [uint64](#uint64) |  | proposal is the unique ID of the proposal. |
 | voter | [string](#string) |  | voter is the account address of the voter. |
-| choice | [Choice](#regen.group.v1alpha1.Choice) |  | choice is the voter's choice on the proposal. |
+| choice | [Choice](#fetchai.group.v1alpha1.Choice) |  | choice is the voter's choice on the proposal. |
 | metadata | [bytes](#bytes) |  | metadata is any arbitrary metadata to attached to the vote. |
 | submitted_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | submitted_at is the timestamp when the vote was submitted. |
 
@@ -392,7 +392,7 @@ Vote represents a vote for a proposal.
  <!-- end messages -->
 
 
-<a name="regen.group.v1alpha1.Choice"></a>
+<a name="fetchai.group.v1alpha1.Choice"></a>
 
 ### Choice
 Choice defines available types of choices for voting.
@@ -407,7 +407,7 @@ Choice defines available types of choices for voting.
 
 
 
-<a name="regen.group.v1alpha1.Proposal.ExecutorResult"></a>
+<a name="fetchai.group.v1alpha1.Proposal.ExecutorResult"></a>
 
 ### Proposal.ExecutorResult
 ExecutorResult defines types of proposal executor results.
@@ -421,7 +421,7 @@ ExecutorResult defines types of proposal executor results.
 
 
 
-<a name="regen.group.v1alpha1.Proposal.Result"></a>
+<a name="fetchai.group.v1alpha1.Proposal.Result"></a>
 
 ### Proposal.Result
 Result defines types of proposal results.
@@ -435,7 +435,7 @@ Result defines types of proposal results.
 
 
 
-<a name="regen.group.v1alpha1.Proposal.Status"></a>
+<a name="fetchai.group.v1alpha1.Proposal.Status"></a>
 
 ### Proposal.Status
 Status defines proposal statuses.
@@ -463,7 +463,7 @@ Status defines proposal statuses.
 
 
 
-<a name="regen.group.v1alpha1.GenesisState"></a>
+<a name="fetchai.group.v1alpha1.GenesisState"></a>
 
 ### GenesisState
 GenesisState defines the group module's genesis state.
@@ -472,13 +472,13 @@ GenesisState defines the group module's genesis state.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | group_seq | [uint64](#uint64) |  | group_seq is the group table orm.Sequence, it is used to get the next group ID. |
-| groups | [GroupInfo](#regen.group.v1alpha1.GroupInfo) | repeated | groups is the list of groups info. |
-| group_members | [GroupMember](#regen.group.v1alpha1.GroupMember) | repeated | group_members is the list of groups members. |
+| groups | [GroupInfo](#fetchai.group.v1alpha1.GroupInfo) | repeated | groups is the list of groups info. |
+| group_members | [GroupMember](#fetchai.group.v1alpha1.GroupMember) | repeated | group_members is the list of groups members. |
 | group_account_seq | [uint64](#uint64) |  | group_account_seq is the group account table orm.Sequence, it is used to generate the next group account address. |
-| group_accounts | [GroupAccountInfo](#regen.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts is the list of group accounts info. |
+| group_accounts | [GroupAccountInfo](#fetchai.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts is the list of group accounts info. |
 | proposal_seq | [uint64](#uint64) |  | proposal_seq is the proposal table orm.Sequence, it is used to get the next proposal ID. |
-| proposals | [Proposal](#regen.group.v1alpha1.Proposal) | repeated | proposals is the list of proposals. |
-| votes | [Vote](#regen.group.v1alpha1.Vote) | repeated | votes is the list of votes. |
+| proposals | [Proposal](#fetchai.group.v1alpha1.Proposal) | repeated | proposals is the list of proposals. |
+| votes | [Vote](#fetchai.group.v1alpha1.Vote) | repeated | votes is the list of votes. |
 
 
 
@@ -501,7 +501,7 @@ GenesisState defines the group module's genesis state.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountInfoRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountInfoRequest"></a>
 
 ### QueryGroupAccountInfoRequest
 QueryGroupAccountInfoRequest is the Query/GroupAccountInfo request type.
@@ -516,7 +516,7 @@ QueryGroupAccountInfoRequest is the Query/GroupAccountInfo request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountInfoResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountInfoResponse"></a>
 
 ### QueryGroupAccountInfoResponse
 QueryGroupAccountInfoResponse is the Query/GroupAccountInfo response type.
@@ -524,14 +524,14 @@ QueryGroupAccountInfoResponse is the Query/GroupAccountInfo response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| info | [GroupAccountInfo](#regen.group.v1alpha1.GroupAccountInfo) |  | info is the GroupAccountInfo for the group account. |
+| info | [GroupAccountInfo](#fetchai.group.v1alpha1.GroupAccountInfo) |  | info is the GroupAccountInfo for the group account. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountsByAdminRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountsByAdminRequest"></a>
 
 ### QueryGroupAccountsByAdminRequest
 QueryGroupAccountsByAdminRequest is the Query/GroupAccountsByAdmin request type.
@@ -547,7 +547,7 @@ QueryGroupAccountsByAdminRequest is the Query/GroupAccountsByAdmin request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountsByAdminResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountsByAdminResponse"></a>
 
 ### QueryGroupAccountsByAdminResponse
 QueryGroupAccountsByAdminResponse is the Query/GroupAccountsByAdmin response type.
@@ -555,7 +555,7 @@ QueryGroupAccountsByAdminResponse is the Query/GroupAccountsByAdmin response typ
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| group_accounts | [GroupAccountInfo](#regen.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts are the group accounts info with provided admin. |
+| group_accounts | [GroupAccountInfo](#fetchai.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts are the group accounts info with provided admin. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -563,7 +563,7 @@ QueryGroupAccountsByAdminResponse is the Query/GroupAccountsByAdmin response typ
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountsByGroupRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountsByGroupRequest"></a>
 
 ### QueryGroupAccountsByGroupRequest
 QueryGroupAccountsByGroupRequest is the Query/GroupAccountsByGroup request type.
@@ -579,7 +579,7 @@ QueryGroupAccountsByGroupRequest is the Query/GroupAccountsByGroup request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupAccountsByGroupResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupAccountsByGroupResponse"></a>
 
 ### QueryGroupAccountsByGroupResponse
 QueryGroupAccountsByGroupResponse is the Query/GroupAccountsByGroup response type.
@@ -587,7 +587,7 @@ QueryGroupAccountsByGroupResponse is the Query/GroupAccountsByGroup response typ
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| group_accounts | [GroupAccountInfo](#regen.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts are the group accounts info associated with the provided group. |
+| group_accounts | [GroupAccountInfo](#fetchai.group.v1alpha1.GroupAccountInfo) | repeated | group_accounts are the group accounts info associated with the provided group. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -595,7 +595,7 @@ QueryGroupAccountsByGroupResponse is the Query/GroupAccountsByGroup response typ
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupInfoRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupInfoRequest"></a>
 
 ### QueryGroupInfoRequest
 QueryGroupInfoRequest is the Query/GroupInfo request type.
@@ -610,7 +610,7 @@ QueryGroupInfoRequest is the Query/GroupInfo request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupInfoResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupInfoResponse"></a>
 
 ### QueryGroupInfoResponse
 QueryGroupInfoResponse is the Query/GroupInfo response type.
@@ -618,14 +618,14 @@ QueryGroupInfoResponse is the Query/GroupInfo response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| info | [GroupInfo](#regen.group.v1alpha1.GroupInfo) |  | info is the GroupInfo for the group. |
+| info | [GroupInfo](#fetchai.group.v1alpha1.GroupInfo) |  | info is the GroupInfo for the group. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupMembersRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupMembersRequest"></a>
 
 ### QueryGroupMembersRequest
 QueryGroupMembersRequest is the Query/GroupMembersRequest request type.
@@ -641,7 +641,7 @@ QueryGroupMembersRequest is the Query/GroupMembersRequest request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupMembersResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupMembersResponse"></a>
 
 ### QueryGroupMembersResponse
 QueryGroupMembersResponse is the Query/GroupMembersResponse response type.
@@ -649,7 +649,7 @@ QueryGroupMembersResponse is the Query/GroupMembersResponse response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| members | [GroupMember](#regen.group.v1alpha1.GroupMember) | repeated | members are the members of the group with given group_id. |
+| members | [GroupMember](#fetchai.group.v1alpha1.GroupMember) | repeated | members are the members of the group with given group_id. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -657,7 +657,7 @@ QueryGroupMembersResponse is the Query/GroupMembersResponse response type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupsByAdminRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupsByAdminRequest"></a>
 
 ### QueryGroupsByAdminRequest
 QueryGroupsByAdminRequest is the Query/GroupsByAdminRequest request type.
@@ -673,7 +673,7 @@ QueryGroupsByAdminRequest is the Query/GroupsByAdminRequest request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryGroupsByAdminResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryGroupsByAdminResponse"></a>
 
 ### QueryGroupsByAdminResponse
 QueryGroupsByAdminResponse is the Query/GroupsByAdminResponse response type.
@@ -681,7 +681,7 @@ QueryGroupsByAdminResponse is the Query/GroupsByAdminResponse response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| groups | [GroupInfo](#regen.group.v1alpha1.GroupInfo) | repeated | groups are the groups info with the provided admin. |
+| groups | [GroupInfo](#fetchai.group.v1alpha1.GroupInfo) | repeated | groups are the groups info with the provided admin. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -689,7 +689,7 @@ QueryGroupsByAdminResponse is the Query/GroupsByAdminResponse response type.
 
 
 
-<a name="regen.group.v1alpha1.QueryProposalRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryProposalRequest"></a>
 
 ### QueryProposalRequest
 QueryProposalRequest is the Query/Proposal request type.
@@ -704,7 +704,7 @@ QueryProposalRequest is the Query/Proposal request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryProposalResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryProposalResponse"></a>
 
 ### QueryProposalResponse
 QueryProposalResponse is the Query/Proposal response type.
@@ -712,14 +712,14 @@ QueryProposalResponse is the Query/Proposal response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| proposal | [Proposal](#regen.group.v1alpha1.Proposal) |  | proposal is the proposal info. |
+| proposal | [Proposal](#fetchai.group.v1alpha1.Proposal) |  | proposal is the proposal info. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.QueryProposalsByGroupAccountRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryProposalsByGroupAccountRequest"></a>
 
 ### QueryProposalsByGroupAccountRequest
 QueryProposalsByGroupAccountRequest is the Query/ProposalByGroupAccount request type.
@@ -735,7 +735,7 @@ QueryProposalsByGroupAccountRequest is the Query/ProposalByGroupAccount request 
 
 
 
-<a name="regen.group.v1alpha1.QueryProposalsByGroupAccountResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryProposalsByGroupAccountResponse"></a>
 
 ### QueryProposalsByGroupAccountResponse
 QueryProposalsByGroupAccountResponse is the Query/ProposalByGroupAccount response type.
@@ -743,7 +743,7 @@ QueryProposalsByGroupAccountResponse is the Query/ProposalByGroupAccount respons
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| proposals | [Proposal](#regen.group.v1alpha1.Proposal) | repeated | proposals are the proposals with given group account. |
+| proposals | [Proposal](#fetchai.group.v1alpha1.Proposal) | repeated | proposals are the proposals with given group account. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -751,7 +751,7 @@ QueryProposalsByGroupAccountResponse is the Query/ProposalByGroupAccount respons
 
 
 
-<a name="regen.group.v1alpha1.QueryVoteByProposalVoterRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryVoteByProposalVoterRequest"></a>
 
 ### QueryVoteByProposalVoterRequest
 QueryVoteByProposalVoterResponse is the Query/VoteByProposalVoter request type.
@@ -767,7 +767,7 @@ QueryVoteByProposalVoterResponse is the Query/VoteByProposalVoter request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryVoteByProposalVoterResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryVoteByProposalVoterResponse"></a>
 
 ### QueryVoteByProposalVoterResponse
 QueryVoteByProposalVoterResponse is the Query/VoteByProposalVoter response type.
@@ -775,14 +775,14 @@ QueryVoteByProposalVoterResponse is the Query/VoteByProposalVoter response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| vote | [Vote](#regen.group.v1alpha1.Vote) |  | vote is the vote with given proposal_id and voter. |
+| vote | [Vote](#fetchai.group.v1alpha1.Vote) |  | vote is the vote with given proposal_id and voter. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.QueryVotesByProposalRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryVotesByProposalRequest"></a>
 
 ### QueryVotesByProposalRequest
 QueryVotesByProposalResponse is the Query/VotesByProposal request type.
@@ -798,7 +798,7 @@ QueryVotesByProposalResponse is the Query/VotesByProposal request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryVotesByProposalResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryVotesByProposalResponse"></a>
 
 ### QueryVotesByProposalResponse
 QueryVotesByProposalResponse is the Query/VotesByProposal response type.
@@ -806,7 +806,7 @@ QueryVotesByProposalResponse is the Query/VotesByProposal response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| votes | [Vote](#regen.group.v1alpha1.Vote) | repeated | votes are the list of votes for given proposal_id. |
+| votes | [Vote](#fetchai.group.v1alpha1.Vote) | repeated | votes are the list of votes for given proposal_id. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -814,7 +814,7 @@ QueryVotesByProposalResponse is the Query/VotesByProposal response type.
 
 
 
-<a name="regen.group.v1alpha1.QueryVotesByVoterRequest"></a>
+<a name="fetchai.group.v1alpha1.QueryVotesByVoterRequest"></a>
 
 ### QueryVotesByVoterRequest
 QueryVotesByVoterResponse is the Query/VotesByVoter request type.
@@ -830,7 +830,7 @@ QueryVotesByVoterResponse is the Query/VotesByVoter request type.
 
 
 
-<a name="regen.group.v1alpha1.QueryVotesByVoterResponse"></a>
+<a name="fetchai.group.v1alpha1.QueryVotesByVoterResponse"></a>
 
 ### QueryVotesByVoterResponse
 QueryVotesByVoterResponse is the Query/VotesByVoter response type.
@@ -838,7 +838,7 @@ QueryVotesByVoterResponse is the Query/VotesByVoter response type.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| votes | [Vote](#regen.group.v1alpha1.Vote) | repeated | votes are the list of votes by given voter. |
+| votes | [Vote](#fetchai.group.v1alpha1.Vote) | repeated | votes are the list of votes by given voter. |
 | pagination | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
 
 
@@ -852,24 +852,24 @@ QueryVotesByVoterResponse is the Query/VotesByVoter response type.
  <!-- end HasExtensions -->
 
 
-<a name="regen.group.v1alpha1.Query"></a>
+<a name="fetchai.group.v1alpha1.Query"></a>
 
 ### Query
-Query is the regen.group.v1alpha1 Query service.
+Query is the fetchai.group.v1alpha1 Query service.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GroupInfo | [QueryGroupInfoRequest](#regen.group.v1alpha1.QueryGroupInfoRequest) | [QueryGroupInfoResponse](#regen.group.v1alpha1.QueryGroupInfoResponse) | GroupInfo queries group info based on group id. |
-| GroupAccountInfo | [QueryGroupAccountInfoRequest](#regen.group.v1alpha1.QueryGroupAccountInfoRequest) | [QueryGroupAccountInfoResponse](#regen.group.v1alpha1.QueryGroupAccountInfoResponse) | GroupAccountInfo queries group account info based on group account address. |
-| GroupMembers | [QueryGroupMembersRequest](#regen.group.v1alpha1.QueryGroupMembersRequest) | [QueryGroupMembersResponse](#regen.group.v1alpha1.QueryGroupMembersResponse) | GroupMembers queries members of a group |
-| GroupsByAdmin | [QueryGroupsByAdminRequest](#regen.group.v1alpha1.QueryGroupsByAdminRequest) | [QueryGroupsByAdminResponse](#regen.group.v1alpha1.QueryGroupsByAdminResponse) | GroupsByAdmin queries groups by admin address. |
-| GroupAccountsByGroup | [QueryGroupAccountsByGroupRequest](#regen.group.v1alpha1.QueryGroupAccountsByGroupRequest) | [QueryGroupAccountsByGroupResponse](#regen.group.v1alpha1.QueryGroupAccountsByGroupResponse) | GroupAccountsByGroup queries group accounts by group id. |
-| GroupAccountsByAdmin | [QueryGroupAccountsByAdminRequest](#regen.group.v1alpha1.QueryGroupAccountsByAdminRequest) | [QueryGroupAccountsByAdminResponse](#regen.group.v1alpha1.QueryGroupAccountsByAdminResponse) | GroupsByAdmin queries group accounts by admin address. |
-| Proposal | [QueryProposalRequest](#regen.group.v1alpha1.QueryProposalRequest) | [QueryProposalResponse](#regen.group.v1alpha1.QueryProposalResponse) | Proposal queries a proposal based on proposal id. |
-| ProposalsByGroupAccount | [QueryProposalsByGroupAccountRequest](#regen.group.v1alpha1.QueryProposalsByGroupAccountRequest) | [QueryProposalsByGroupAccountResponse](#regen.group.v1alpha1.QueryProposalsByGroupAccountResponse) | ProposalsByGroupAccount queries proposals based on group account address. |
-| VoteByProposalVoter | [QueryVoteByProposalVoterRequest](#regen.group.v1alpha1.QueryVoteByProposalVoterRequest) | [QueryVoteByProposalVoterResponse](#regen.group.v1alpha1.QueryVoteByProposalVoterResponse) | VoteByProposalVoter queries a vote by proposal id and voter. |
-| VotesByProposal | [QueryVotesByProposalRequest](#regen.group.v1alpha1.QueryVotesByProposalRequest) | [QueryVotesByProposalResponse](#regen.group.v1alpha1.QueryVotesByProposalResponse) | VotesByProposal queries a vote by proposal. |
-| VotesByVoter | [QueryVotesByVoterRequest](#regen.group.v1alpha1.QueryVotesByVoterRequest) | [QueryVotesByVoterResponse](#regen.group.v1alpha1.QueryVotesByVoterResponse) | VotesByVoter queries a vote by voter. |
+| GroupInfo | [QueryGroupInfoRequest](#fetchai.group.v1alpha1.QueryGroupInfoRequest) | [QueryGroupInfoResponse](#fetchai.group.v1alpha1.QueryGroupInfoResponse) | GroupInfo queries group info based on group id. |
+| GroupAccountInfo | [QueryGroupAccountInfoRequest](#fetchai.group.v1alpha1.QueryGroupAccountInfoRequest) | [QueryGroupAccountInfoResponse](#fetchai.group.v1alpha1.QueryGroupAccountInfoResponse) | GroupAccountInfo queries group account info based on group account address. |
+| GroupMembers | [QueryGroupMembersRequest](#fetchai.group.v1alpha1.QueryGroupMembersRequest) | [QueryGroupMembersResponse](#fetchai.group.v1alpha1.QueryGroupMembersResponse) | GroupMembers queries members of a group |
+| GroupsByAdmin | [QueryGroupsByAdminRequest](#fetchai.group.v1alpha1.QueryGroupsByAdminRequest) | [QueryGroupsByAdminResponse](#fetchai.group.v1alpha1.QueryGroupsByAdminResponse) | GroupsByAdmin queries groups by admin address. |
+| GroupAccountsByGroup | [QueryGroupAccountsByGroupRequest](#fetchai.group.v1alpha1.QueryGroupAccountsByGroupRequest) | [QueryGroupAccountsByGroupResponse](#fetchai.group.v1alpha1.QueryGroupAccountsByGroupResponse) | GroupAccountsByGroup queries group accounts by group id. |
+| GroupAccountsByAdmin | [QueryGroupAccountsByAdminRequest](#fetchai.group.v1alpha1.QueryGroupAccountsByAdminRequest) | [QueryGroupAccountsByAdminResponse](#fetchai.group.v1alpha1.QueryGroupAccountsByAdminResponse) | GroupsByAdmin queries group accounts by admin address. |
+| Proposal | [QueryProposalRequest](#fetchai.group.v1alpha1.QueryProposalRequest) | [QueryProposalResponse](#fetchai.group.v1alpha1.QueryProposalResponse) | Proposal queries a proposal based on proposal id. |
+| ProposalsByGroupAccount | [QueryProposalsByGroupAccountRequest](#fetchai.group.v1alpha1.QueryProposalsByGroupAccountRequest) | [QueryProposalsByGroupAccountResponse](#fetchai.group.v1alpha1.QueryProposalsByGroupAccountResponse) | ProposalsByGroupAccount queries proposals based on group account address. |
+| VoteByProposalVoter | [QueryVoteByProposalVoterRequest](#fetchai.group.v1alpha1.QueryVoteByProposalVoterRequest) | [QueryVoteByProposalVoterResponse](#fetchai.group.v1alpha1.QueryVoteByProposalVoterResponse) | VoteByProposalVoter queries a vote by proposal id and voter. |
+| VotesByProposal | [QueryVotesByProposalRequest](#fetchai.group.v1alpha1.QueryVotesByProposalRequest) | [QueryVotesByProposalResponse](#fetchai.group.v1alpha1.QueryVotesByProposalResponse) | VotesByProposal queries a vote by proposal. |
+| VotesByVoter | [QueryVotesByVoterRequest](#fetchai.group.v1alpha1.QueryVotesByVoterRequest) | [QueryVotesByVoterResponse](#fetchai.group.v1alpha1.QueryVotesByVoterResponse) | VotesByVoter queries a vote by voter. |
 
  <!-- end services -->
 
@@ -882,7 +882,7 @@ Query is the regen.group.v1alpha1 Query service.
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateGroup"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateGroup"></a>
 
 ### MsgCreateGroup
 MsgCreateGroup is the Msg/CreateGroup request type.
@@ -891,7 +891,7 @@ MsgCreateGroup is the Msg/CreateGroup request type.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | admin | [string](#string) |  | admin is the account address of the group admin. |
-| members | [Member](#regen.group.v1alpha1.Member) | repeated | members defines the group members. |
+| members | [Member](#fetchai.group.v1alpha1.Member) | repeated | members defines the group members. |
 | metadata | [bytes](#bytes) |  | metadata is any arbitrary metadata to attached to the group. |
 
 
@@ -899,7 +899,7 @@ MsgCreateGroup is the Msg/CreateGroup request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateGroupAccount"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateGroupAccount"></a>
 
 ### MsgCreateGroupAccount
 MsgCreateGroupAccount is the Msg/CreateGroupAccount request type.
@@ -917,7 +917,7 @@ MsgCreateGroupAccount is the Msg/CreateGroupAccount request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateGroupAccountResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateGroupAccountResponse"></a>
 
 ### MsgCreateGroupAccountResponse
 MsgCreateGroupAccountResponse is the Msg/CreateGroupAccount response type.
@@ -932,7 +932,7 @@ MsgCreateGroupAccountResponse is the Msg/CreateGroupAccount response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateGroupResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateGroupResponse"></a>
 
 ### MsgCreateGroupResponse
 MsgCreateGroupResponse is the Msg/CreateGroup response type.
@@ -947,7 +947,7 @@ MsgCreateGroupResponse is the Msg/CreateGroup response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateProposal"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateProposal"></a>
 
 ### MsgCreateProposal
 MsgCreateProposal is the Msg/CreateProposal request type.
@@ -959,14 +959,14 @@ MsgCreateProposal is the Msg/CreateProposal request type.
 | proposers | [string](#string) | repeated | proposers are the account addresses of the proposers. Proposers signatures will be counted as yes votes. |
 | metadata | [bytes](#bytes) |  | metadata is any arbitrary metadata to attached to the proposal. |
 | msgs | [google.protobuf.Any](#google.protobuf.Any) | repeated | msgs is a list of Msgs that will be executed if the proposal passes. |
-| exec | [Exec](#regen.group.v1alpha1.Exec) |  | exec defines the mode of execution of the proposal, whether it should be executed immediately on creation or not. If so, proposers signatures are considered as Yes votes. |
+| exec | [Exec](#fetchai.group.v1alpha1.Exec) |  | exec defines the mode of execution of the proposal, whether it should be executed immediately on creation or not. If so, proposers signatures are considered as Yes votes. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.MsgCreateProposalResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgCreateProposalResponse"></a>
 
 ### MsgCreateProposalResponse
 MsgCreateProposalResponse is the Msg/CreateProposal response type.
@@ -981,7 +981,7 @@ MsgCreateProposalResponse is the Msg/CreateProposal response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgExec"></a>
+<a name="fetchai.group.v1alpha1.MsgExec"></a>
 
 ### MsgExec
 MsgExec is the Msg/Exec request type.
@@ -997,7 +997,7 @@ MsgExec is the Msg/Exec request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgExecResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgExecResponse"></a>
 
 ### MsgExecResponse
 MsgExecResponse is the Msg/Exec request type.
@@ -1007,7 +1007,7 @@ MsgExecResponse is the Msg/Exec request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountAdmin"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountAdmin"></a>
 
 ### MsgUpdateGroupAccountAdmin
 MsgUpdateGroupAccountAdmin is the Msg/UpdateGroupAccountAdmin request type.
@@ -1024,7 +1024,7 @@ MsgUpdateGroupAccountAdmin is the Msg/UpdateGroupAccountAdmin request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountAdminResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountAdminResponse"></a>
 
 ### MsgUpdateGroupAccountAdminResponse
 MsgUpdateGroupAccountAdminResponse is the Msg/UpdateGroupAccountAdmin response type.
@@ -1034,7 +1034,7 @@ MsgUpdateGroupAccountAdminResponse is the Msg/UpdateGroupAccountAdmin response t
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy"></a>
 
 ### MsgUpdateGroupAccountDecisionPolicy
 MsgUpdateGroupAccountDecisionPolicy is the Msg/UpdateGroupAccountDecisionPolicy request type.
@@ -1051,7 +1051,7 @@ MsgUpdateGroupAccountDecisionPolicy is the Msg/UpdateGroupAccountDecisionPolicy 
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse"></a>
 
 ### MsgUpdateGroupAccountDecisionPolicyResponse
 MsgUpdateGroupAccountDecisionPolicyResponse is the Msg/UpdateGroupAccountDecisionPolicy response type.
@@ -1061,7 +1061,7 @@ MsgUpdateGroupAccountDecisionPolicyResponse is the Msg/UpdateGroupAccountDecisio
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountMetadata"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadata"></a>
 
 ### MsgUpdateGroupAccountMetadata
 MsgUpdateGroupAccountMetadata is the Msg/UpdateGroupAccountMetadata request type.
@@ -1078,7 +1078,7 @@ MsgUpdateGroupAccountMetadata is the Msg/UpdateGroupAccountMetadata request type
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse"></a>
 
 ### MsgUpdateGroupAccountMetadataResponse
 MsgUpdateGroupAccountMetadataResponse is the Msg/UpdateGroupAccountMetadata response type.
@@ -1088,7 +1088,7 @@ MsgUpdateGroupAccountMetadataResponse is the Msg/UpdateGroupAccountMetadata resp
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAdmin"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAdmin"></a>
 
 ### MsgUpdateGroupAdmin
 MsgUpdateGroupAdmin is the Msg/UpdateGroupAdmin request type.
@@ -1105,7 +1105,7 @@ MsgUpdateGroupAdmin is the Msg/UpdateGroupAdmin request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupAdminResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupAdminResponse"></a>
 
 ### MsgUpdateGroupAdminResponse
 MsgUpdateGroupAdminResponse is the Msg/UpdateGroupAdmin response type.
@@ -1115,7 +1115,7 @@ MsgUpdateGroupAdminResponse is the Msg/UpdateGroupAdmin response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupMembers"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupMembers"></a>
 
 ### MsgUpdateGroupMembers
 MsgUpdateGroupMembers is the Msg/UpdateGroupMembers request type.
@@ -1125,14 +1125,14 @@ MsgUpdateGroupMembers is the Msg/UpdateGroupMembers request type.
 | ----- | ---- | ----- | ----------- |
 | admin | [string](#string) |  | admin is the account address of the group admin. |
 | group_id | [uint64](#uint64) |  | group_id is the unique ID of the group. |
-| member_updates | [Member](#regen.group.v1alpha1.Member) | repeated | member_updates is the list of members to update, set weight to 0 to remove a member. |
+| member_updates | [Member](#fetchai.group.v1alpha1.Member) | repeated | member_updates is the list of members to update, set weight to 0 to remove a member. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupMembersResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupMembersResponse"></a>
 
 ### MsgUpdateGroupMembersResponse
 MsgUpdateGroupMembersResponse is the Msg/UpdateGroupMembers response type.
@@ -1142,7 +1142,7 @@ MsgUpdateGroupMembersResponse is the Msg/UpdateGroupMembers response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupMetadata"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupMetadata"></a>
 
 ### MsgUpdateGroupMetadata
 MsgUpdateGroupMetadata is the Msg/UpdateGroupMetadata request type.
@@ -1159,7 +1159,7 @@ MsgUpdateGroupMetadata is the Msg/UpdateGroupMetadata request type.
 
 
 
-<a name="regen.group.v1alpha1.MsgUpdateGroupMetadataResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgUpdateGroupMetadataResponse"></a>
 
 ### MsgUpdateGroupMetadataResponse
 MsgUpdateGroupMetadataResponse is the Msg/UpdateGroupMetadata response type.
@@ -1169,7 +1169,7 @@ MsgUpdateGroupMetadataResponse is the Msg/UpdateGroupMetadata response type.
 
 
 
-<a name="regen.group.v1alpha1.MsgVote"></a>
+<a name="fetchai.group.v1alpha1.MsgVote"></a>
 
 ### MsgVote
 MsgVote is the Msg/Vote request type.
@@ -1179,16 +1179,16 @@ MsgVote is the Msg/Vote request type.
 | ----- | ---- | ----- | ----------- |
 | proposal_id | [uint64](#uint64) |  | proposal is the unique ID of the proposal. |
 | voter | [string](#string) |  | voter is the voter account address. |
-| choice | [Choice](#regen.group.v1alpha1.Choice) |  | choice is the voter's choice on the proposal. |
+| choice | [Choice](#fetchai.group.v1alpha1.Choice) |  | choice is the voter's choice on the proposal. |
 | metadata | [bytes](#bytes) |  | metadata is any arbitrary metadata to attached to the vote. |
-| exec | [Exec](#regen.group.v1alpha1.Exec) |  | exec defines whether the proposal should be executed immediately after voting or not. |
+| exec | [Exec](#fetchai.group.v1alpha1.Exec) |  | exec defines whether the proposal should be executed immediately after voting or not. |
 
 
 
 
 
 
-<a name="regen.group.v1alpha1.MsgVoteResponse"></a>
+<a name="fetchai.group.v1alpha1.MsgVoteResponse"></a>
 
 ### MsgVoteResponse
 MsgVoteResponse is the Msg/Vote response type.
@@ -1200,7 +1200,7 @@ MsgVoteResponse is the Msg/Vote response type.
  <!-- end messages -->
 
 
-<a name="regen.group.v1alpha1.Exec"></a>
+<a name="fetchai.group.v1alpha1.Exec"></a>
 
 ### Exec
 Exec defines modes of execution of a proposal on creation or on new vote.
@@ -1216,24 +1216,24 @@ Exec defines modes of execution of a proposal on creation or on new vote.
  <!-- end HasExtensions -->
 
 
-<a name="regen.group.v1alpha1.Msg"></a>
+<a name="fetchai.group.v1alpha1.Msg"></a>
 
 ### Msg
-Msg is the regen.group.v1alpha1 Msg service.
+Msg is the fetchai.group.v1alpha1 Msg service.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateGroup | [MsgCreateGroup](#regen.group.v1alpha1.MsgCreateGroup) | [MsgCreateGroupResponse](#regen.group.v1alpha1.MsgCreateGroupResponse) | CreateGroup creates a new group with an admin account address, a list of members and some optional metadata. |
-| UpdateGroupMembers | [MsgUpdateGroupMembers](#regen.group.v1alpha1.MsgUpdateGroupMembers) | [MsgUpdateGroupMembersResponse](#regen.group.v1alpha1.MsgUpdateGroupMembersResponse) | UpdateGroupMembers updates the group members with given group id and admin address. |
-| UpdateGroupAdmin | [MsgUpdateGroupAdmin](#regen.group.v1alpha1.MsgUpdateGroupAdmin) | [MsgUpdateGroupAdminResponse](#regen.group.v1alpha1.MsgUpdateGroupAdminResponse) | UpdateGroupAdmin updates the group admin with given group id and previous admin address. |
-| UpdateGroupMetadata | [MsgUpdateGroupMetadata](#regen.group.v1alpha1.MsgUpdateGroupMetadata) | [MsgUpdateGroupMetadataResponse](#regen.group.v1alpha1.MsgUpdateGroupMetadataResponse) | UpdateGroupMetadata updates the group metadata with given group id and admin address. |
-| CreateGroupAccount | [MsgCreateGroupAccount](#regen.group.v1alpha1.MsgCreateGroupAccount) | [MsgCreateGroupAccountResponse](#regen.group.v1alpha1.MsgCreateGroupAccountResponse) | CreateGroupAccount creates a new group account using given DecisionPolicy. |
-| UpdateGroupAccountAdmin | [MsgUpdateGroupAccountAdmin](#regen.group.v1alpha1.MsgUpdateGroupAccountAdmin) | [MsgUpdateGroupAccountAdminResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountAdminResponse) | UpdateGroupAccountAdmin updates a group account admin. |
-| UpdateGroupAccountDecisionPolicy | [MsgUpdateGroupAccountDecisionPolicy](#regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy) | [MsgUpdateGroupAccountDecisionPolicyResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse) | UpdateGroupAccountDecisionPolicy allows a group account decision policy to be updated. |
-| UpdateGroupAccountMetadata | [MsgUpdateGroupAccountMetadata](#regen.group.v1alpha1.MsgUpdateGroupAccountMetadata) | [MsgUpdateGroupAccountMetadataResponse](#regen.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse) | UpdateGroupAccountMetadata updates a group account metadata. |
-| CreateProposal | [MsgCreateProposal](#regen.group.v1alpha1.MsgCreateProposal) | [MsgCreateProposalResponse](#regen.group.v1alpha1.MsgCreateProposalResponse) | CreateProposal submits a new proposal. |
-| Vote | [MsgVote](#regen.group.v1alpha1.MsgVote) | [MsgVoteResponse](#regen.group.v1alpha1.MsgVoteResponse) | Vote allows a voter to vote on a proposal. |
-| Exec | [MsgExec](#regen.group.v1alpha1.MsgExec) | [MsgExecResponse](#regen.group.v1alpha1.MsgExecResponse) | Exec executes a proposal. |
+| CreateGroup | [MsgCreateGroup](#fetchai.group.v1alpha1.MsgCreateGroup) | [MsgCreateGroupResponse](#fetchai.group.v1alpha1.MsgCreateGroupResponse) | CreateGroup creates a new group with an admin account address, a list of members and some optional metadata. |
+| UpdateGroupMembers | [MsgUpdateGroupMembers](#fetchai.group.v1alpha1.MsgUpdateGroupMembers) | [MsgUpdateGroupMembersResponse](#fetchai.group.v1alpha1.MsgUpdateGroupMembersResponse) | UpdateGroupMembers updates the group members with given group id and admin address. |
+| UpdateGroupAdmin | [MsgUpdateGroupAdmin](#fetchai.group.v1alpha1.MsgUpdateGroupAdmin) | [MsgUpdateGroupAdminResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAdminResponse) | UpdateGroupAdmin updates the group admin with given group id and previous admin address. |
+| UpdateGroupMetadata | [MsgUpdateGroupMetadata](#fetchai.group.v1alpha1.MsgUpdateGroupMetadata) | [MsgUpdateGroupMetadataResponse](#fetchai.group.v1alpha1.MsgUpdateGroupMetadataResponse) | UpdateGroupMetadata updates the group metadata with given group id and admin address. |
+| CreateGroupAccount | [MsgCreateGroupAccount](#fetchai.group.v1alpha1.MsgCreateGroupAccount) | [MsgCreateGroupAccountResponse](#fetchai.group.v1alpha1.MsgCreateGroupAccountResponse) | CreateGroupAccount creates a new group account using given DecisionPolicy. |
+| UpdateGroupAccountAdmin | [MsgUpdateGroupAccountAdmin](#fetchai.group.v1alpha1.MsgUpdateGroupAccountAdmin) | [MsgUpdateGroupAccountAdminResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountAdminResponse) | UpdateGroupAccountAdmin updates a group account admin. |
+| UpdateGroupAccountDecisionPolicy | [MsgUpdateGroupAccountDecisionPolicy](#fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicy) | [MsgUpdateGroupAccountDecisionPolicyResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountDecisionPolicyResponse) | UpdateGroupAccountDecisionPolicy allows a group account decision policy to be updated. |
+| UpdateGroupAccountMetadata | [MsgUpdateGroupAccountMetadata](#fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadata) | [MsgUpdateGroupAccountMetadataResponse](#fetchai.group.v1alpha1.MsgUpdateGroupAccountMetadataResponse) | UpdateGroupAccountMetadata updates a group account metadata. |
+| CreateProposal | [MsgCreateProposal](#fetchai.group.v1alpha1.MsgCreateProposal) | [MsgCreateProposalResponse](#fetchai.group.v1alpha1.MsgCreateProposalResponse) | CreateProposal submits a new proposal. |
+| Vote | [MsgVote](#fetchai.group.v1alpha1.MsgVote) | [MsgVoteResponse](#fetchai.group.v1alpha1.MsgVoteResponse) | Vote allows a voter to vote on a proposal. |
+| Exec | [MsgExec](#fetchai.group.v1alpha1.MsgExec) | [MsgExecResponse](#fetchai.group.v1alpha1.MsgExecResponse) | Exec executes a proposal. |
 
  <!-- end services -->
 
@@ -1258,4 +1258,3 @@ Msg is the regen.group.v1alpha1 Msg service.
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
-

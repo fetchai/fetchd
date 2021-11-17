@@ -9,7 +9,7 @@ import "cosmos/base/query/v1beta1/pagination.proto";
 
 option go_package = "github.com/fetchai/fetchd/x/group";
 
-// Query is the regen.group.v1alpha1 Query service.
+// Query is the fetchai.group.v1alpha1 Query service.
 service Query {
 
   // GroupInfo queries group info based on group id.

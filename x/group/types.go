@@ -287,6 +287,40 @@ func ChoiceFromString(str string) (Choice, error) {
 // for various entities within the group module
 // TODO: This could be used as params once x/params is upgraded to use protobuf
 const MaxMetadataLength = 255
+const MaxTitleLength = 255
+const MaxOptionLength = 127
+
+// assertMetadataLength returns an error if given metadata length
+// is greater than a fixed maxMetadataLength.
+func assertMetadataLength(metadata []byte, description string) error {
+	if len(metadata) > MaxMetadataLength {
+		return sdkerrors.Wrap(ErrMaxLimit, description)
+	}
+	return nil
+}
+
+// assertTitleLength returns an error if given title length
+// is greater than a fixed maxTitleLength.
+func assertTitleLength(title string, description string) error {
+	if len(title) > MaxTitleLength {
+		return sdkerrors.Wrap(ErrMaxLimit, description)
+	}
+	return nil
+}
+
+// assertOptionsLength returns an error if the length of options
+// is greater than a fixed maxOptionLength or the lenght of any option is greater than a fixed MaxTitleLength.
+func assertOptionsLength(options Options, description string) error {
+	if len(options.Titles) > MaxOptionLength {
+		return sdkerrors.Wrapf(ErrMaxLimit, "%s: %s", description, "number of option titles")
+	}
+	for _, t := range options.Titles {
+		if len(t) > MaxTitleLength {
+			return sdkerrors.Wrapf(ErrMaxLimit, "%s: %s", description, "option title length")
+		}
+	}
+	return nil
+}
 
 var _ orm.Validateable = GroupInfo{}
 
@@ -324,6 +358,45 @@ func (g GroupMember) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "member")
 	}
+	return nil
+}
+
+func (v VotePoll) PrimaryKeyFields() []interface{} {
+	return []interface{}{v.PollId, v.Voter}
+}
+
+var _ orm.Validateable = VotePoll{}
+
+func (v VotePoll) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(v.Voter)
+	if err != nil {
+		return sdkerrors.Wrap(err, "voter")
+	}
+
+	if v.PollId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll")
+	}
+
+	if err := assertMetadataLength(v.Metadata, "metadata"); err != nil {
+		return err
+	}
+
+	if err := assertOptionsLength(v.Options, "vote options"); err != nil {
+		return err
+	}
+
+	if err := v.Options.ValidateBasic(); err != nil {
+		return err
+	}
+
+	t, err := types.TimestampFromProto(&v.SubmittedAt)
+	if err != nil {
+		return sdkerrors.Wrap(err, "submitted at")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "submitted at")
+	}
+
 	return nil
 }
 
@@ -481,6 +554,48 @@ func (t Tally) ValidateBasic() error {
 	if _, err := t.GetVetoCount(); err != nil {
 		return sdkerrors.Wrap(err, "veto count")
 	}
+	return nil
+}
+
+func (t *TallyPoll) Sub(vote VotePoll, weight string) error {
+	if err := t.operation(vote, weight, math.SubNonNegative); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *TallyPoll) Add(vote VotePoll, weight string) error {
+	if err := t.operation(vote, weight, math.Add); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *TallyPoll) operation(vote VotePoll, weight string, op operation) error {
+	weightDec, err := math.NewPositiveDecFromString(weight)
+	if err != nil {
+		return err
+	}
+
+	for _, option := range vote.Options.Titles {
+		res, err := math.NewNonNegativeDecFromString("0")
+		if err != nil {
+			return err
+		}
+		if x, ok := t.Counts[option]; ok {
+			res, err = math.NewNonNegativeDecFromString(x)
+			if err != nil {
+				return err
+			}
+		}
+		res, err = op(res, weightDec)
+		if err != nil {
+			return sdkerrors.Wrap(err, "count")
+		}
+
+		t.Counts[option] = res.String()
+	}
+
 	return nil
 }
 
