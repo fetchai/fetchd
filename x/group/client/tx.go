@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"sort"
@@ -814,11 +815,27 @@ Parameters:
 
 			// make sure group members are sorted by their addresses
 			sorted := sort.SliceIsSorted(groupMembers, func(i, j int) bool {
-				return groupMembers[i].Member.Address < groupMembers[j].Member.Address
+				addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
+				if err != nil {
+					panic(err)
+				}
+				addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
+				if err != nil {
+					panic(err)
+				}
+				return bytes.Compare(addri, addrj) < 0
 			})
 			if !sorted {
 				sort.Slice(groupMembers, func(i, j int) bool {
-					return groupMembers[i].Member.Address < groupMembers[j].Member.Address
+					addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
+					if err != nil {
+						panic(err)
+					}
+					addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
+					if err != nil {
+						panic(err)
+					}
+					return bytes.Compare(addri, addrj) < 0
 				})
 			}
 
@@ -1007,11 +1024,27 @@ Parameters:
 
 			// make sure group members are sorted by their addresses
 			sorted := sort.SliceIsSorted(groupMembers, func(i, j int) bool {
-				return groupMembers[i].Member.Address < groupMembers[j].Member.Address
+				addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
+				if err != nil {
+					panic(err)
+				}
+				addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
+				if err != nil {
+					panic(err)
+				}
+				return bytes.Compare(addri, addrj) < 0
 			})
 			if !sorted {
 				sort.Slice(groupMembers, func(i, j int) bool {
-					return groupMembers[i].Member.Address < groupMembers[j].Member.Address
+					addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
+					if err != nil {
+						panic(err)
+					}
+					addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
+					if err != nil {
+						panic(err)
+					}
+					return bytes.Compare(addri, addrj) < 0
 				})
 			}
 
@@ -1310,7 +1343,7 @@ Parameters:
 	return cmd
 }
 
-// GetVerifyVoteBasicCmd creates a CLI command for aggregating basic votes.
+// GetVerifyVotePollBasicCmd creates a CLI command for aggregating basic votes.
 func GetVerifyVotePollBasicCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify-vote-poll-basic [file]",
