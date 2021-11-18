@@ -6,7 +6,7 @@ require (
 	github.com/CosmWasm/wasmd v0.20.0
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/cockroachdb/apd/v2 v2.0.2
-	github.com/cosmos/cosmos-sdk v0.44.2
+	github.com/cosmos/cosmos-sdk v0.42.10
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
