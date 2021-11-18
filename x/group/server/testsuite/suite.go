@@ -965,10 +965,18 @@ func (s *IntegrationTestSuite) TestUpdateGroupMembersBls() {
 			s.Require().Equal(len(spec.expMembers), len(loadedMembers))
 			// we reorder group members by address to be able to compare them
 			sort.Slice(spec.expMembers, func(i, j int) bool {
-				return spec.expMembers[i].Member.Address < spec.expMembers[j].Member.Address
+				addri, err := sdk.AccAddressFromBech32(spec.expMembers[i].Member.Address)
+				s.Require().NoError(err)
+				addrj, err := sdk.AccAddressFromBech32(spec.expMembers[j].Member.Address)
+				s.Require().NoError(err)
+				return bytes.Compare(addri, addrj) < 0
 			})
 			sort.Slice(loadedMembers, func(i, j int) bool {
-				return loadedMembers[i].Member.Address < loadedMembers[j].Member.Address
+				addri, err := sdk.AccAddressFromBech32(loadedMembers[i].Member.Address)
+				s.Require().NoError(err)
+				addrj, err := sdk.AccAddressFromBech32(loadedMembers[j].Member.Address)
+				s.Require().NoError(err)
+				return bytes.Compare(addri, addrj) < 0
 			})
 			for i := range loadedMembers {
 				s.Assert().Equal(spec.expMembers[i].Member.Metadata, loadedMembers[i].Member.Metadata)
@@ -1320,12 +1328,16 @@ func (s *IntegrationTestSuite) TestGroupAccountsByAdminOrGroup() {
 			gogotypes.Duration{Seconds: 1},
 		),
 		group.NewThresholdDecisionPolicy(
+			"5",
+			gogotypes.Duration{Seconds: 1},
+		),
+		group.NewThresholdDecisionPolicy(
 			"10",
 			gogotypes.Duration{Seconds: 1},
 		),
 	}
 
-	count := 2
+	count := 3
 	expectAccs := make([]*group.GroupAccountInfo, count)
 	for i := range expectAccs {
 		req := &group.MsgCreateGroupAccount{
@@ -1349,7 +1361,14 @@ func (s *IntegrationTestSuite) TestGroupAccountsByAdminOrGroup() {
 		s.Require().NoError(err)
 		expectAccs[i] = expectAcc
 	}
-	sort.Slice(expectAccs, func(i, j int) bool { return expectAccs[i].Address < expectAccs[j].Address })
+	// we reorder accounts by address to be able to compare them
+	sort.Slice(expectAccs, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(expectAccs[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(expectAccs[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 
 	// query group account by group
 	accountsByGroupRes, err := s.queryClient.GroupAccountsByGroup(s.ctx, &group.QueryGroupAccountsByGroupRequest{
@@ -1358,8 +1377,6 @@ func (s *IntegrationTestSuite) TestGroupAccountsByAdminOrGroup() {
 	s.Require().NoError(err)
 	accounts := accountsByGroupRes.GroupAccounts
 	s.Require().Equal(len(accounts), count)
-	// we reorder accounts by address to be able to compare them
-	sort.Slice(accounts, func(i, j int) bool { return accounts[i].Address < accounts[j].Address })
 	for i := range accounts {
 		s.Assert().Equal(accounts[i].Address, expectAccs[i].Address)
 		s.Assert().Equal(accounts[i].GroupId, expectAccs[i].GroupId)
@@ -1376,8 +1393,6 @@ func (s *IntegrationTestSuite) TestGroupAccountsByAdminOrGroup() {
 	s.Require().NoError(err)
 	accounts = accountsByAdminRes.GroupAccounts
 	s.Require().Equal(len(accounts), count)
-	// we reorder accounts by address to be able to compare them
-	sort.Slice(accounts, func(i, j int) bool { return accounts[i].Address < accounts[j].Address })
 	for i := range accounts {
 		s.Assert().Equal(accounts[i].Address, expectAccs[i].Address)
 		s.Assert().Equal(accounts[i].GroupId, expectAccs[i].GroupId)
@@ -2171,7 +2186,13 @@ func (s *IntegrationTestSuite) TestVoteAgg() {
 		{Address: s.addrBls4.String(), Choice: group.Choice_CHOICE_UNSPECIFIED},
 		{Address: s.addrBls5.String(), Choice: group.Choice_CHOICE_YES},
 	}
-	sort.Slice(rawVotesAcc, func(i, j int) bool { return rawVotesAcc[i].Address < rawVotesAcc[j].Address })
+	sort.Slice(rawVotesAcc, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotesAcc[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotesAcc[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotesAcc := make([]group.Choice, len(rawVotesAcc))
 	validVotesAcc := make([]fullVote, 0, len(rawVotesAcc))
 	for i, v := range rawVotesAcc {
@@ -2188,7 +2209,13 @@ func (s *IntegrationTestSuite) TestVoteAgg() {
 		{Address: s.addrBls4.String(), Choice: group.Choice_CHOICE_UNSPECIFIED},
 		{Address: s.addrBls5.String(), Choice: group.Choice_CHOICE_VETO},
 	}
-	sort.Slice(rawVotesRej, func(i, j int) bool { return rawVotesRej[i].Address < rawVotesRej[j].Address })
+	sort.Slice(rawVotesRej, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotesRej[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotesRej[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotesRej := make([]group.Choice, len(rawVotesRej))
 	validVotesRej := make([]fullVote, 0, len(rawVotesRej))
 	for i, v := range rawVotesRej {
@@ -2996,7 +3023,13 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 		{Address: s.addrBls4.String()},
 		{Address: s.addrBls5.String()},
 	}
-	sort.Slice(rawVotes, func(i, j int) bool { return rawVotes[i].Address < rawVotes[j].Address })
+	sort.Slice(rawVotes, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotes[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotes[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotes := make([]group.Options, len(rawVotes))
 	validVotes := make([]fullVote, 0, len(rawVotes))
 	for i, v := range rawVotes {
@@ -3040,7 +3073,13 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 		{Address: s.addrBls4.String()},
 		{Address: s.addrBls5.String()},
 	}
-	sort.Slice(rawVotesLate, func(i, j int) bool { return rawVotesLate[i].Address < rawVotesLate[j].Address })
+	sort.Slice(rawVotesLate, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotesLate[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotesLate[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotesLate := make([]group.Options, len(rawVotesLate))
 	for i, v := range rawVotesLate {
 		sortedVotesLate[i] = v.Options
@@ -3080,7 +3119,13 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 		{Address: s.addrBls4.String()},
 		{Address: s.addrBls5.String()},
 	}
-	sort.Slice(rawVotesLong, func(i, j int) bool { return rawVotesLong[i].Address < rawVotesLong[j].Address })
+	sort.Slice(rawVotesLong, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotesLong[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotesLong[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotesLong := make([]group.Options, len(rawVotesLong))
 	for i, v := range rawVotesLong {
 		sortedVotesLong[i] = v.Options
@@ -3119,7 +3164,13 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 		{Address: s.addrBls4.String()},
 		{Address: s.addrBls5.String()},
 	}
-	sort.Slice(rawVotesInvalid, func(i, j int) bool { return rawVotesInvalid[i].Address < rawVotesInvalid[j].Address })
+	sort.Slice(rawVotesInvalid, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(rawVotesInvalid[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(rawVotesInvalid[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 	sortedVotesInvalid := make([]group.Options, len(rawVotesInvalid))
 	for i, v := range rawVotesInvalid {
 		sortedVotesInvalid[i] = v.Options
@@ -3160,7 +3211,13 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 		{Address: s.addrBls1.String(), Options: group.Options{Titles: []string{"charlie"}}},
 		{Address: s.addrBls3.String(), Options: group.Options{Titles: []string{"alice"}}},
 	}
-	sort.Slice(validVotesSkip, func(i, j int) bool { return validVotesSkip[i].Address < validVotesSkip[j].Address })
+	sort.Slice(validVotesSkip, func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(validVotesSkip[i].Address)
+		s.Require().NoError(err)
+		addrj, err := sdk.AccAddressFromBech32(validVotesSkip[j].Address)
+		s.Require().NoError(err)
+		return bytes.Compare(addri, addrj) < 0
+	})
 
 	specs := map[string]struct {
 		srcCtx        sdk.Context

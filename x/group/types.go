@@ -362,7 +362,11 @@ func (g GroupMember) ValidateBasic() error {
 }
 
 func (v VotePoll) PrimaryKeyFields() []interface{} {
-	return []interface{}{v.PollId, v.Voter}
+	addr, err := sdk.AccAddressFromBech32(v.Voter)
+	if err != nil {
+		panic(err)
+	}
+	return []interface{}{v.PollId, addr.Bytes()}
 }
 
 var _ orm.Validateable = VotePoll{}
