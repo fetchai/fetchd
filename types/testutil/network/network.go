@@ -210,7 +210,6 @@ func New(t *testing.T, cfg Config) *Network {
 		ctx := server.NewDefaultContext()
 		tmCfg := ctx.Config
 		tmCfg.Consensus.TimeoutCommit = cfg.TimeoutCommit
-		tmCfg.RPC.TimeoutBroadcastTxCommit = 20 * time.Second
 
 		// Only allow the first validator to expose an RPC, API and gRPC
 		// server/client due to Tendermint in-process constraints.
