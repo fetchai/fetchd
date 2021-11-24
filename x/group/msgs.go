@@ -1,15 +1,19 @@
 package group
 
 import (
+	bytes "bytes"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	proto "github.com/gogo/protobuf/proto"
 
 	"github.com/fetchai/fetchd/types/math"
 	"github.com/fetchai/fetchd/types/module/server"
+	prototypes "github.com/gogo/protobuf/types"
 )
 
 var _ sdk.Msg = &MsgCreateGroup{}
@@ -41,6 +45,10 @@ func (m MsgCreateGroup) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "admin")
 	}
 
+	if err := assertMetadataLength(m.Metadata, "group metadata"); err != nil {
+		return err
+	}
+
 	members := Members{Members: m.Members}
 	if err := members.ValidateBasic(); err != nil {
 		return sdkerrors.Wrap(err, "members")
@@ -61,6 +69,10 @@ func (m Member) ValidateBasic() error {
 	}
 	if _, err := math.NewNonNegativeDecFromString(m.Weight); err != nil {
 		return sdkerrors.Wrap(err, "weight")
+	}
+
+	if err := assertMetadataLength(m.Metadata, "member metadata"); err != nil {
+		return err
 	}
 
 	return nil
@@ -146,6 +158,9 @@ func (m MsgUpdateGroupMetadata) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "admin")
 	}
+	if err = assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -230,8 +245,13 @@ func (m MsgCreateGroupAccount) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "admin")
 	}
+
 	if m.GroupId == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "group")
+	}
+
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
 	}
 
 	policy := m.GetDecisionPolicy()
@@ -412,6 +432,10 @@ func (m MsgUpdateGroupAccountMetadata) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "group account")
 	}
 
+	if err := assertMetadataLength(m.Metadata, "group account metadata"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -519,6 +543,10 @@ func (m MsgCreateProposal) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "group account")
 	}
 
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+
 	if len(m.Proposers) == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "proposers")
 	}
@@ -540,6 +568,7 @@ func (m MsgCreateProposal) ValidateBasic() error {
 			return sdkerrors.Wrapf(err, "msg %d", i)
 		}
 	}
+
 	return nil
 }
 
@@ -604,6 +633,198 @@ func (m MsgVote) ValidateBasic() error {
 	if _, ok := Choice_name[int32(m.Choice)]; !ok {
 		return sdkerrors.Wrap(ErrInvalid, "choice")
 	}
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ sdk.Msg = &MsgVoteBasic{}
+
+// Route Implements Msg.
+func (m MsgVoteBasic) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVoteBasic) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteBasic) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteBasic) GetSigners() []sdk.AccAddress {
+	panic("this message does not include signers")
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteBasic) ValidateBasic() error {
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	if m.Choice == Choice_CHOICE_UNSPECIFIED {
+		return sdkerrors.Wrap(ErrEmpty, "choice")
+	}
+	if _, ok := Choice_name[int32(m.Choice)]; !ok {
+		return sdkerrors.Wrap(ErrInvalid, "choice")
+	}
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "vote expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "vote expiry")
+	}
+	return nil
+}
+
+var _ sdk.Msg = &MsgVoteBasicResponse{}
+var _ types.UnpackInterfacesMessage = MsgVoteBasicResponse{}
+
+// Route Implements Msg.
+func (m MsgVoteBasicResponse) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVoteBasicResponse) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteBasicResponse) GetSignBytes() []byte {
+	res := MsgVoteBasic{
+		ProposalId: m.ProposalId,
+		Choice:     m.Choice,
+		Expiry:     m.Expiry,
+	}
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&res))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteBasicResponse) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteBasicResponse) ValidateBasic() error {
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+
+	if m.Choice == Choice_CHOICE_UNSPECIFIED {
+		return sdkerrors.Wrap(ErrEmpty, "choice")
+	}
+	if _, ok := Choice_name[int32(m.Choice)]; !ok {
+		return sdkerrors.Wrap(ErrInvalid, "choice")
+	}
+
+	_, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		return sdkerrors.Wrap(err, "voter account")
+	}
+
+	if m.PubKey == nil {
+		return sdkerrors.Wrap(ErrEmpty, "public key")
+	}
+
+	if len(m.Sig) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "voter signature")
+	}
+
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "expiry")
+	}
+	return nil
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (m MsgVoteBasicResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	var pk cryptotypes.PubKey
+	return unpacker.UnpackAny(m.PubKey, &pk)
+}
+
+func (m MsgVoteBasicResponse) VerifySignature() error {
+	msgBytes := m.GetSignBytes()
+	voterAddress := m.GetSigners()[0]
+
+	pubKey, ok := m.PubKey.GetCachedValue().(cryptotypes.PubKey)
+	if !ok {
+		return sdkerrors.Wrap(ErrInvalid, "public key")
+	}
+
+	if !bytes.Equal(pubKey.Address(), voterAddress) {
+		return sdkerrors.Wrapf(ErrInvalid, "public key does not match the voter's address %s", m.Voter)
+	}
+
+	if !pubKey.VerifySignature(msgBytes, m.Sig) {
+		return sdkerrors.Wrap(ErrInvalid, "sigature verification failed")
+	}
+
+	return nil
+}
+
+var _ sdk.Msg = &MsgVoteAgg{}
+
+// Route Implements Msg.
+func (m MsgVoteAgg) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVoteAgg) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteAgg) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteAgg) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteAgg) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		return sdkerrors.Wrap(err, "sender")
+	}
+
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+
+	if len(m.Votes) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "votes")
+	}
+	for _, c := range m.Votes {
+		if _, ok := Choice_name[int32(c)]; !ok {
+			return sdkerrors.Wrap(ErrInvalid, "choice")
+		}
+	}
+
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+
+	if len(m.AggSig) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "voter signature")
+	}
+
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "expiry")
+	}
 	return nil
 }
 
@@ -637,6 +858,313 @@ func (m MsgExec) ValidateBasic() error {
 	}
 	if m.ProposalId == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	return nil
+}
+
+var _ sdk.Msg = &MsgCreatePoll{}
+
+// Route Implements Msg.
+func (m MsgCreatePoll) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgCreatePoll) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgCreatePoll) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgCreateProposal.
+func (m MsgCreatePoll) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Creator)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgCreatePoll) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Creator)
+	if err != nil {
+		return sdkerrors.Wrap(err, "creator account")
+	}
+
+	if m.GroupId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "group")
+	}
+
+	if len(m.Title) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll title")
+	}
+
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+	if err := assertTitleLength(m.Title, "poll title"); err != nil {
+		return err
+	}
+
+	if err := m.Options.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "options")
+	}
+
+	if m.VoteLimit <= 0 {
+		return sdkerrors.Wrap(ErrInvalid, "vote limit must be positive")
+	}
+
+	if int(m.VoteLimit) > len(m.Options.Titles) {
+		return sdkerrors.Wrap(ErrInvalid, "vote limit exceeds the number of options")
+	}
+
+	t, err := prototypes.TimestampFromProto(&m.Timeout)
+	if err != nil {
+		return sdkerrors.Wrap(err, "timeout")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "timeout")
+	}
+
+	return nil
+}
+
+var _ sdk.Msg = &MsgVotePoll{}
+
+// Route Implements Msg.
+func (m MsgVotePoll) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVotePoll) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVotePoll) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgCreateProposal.
+func (m MsgVotePoll) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVotePoll) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		return sdkerrors.Wrap(err, "creator account")
+	}
+
+	if m.PollId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll")
+	}
+
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+
+	if err := m.Options.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "options")
+	}
+
+	return nil
+}
+
+var _ sdk.Msg = &MsgVotePollBasic{}
+
+// Route Implements Msg.
+func (m MsgVotePollBasic) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVotePollBasic) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVotePollBasic) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgCreateProposal.
+func (m MsgVotePollBasic) GetSigners() []sdk.AccAddress {
+	panic("not implemented for this message")
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVotePollBasic) ValidateBasic() error {
+	if m.PollId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll")
+	}
+
+	if len(m.Option) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "vote option")
+	}
+
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "vote expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "vote expiry")
+	}
+	return nil
+}
+
+var _ sdk.Msg = &MsgVotePollBasicResponse{}
+var _ types.UnpackInterfacesMessage = MsgVotePollBasicResponse{}
+
+// Route Implements Msg.
+func (m MsgVotePollBasicResponse) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVotePollBasicResponse) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVotePollBasicResponse) GetSignBytes() []byte {
+	panic("not implemented")
+}
+
+func (m MsgVotePollBasicResponse) GetSignBytesMany() [][]byte {
+	signBytesMany := make([][]byte, 0, len(m.Options.Titles))
+	for _, x := range m.Options.Titles {
+		y := MsgVotePollBasic{
+			PollId: m.PollId,
+			Option: x,
+			Expiry: m.Expiry,
+		}
+		signBytesMany = append(signBytesMany, y.GetSignBytes())
+	}
+	return signBytesMany
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVotePollBasicResponse) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVotePollBasicResponse) ValidateBasic() error {
+	if m.PollId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	if err := m.Options.ValidateBasic(); err != nil {
+		return sdkerrors.Wrap(err, "options")
+	}
+	_, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		return sdkerrors.Wrap(err, "voter account")
+	}
+	if m.PubKey == nil {
+		return sdkerrors.Wrap(ErrEmpty, "public key")
+	}
+	if len(m.Sig) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "voter signature")
+	}
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "expiry")
+	}
+	return nil
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (m MsgVotePollBasicResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	var pk cryptotypes.PubKey
+	return unpacker.UnpackAny(m.PubKey, &pk)
+}
+
+func (m MsgVotePollBasicResponse) VerifySignature() error {
+	msgsBytes := m.GetSignBytesMany()
+	voterAddress := m.GetSigners()[0]
+
+	pubKey, ok := m.PubKey.GetCachedValue().(cryptotypes.PubKey)
+	if !ok {
+		return sdkerrors.Wrap(ErrInvalid, "public key")
+	}
+
+	if !bytes.Equal(pubKey.Address(), voterAddress) {
+		return sdkerrors.Wrapf(ErrInvalid, "public key does not match the voter's address %s", m.Voter)
+	}
+
+	pkBls, ok := pubKey.(*bls12381.PubKey)
+	if !ok {
+		return fmt.Errorf("only support bls public key")
+	}
+
+	// todo: repeated public keys can be coalesced in pairings
+	var pkss [][]*bls12381.PubKey
+	for _ = range m.Options.Titles {
+		pkss = append(pkss, []*bls12381.PubKey{pkBls})
+	}
+
+	if err := bls12381.VerifyAggregateSignature(msgsBytes, false, m.Sig, pkss); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var _ sdk.Msg = &MsgVotePollAgg{}
+
+// Route Implements Msg.
+func (m MsgVotePollAgg) Route() string { return sdk.MsgTypeURL(&m) }
+
+// Type Implements Msg.
+func (m MsgVotePollAgg) Type() string { return sdk.MsgTypeURL(&m) }
+
+// GetSignBytes Implements Msg.
+func (m MsgVotePollAgg) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVotePollAgg) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVotePollAgg) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		return sdkerrors.Wrap(err, "sender")
+	}
+	if m.PollId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "poll")
+	}
+	if len(m.Votes) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "votes")
+	}
+	for _, v := range m.Votes {
+		if len(v.Titles) != 0 {
+			if err := v.ValidateBasic(); err != nil {
+				return sdkerrors.Wrap(ErrInvalid, "options")
+			}
+		}
+	}
+	if err := assertMetadataLength(m.Metadata, "metadata"); err != nil {
+		return err
+	}
+	if len(m.AggSig) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "signature")
+	}
+	t, err := prototypes.TimestampFromProto(&m.Expiry)
+	if err != nil {
+		return sdkerrors.Wrap(err, "expiry")
+	}
+	if t.IsZero() {
+		return sdkerrors.Wrap(ErrEmpty, "expiry")
 	}
 	return nil
 }
