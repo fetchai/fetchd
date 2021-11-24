@@ -118,9 +118,6 @@ Where members.json contains:
 			if err != nil {
 				return err
 			}
-			if !sort.SliceIsSorted(members, sortMembersFunc(members)) {
-				sort.SliceStable(members, sortMembersFunc(members))
-			}
 
 			b, err := base64.StdEncoding.DecodeString(args[1])
 			if err != nil {
@@ -200,9 +197,6 @@ Set a member's weight to "0" to delete it.
 			members, err := parseMembers(clientCtx, args[2])
 			if err != nil {
 				return err
-			}
-			if !sort.SliceIsSorted(members, sortMembersFunc(members)) {
-				sort.SliceStable(members, sortMembersFunc(members))
 			}
 
 			groupID, err := strconv.ParseUint(args[1], 10, 64)
