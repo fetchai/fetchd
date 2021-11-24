@@ -545,7 +545,6 @@ func (s *IntegrationTestSuite) TestTxCreateGroup() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -666,7 +665,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAdmin() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -753,7 +751,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMetadata() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -876,7 +873,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMembers() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1001,7 +997,6 @@ func (s *IntegrationTestSuite) TestTxCreateGroupAccount() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1105,7 +1100,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountAdmin() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1209,7 +1203,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountDecisionPolicy() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1328,7 +1321,6 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountMetadata() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1529,7 +1521,6 @@ func (s *IntegrationTestSuite) TestTxCreateProposal() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1718,7 +1709,6 @@ func (s *IntegrationTestSuite) TestTxVote() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1771,7 +1761,6 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 	s.Require().NoError(err, out.String())
 	s.Require().NoError(val.ClientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), &txResp), out.String())
 	s.Require().Equal(uint32(0), txResp.Code, out.String())
-	s.network.WaitForNextBlock()
 
 	voteFlags := []string{
 		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
@@ -1996,7 +1985,6 @@ func (s *IntegrationTestSuite) TestTxExec() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2199,7 +2187,6 @@ func (s *IntegrationTestSuite) TestTxCreatePoll() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2218,6 +2205,29 @@ func (s *IntegrationTestSuite) TestTxVotePoll() {
 	s.Require().NoError(err)
 	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
 
+	now := time.Now()
+	deadline := now.Add(time.Second * 3000)
+	timeout, err := gogotypes.TimestampProto(deadline)
+	s.Require().NoError(err)
+	timeoutStr := timeout.String()
+
+	// create a valid poll
+	cmd := client.MsgCreatePollCmd()
+	out, err := cli.ExecTestCLICmd(clientCtx, cmd, append([]string{
+		aliceAddr.String(),
+		"2",
+		"2023 Election",
+		"alice,bob,charlie,eva",
+		"2",
+		timeoutStr,
+		validMetadata,
+	}, commonFlags...))
+	s.Require().NoError(err, out.String())
+	resp := &sdk.TxResponse{}
+	s.Require().NoError(clientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), resp), out.String())
+	s.Require().Equal(uint32(0), resp.Code, out.String())
+	validPollID := strings.Trim(resp.Logs[0].Events[0].Attributes[0].Value, "\"")
+
 	testCases := []struct {
 		name         string
 		args         []string
@@ -2230,7 +2240,7 @@ func (s *IntegrationTestSuite) TestTxVotePoll() {
 			"correct data",
 			append(
 				[]string{
-					"2",
+					validPollID,
 					aliceAddr.String(),
 					"alice,bob",
 					"",
@@ -2294,7 +2304,6 @@ func (s *IntegrationTestSuite) TestTxVotePoll() {
 
 	for _, tc := range testCases {
 		tc := tc
-
 		s.Run(tc.name, func() {
 			cmd := client.MsgVotePollCmd()
 
@@ -2308,7 +2317,6 @@ func (s *IntegrationTestSuite) TestTxVotePoll() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
-			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2375,7 +2383,7 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
 	}
 
-	pollID := "3"
+	pollID := strings.Trim(txResp.Logs[0].Events[0].Attributes[0].Value, "\"")
 
 	// basic vote from alice
 	cmd = client.GetVotePollBasicCmd()
