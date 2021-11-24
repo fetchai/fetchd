@@ -22,11 +22,12 @@ func (s *IntegrationTestSuite) TestInitExportGenesis() {
 	require.NoError(err)
 
 	groupAccount := &group.GroupAccountInfo{
-		Address:  s.groupAccountAddr.String(),
-		GroupId:  1,
-		Admin:    s.addr1.String(),
-		Version:  1,
-		Metadata: []byte("account metadata"),
+		Address:       s.groupAccountAddr.String(),
+		GroupId:       1,
+		Admin:         s.addr1.String(),
+		Version:       1,
+		Metadata:      []byte("account metadata"),
+		DerivationKey: []byte("account derivation key"),
 	}
 	err = groupAccount.SetDecisionPolicy(&group.ThresholdDecisionPolicy{
 		Threshold: "1",
@@ -76,7 +77,9 @@ func (s *IntegrationTestSuite) TestInitExportGenesis() {
 	genesisBytes, err := cdc.MarshalJSON(genesisState)
 	require.NoError(err)
 
-	genesisData := map[string]json.RawMessage{group.ModuleName: genesisBytes}
+	genesisData := map[string]json.RawMessage{
+		group.ModuleName: genesisBytes,
+	}
 	_, err = s.fixture.InitGenesis(ctx.Context, genesisData)
 	require.NoError(err)
 

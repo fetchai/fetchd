@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/fetchai/fetchd/orm"
-	"github.com/fetchai/fetchd/testutil/testdata"
+	"github.com/fetchai/fetchd/orm/testdata"
 )
 
 func TestAutoUInt64PrefixScan(t *testing.T) {
@@ -24,7 +24,9 @@ func TestAutoUInt64PrefixScan(t *testing.T) {
 		testTablePrefix = iota
 		testTableSeqPrefix
 	)
-	tb := orm.NewAutoUInt64TableBuilder(testTablePrefix, testTableSeqPrefix, storeKey, &testdata.GroupInfo{}, cdc).Build()
+	builder, err := orm.NewAutoUInt64TableBuilder(testTablePrefix, testTableSeqPrefix, storeKey, &testdata.GroupInfo{}, cdc)
+	require.NoError(t, err)
+	tb := builder.Build()
 	ctx := orm.NewMockContext()
 
 	g1 := testdata.GroupInfo{

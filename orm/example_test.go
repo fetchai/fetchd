@@ -5,7 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/fetchai/fetchd/orm"
-	"github.com/fetchai/fetchd/testutil/testdata"
+	"github.com/fetchai/fetchd/orm/testdata"
 )
 
 type GroupKeeper struct {
@@ -15,38 +15,62 @@ type GroupKeeper struct {
 	groupMemberTable         orm.PrimaryKeyTable
 	groupMemberByGroupIndex  orm.Index
 	groupMemberByMemberIndex orm.Index
+	groupMemberByWeightIndex orm.Index
 }
 
 var (
 	GroupTablePrefix               byte = 0x0
 	GroupTableSeqPrefix            byte = 0x1
 	GroupByAdminIndexPrefix        byte = 0x2
-	GroupMemberTablePrefix         byte = 0x3
-	GroupMemberTableSeqPrefix      byte = 0x4
-	GroupMemberTableIndexPrefix    byte = 0x5
-	GroupMemberByGroupIndexPrefix  byte = 0x6
-	GroupMemberByMemberIndexPrefix byte = 0x7
+	GroupByDescriptionIndexPrefix  byte = 0x3
+	GroupMemberTablePrefix         byte = 0x4
+	GroupMemberTableSeqPrefix      byte = 0x5
+	GroupMemberTableIndexPrefix    byte = 0x6
+	GroupMemberByGroupIndexPrefix  byte = 0x7
+	GroupMemberByMemberIndexPrefix byte = 0x8
+	GroupMemberByWeightIndexPrefix byte = 0x9
 )
 
 func NewGroupKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler) GroupKeeper {
 	k := GroupKeeper{key: storeKey}
 
-	groupTableBuilder := orm.NewAutoUInt64TableBuilder(GroupTablePrefix, GroupTableSeqPrefix, storeKey, &testdata.GroupInfo{}, cdc)
+	groupTableBuilder, err := orm.NewAutoUInt64TableBuilder(GroupTablePrefix, GroupTableSeqPrefix, storeKey, &testdata.GroupInfo{}, cdc)
+	if err != nil {
+		panic(err.Error())
+	}
 	// note: quite easy to mess with Index prefixes when managed outside. no fail fast on duplicates
-	k.groupByAdminIndex = orm.NewIndex(groupTableBuilder, GroupByAdminIndexPrefix, func(val interface{}) ([]orm.RowID, error) {
-		return []orm.RowID{[]byte(val.(*testdata.GroupInfo).Admin)}, nil
-	})
+	k.groupByAdminIndex, err = orm.NewIndex(groupTableBuilder, GroupByAdminIndexPrefix, func(val interface{}) ([]interface{}, error) {
+		return []interface{}{val.(*testdata.GroupInfo).Admin.Bytes()}, nil
+	}, testdata.GroupInfo{}.Admin.Bytes())
+	if err != nil {
+		panic(err.Error())
+	}
 	k.groupTable = groupTableBuilder.Build()
 
-	groupMemberTableBuilder := orm.NewPrimaryKeyTableBuilder(GroupMemberTablePrefix, storeKey, &testdata.GroupMember{}, orm.Max255DynamicLengthIndexKeyCodec{}, cdc)
+	groupMemberTableBuilder, err := orm.NewPrimaryKeyTableBuilder(GroupMemberTablePrefix, storeKey, &testdata.GroupMember{}, cdc)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	k.groupMemberByGroupIndex = orm.NewIndex(groupMemberTableBuilder, GroupMemberByGroupIndexPrefix, func(val interface{}) ([]orm.RowID, error) {
+	k.groupMemberByGroupIndex, err = orm.NewIndex(groupMemberTableBuilder, GroupMemberByGroupIndexPrefix, func(val interface{}) ([]interface{}, error) {
 		group := val.(*testdata.GroupMember).Group
-		return []orm.RowID{[]byte(group)}, nil
-	})
-	k.groupMemberByMemberIndex = orm.NewIndex(groupMemberTableBuilder, GroupMemberByMemberIndexPrefix, func(val interface{}) ([]orm.RowID, error) {
-		return []orm.RowID{[]byte(val.(*testdata.GroupMember).Member)}, nil
-	})
+		return []interface{}{group.Bytes()}, nil
+	}, testdata.GroupMember{}.Group.Bytes())
+	if err != nil {
+		panic(err.Error())
+	}
+	k.groupMemberByMemberIndex, err = orm.NewIndex(groupMemberTableBuilder, GroupMemberByMemberIndexPrefix, func(val interface{}) ([]interface{}, error) {
+		return []interface{}{val.(*testdata.GroupMember).Member.Bytes()}, nil
+	}, testdata.GroupMember{}.Member.Bytes())
+	if err != nil {
+		panic(err.Error())
+	}
+	k.groupMemberByWeightIndex, err = orm.NewIndex(groupMemberTableBuilder, GroupMemberByWeightIndexPrefix, func(val interface{}) ([]interface{}, error) {
+		return []interface{}{val.(*testdata.GroupMember).Weight}, nil
+	}, testdata.GroupMember{}.Weight)
+	if err != nil {
+		panic(err.Error())
+	}
 	k.groupMemberTable = groupMemberTableBuilder.Build()
 
 	return k

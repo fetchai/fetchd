@@ -5,8 +5,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/fetchai/fetchd/types/module"
 	"github.com/spf13/cobra"
+
+	"github.com/fetchai/fetchd/types/module"
 )
 
 // Module is an interface that modules should implement to integrate with the CLI framework.
