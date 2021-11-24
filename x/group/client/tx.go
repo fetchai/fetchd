@@ -1353,17 +1353,3 @@ func sortGroupMembersFunc(groupMembers []*group.GroupMember) func(i, j int) bool
 		return bytes.Compare(addri, addrj) < 0
 	}
 }
-
-func sortMembersFunc(groupMembers []group.Member) func(i, j int) bool {
-	return func(i, j int) bool {
-		addri, err := sdk.AccAddressFromBech32(groupMembers[i].Address)
-		if err != nil {
-			panic(err)
-		}
-		addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Address)
-		if err != nil {
-			panic(err)
-		}
-		return bytes.Compare(addri, addrj) < 0
-	}
-}
