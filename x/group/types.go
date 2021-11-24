@@ -582,25 +582,41 @@ func (t *TallyPoll) operation(vote VotePoll, weight string, op operation) error 
 	}
 
 	for _, option := range vote.Options.Titles {
-		res, err := math.NewNonNegativeDecFromString("0")
+		res, err := t.getOptionWeight(option)
 		if err != nil {
-			return err
-		}
-		if x, ok := t.Counts[option]; ok {
-			res, err = math.NewNonNegativeDecFromString(x)
-			if err != nil {
-				return err
-			}
+			return sdkerrors.Wrap(err, "getOptionWeight")
 		}
 		res, err = op(res, weightDec)
 		if err != nil {
 			return sdkerrors.Wrap(err, "count")
 		}
-
-		t.Counts[option] = res.String()
+		t.setOptionWeight(option, res)
 	}
 
 	return nil
+}
+
+func (t *TallyPoll) getOptionWeight(title string) (math.Dec, error) {
+	for _, entry := range t.Entries {
+		if entry.OptionTitle == title {
+			return math.NewNonNegativeDecFromString(entry.Weight)
+		}
+	}
+	return math.NewDecFromInt64(0), nil
+}
+
+func (t *TallyPoll) setOptionWeight(title string, weight math.Dec) {
+	for i, entry := range t.Entries {
+		if entry.OptionTitle == title {
+			t.Entries[i].Weight = weight.String()
+			return
+		}
+	}
+	t.Entries = append(t.Entries, &TallyPollEntry{
+		OptionTitle: title,
+		Weight:      weight.String(),
+	})
+	return
 }
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces

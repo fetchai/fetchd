@@ -2465,8 +2465,11 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 	s.Require().NoError(err, out.String())
 	s.Require().NoError(val.ClientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), &pollRes))
 	s.Require().Equal(pollRes.Poll.Status, group.PollStatusSubmitted)
-	s.Require().Equal(pollRes.Poll.VoteState.Counts, map[string]string{
-		"alice": "1", "bob": "2", "david": "6", "eva": "4",
+	s.Require().Equal(pollRes.Poll.VoteState.Entries, []*group.TallyPollEntry{
+		{OptionTitle: "alice", Weight: "1"},
+		{OptionTitle: "bob", Weight: "2"},
+		{OptionTitle: "david", Weight: "6"},
+		{OptionTitle: "eva", Weight: "4"},
 	})
 
 	// test invalid

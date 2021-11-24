@@ -142,6 +142,7 @@ ifeq ($(EXPERIMENTAL),true)
 endif
 
 test-unit: ARGS=-tags='$(UNIT_TEST_ARGS)'
+test-unit-dbg: ARGS=-v -count=1 -tags='$(UNIT_TEST_ARGS)'
 test-unit-amino: ARGS=-tags='${AMINO_TEST_ARGS}'
 test-ledger: ARGS=-tags='${LEDGER_TEST_ARGS}'
 test-ledger-mock: ARGS=-tags='${LEDGER_MOCK_ARGS}'
