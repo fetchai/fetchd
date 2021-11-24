@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
+	"sort"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
@@ -67,6 +68,10 @@ func (s serverImpl) CreateGroup(goCtx context.Context, req *group.MsgCreateGroup
 				return nil, sdkerrors.Wrapf(err, "member %s failed bls validation", mem.Address)
 			}
 		}
+	}
+
+	if len(metadata) > group.MaxMetadataLength {
+		return nil, sdkerrors.Wrap(group.ErrMaxLimit, "group metadata")
 	}
 
 	totalWeight := math.NewDecFromInt64(0)
@@ -907,14 +912,14 @@ func (s serverImpl) Exec(goCtx context.Context, req *group.MsgExec) (*group.MsgE
 func (s serverImpl) CreatePoll(goCtx context.Context, req *group.MsgCreatePoll) (*group.MsgCreatePollResponse, error) {
 	ctx := types.UnwrapSDKContext(goCtx)
 	creator := req.Creator
-	groupId := req.GroupId
+	groupID := req.GroupId
 	endTime := req.Timeout
 	metadata := req.Metadata
 	title := req.Title
 	options := req.Options
 	limit := req.VoteLimit
 
-	g, err := s.getGroupInfo(ctx, groupId)
+	g, err := s.getGroupInfo(ctx, groupID)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "get group by account")
 	}
@@ -933,9 +938,11 @@ func (s serverImpl) CreatePoll(goCtx context.Context, req *group.MsgCreatePoll) 
 		return nil, sdkerrors.Wrap(group.ErrExpired, "poll already expired")
 	}
 
+	sort.Strings(options.Titles)
+
 	m := &group.Poll{
 		PollId:       s.pollTable.Sequence().PeekNextVal(ctx),
-		GroupId:      groupId,
+		GroupId:      groupID,
 		Title:        title,
 		Options:      options,
 		Creator:      creator,
@@ -1010,6 +1017,8 @@ func (s serverImpl) VotePoll(goCtx context.Context, req *group.MsgVotePoll) (*gr
 		return nil, sdkerrors.Wrapf(err, "address: %s", voterAddr)
 	}
 
+	sort.Strings(options.Titles)
+
 	newVote := group.VotePoll{
 		PollId:      id,
 		Voter:       voterAddr,
@@ -1017,10 +1026,6 @@ func (s serverImpl) VotePoll(goCtx context.Context, req *group.MsgVotePoll) (*gr
 		Metadata:    metadata,
 		SubmittedAt: *blockTime,
 	}
-	if len(poll.VoteState.Counts) == 0 {
-		poll.VoteState.Counts = make(map[string]string)
-	}
-
 	if err := poll.VoteState.Add(newVote, voter.Member.Weight); err != nil {
 		return nil, sdkerrors.Wrap(err, "add new vote")
 	}
@@ -1030,6 +1035,10 @@ func (s serverImpl) VotePoll(goCtx context.Context, req *group.MsgVotePoll) (*gr
 	if err := s.votePollTable.Create(ctx, &newVote); err != nil {
 		return nil, sdkerrors.Wrap(err, "store vote")
 	}
+
+	sort.SliceStable(poll.VoteState.Entries, func(i, j int) bool {
+		return poll.VoteState.Entries[i].OptionTitle < poll.VoteState.Entries[j].OptionTitle
+	})
 
 	if err = s.pollTable.Set(ctx, id, &poll); err != nil {
 		return nil, err
@@ -1183,11 +1192,6 @@ func (s serverImpl) VotePollAgg(goCtx context.Context, req *group.MsgVotePollAgg
 		return nil, err
 	}
 
-	// Count and store votes.
-	if len(poll.VoteState.Counts) == 0 {
-		poll.VoteState.Counts = make(map[string]string, len(votesStore))
-	}
-
 	for i := range votesStore {
 		// skip the vote if error
 		err := poll.VoteState.Add(votesStore[i], weights[i])
@@ -1206,6 +1210,9 @@ func (s serverImpl) VotePollAgg(goCtx context.Context, req *group.MsgVotePollAgg
 		}
 	}
 
+	sort.SliceStable(poll.VoteState.Entries, func(i, j int) bool {
+		return poll.VoteState.Entries[i].OptionTitle < poll.VoteState.Entries[j].OptionTitle
+	})
 	if err = s.pollTable.Set(ctx, id, &poll); err != nil {
 		return nil, err
 	}

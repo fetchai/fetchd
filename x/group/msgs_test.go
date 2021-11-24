@@ -962,7 +962,10 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 			src: MsgVotePollAgg{
 				Sender: memberAddr,
 				PollId: 1,
-				Votes:  []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 				AggSig: []byte("does not check signature"),
 			},
@@ -970,7 +973,10 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 		"poll required": {
 			src: MsgVotePollAgg{
 				Sender: memberAddr,
-				Votes:  []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 				AggSig: []byte("does not check signature"),
 			},
@@ -989,7 +995,10 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 			src: MsgVotePollAgg{
 				Sender: memberAddr,
 				PollId: 1,
-				Votes:  []Options{Options{Titles: []string{"alice", ""}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", ""}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 				AggSig: []byte("does not check signature"),
 			},
@@ -998,7 +1007,10 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 		"sender required": {
 			src: MsgVotePollAgg{
 				PollId: 1,
-				Votes:  []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 				AggSig: []byte("does not check signature"),
 			},
@@ -1008,7 +1020,10 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 			src: MsgVotePollAgg{
 				Sender: "invalid sender address",
 				PollId: 1,
-				Votes:  []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 				AggSig: []byte("does not check signature"),
 			},
@@ -1018,16 +1033,22 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 			src: MsgVotePollAgg{
 				Sender: memberAddr,
 				PollId: 1,
-				Votes:  []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry: *expiry,
 			},
 			expErr: true,
 		},
 		"metadata too long": {
 			src: MsgVotePollAgg{
-				Sender:   memberAddr,
-				PollId:   1,
-				Votes:    []Options{Options{Titles: []string{"alice", "bob"}}, Options{Titles: []string{"alice"}}},
+				Sender: memberAddr,
+				PollId: 1,
+				Votes: []Options{
+					{Titles: []string{"alice", "bob"}},
+					{Titles: []string{"alice"}},
+				},
 				Expiry:   *expiry,
 				AggSig:   []byte("does not check signature"),
 				Metadata: bytes.Repeat([]byte{1}, 256),
