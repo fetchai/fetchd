@@ -31,6 +31,12 @@ func QueryCmd(name string) *cobra.Command {
 		QueryVoteByProposalVoterCmd(),
 		QueryVotesByProposalCmd(),
 		QueryVotesByVoterCmd(),
+		QueryPollCmd(),
+		QueryPollsByGroupCmd(),
+		QueryPollsByCreatorCmd(),
+		QueryVoteForPollByPollVoterCmd(),
+		QueryVotesForPollByPollCmd(),
+		QueryVotesForPollByVoterCmd(),
 	)
 
 	return queryCmd
@@ -423,6 +429,231 @@ func QueryVotesByVoterCmd() *cobra.Command {
 			queryClient := group.NewQueryClient(clientCtx)
 
 			res, err := queryClient.VotesByVoter(cmd.Context(), &group.QueryVotesByVoterRequest{
+				Voter:      args[0],
+				Pagination: pageReq,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryPollCmd creates a CLI command for Query/Poll.
+func QueryPollCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "poll [id]",
+		Short: "Query for poll by id",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			pollID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.Poll(cmd.Context(), &group.QueryPollRequest{
+				PollId: pollID,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryPollsByGroupCmd creates a CLI command for Query/PollsByGroup.
+func QueryPollsByGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "polls-by-group [group-id]",
+		Short: "Query for polls by group id with pagination flags",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			groupID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.PollsByGroup(cmd.Context(), &group.QueryPollsByGroupRequest{
+				GroupId:    groupID,
+				Pagination: pageReq,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryPollsByCreatorCmd creates a CLI command for Query/PollsByCreator.
+func QueryPollsByCreatorCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "polls-by-group [creator]",
+		Short: "Query for polls by creator address with pagination flags",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.PollsByCreator(cmd.Context(), &group.QueryPollsByCreatorRequest{
+				Creator:    args[0],
+				Pagination: pageReq,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryVoteForPollByPollVoterCmd creates a CLI command for Query/VoteForPollByPollVoter.
+func QueryVoteForPollByPollVoterCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "vote-poll [poll-id] [voter]",
+		Short: "Query for vote by poll id and voter account address",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			pollID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.VoteForPollByPollVoter(cmd.Context(), &group.QueryVoteForPollByPollVoterRequest{
+				PollId: pollID,
+				Voter:  args[1],
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryVotesForPollByPollCmd creates a CLI command for Query/VotesByProposal.
+func QueryVotesForPollByPollCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "votes-by-poll [poll-id]",
+		Short: "Query for votes by poll id with pagination flags",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			pollID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.VotesForPollByPoll(cmd.Context(), &group.QueryVotesForPollByPollRequest{
+				PollId:     pollID,
+				Pagination: pageReq,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+// QueryVotesForPollByVoterCmd creates a CLI command for Query/VotesForPollByVoter.
+func QueryVotesForPollByVoterCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "votes-poll-by-voter [voter]",
+		Short: "Query for votes by voter account address with pagination flags",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			queryClient := group.NewQueryClient(clientCtx)
+
+			res, err := queryClient.VotesForPollByVoter(cmd.Context(), &group.QueryVotesForPollByVoterRequest{
 				Voter:      args[0],
 				Pagination: pageReq,
 			})

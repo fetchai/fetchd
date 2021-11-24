@@ -86,6 +86,9 @@ message GroupInfo {
 
     // total_weight is the sum of the group members' weights.
     string total_weight = 5;
+
+    // bls_only requires all the group members to use bls public keys so their votes can be aggregated together
+    bool bls_only = 6;
 }
 
 // GroupMember represents the relationship between a group and a member.
@@ -264,6 +267,101 @@ message Vote {
     
     // choice is the voter's choice on the proposal.
     Choice choice = 3;
+
+    // metadata is any arbitrary metadata to attached to the vote.
+    bytes metadata = 4;
+
+    // submitted_at is the timestamp when the vote was submitted.
+    google.protobuf.Timestamp submitted_at = 5 [(gogoproto.nullable) = false];
+}
+
+// TallyPoll represents the sum of weighted votes for a poll.
+message TallyPoll {
+    option (gogoproto.goproto_getters) = false;
+    map<string, string> counts = 1;
+}
+
+// Options represents the choices voters can vote for a poll.
+message Options {
+    option (gogoproto.goproto_getters) = false;
+
+    repeated string titles = 1;
+}
+
+// Poll defines a group poll. Any member of a group can submit a poll
+// for a group to decide upon.
+// The options in a poll can be customised by the creator.
+message Poll {
+    option (gogoproto.goproto_getters) = false;
+
+    // poll_id is the unique id of the poll.
+    uint64 poll_id = 1;
+
+    // group_id is the unique ID of the group.
+    uint64 group_id = 2;
+
+    // title is the title of the poll.
+    string title = 3;
+
+    // options are the choices of the poll.
+    Options options = 4 [(gogoproto.nullable) = false];
+
+    // creator is the account address of the poll creator.
+    string creator = 5;
+
+    // vote_limit is the maximum number of options each voter can choose.
+    int32 vote_limit = 6;
+
+    // vote_state contains the sums of all weighted votes for this poll.
+    TallyPoll vote_state = 7 [(gogoproto.nullable) = false];
+
+    // metadata is any arbitrary metadata to attached to the poll.
+    bytes metadata = 8;
+
+    // submitted_at is a timestamp specifying when a poll was submitted.
+    google.protobuf.Timestamp submitted_at = 9 [(gogoproto.nullable) = false];
+
+    // group_version tracks the version of the group that this poll corresponds to.
+    // When group membership is changed, existing polls from previous group versions will become invalid.
+    uint64 group_version = 10;
+
+    // Status defines poll statuses.
+    enum Status {
+        option (gogoproto.goproto_enum_prefix) = false;
+
+        // An empty value is invalid and not allowed.
+        STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "PollStatusInvalid"];
+
+        // Initial status of a poll when persisted.
+        STATUS_SUBMITTED = 1 [(gogoproto.enumvalue_customname) = "PollStatusSubmitted"];
+
+        // Final status of a poll when the final tally was executed.
+        STATUS_CLOSED = 2 [(gogoproto.enumvalue_customname) = "PollStatusClosed"];
+
+        // Final status of a poll when the group was modified before the final tally.
+        STATUS_ABORTED = 3 [(gogoproto.enumvalue_customname) = "PollStatusAborted"];
+    }
+
+    // Status represents the high level position in the life cycle of the poll. Initial value is Submitted.
+    Status status = 11;
+
+    // timeout is the timestamp of the block where the poll times out. Header times of the votes
+    // must be before this end time to be included in the election.
+    google.protobuf.Timestamp timeout = 12 [(gogoproto.nullable) = false];
+}
+
+
+// VotePoll represents a vote for a poll.
+message VotePoll {
+
+    // poll_id is the unique ID of the pool.
+    uint64 poll_id = 1;
+
+    // voter is the account address of the voter.
+    string voter = 2;
+
+    // options are the voter's choices on the poll.
+    Options options = 3 [(gogoproto.nullable) = false];;
 
     // metadata is any arbitrary metadata to attached to the vote.
     bytes metadata = 4;

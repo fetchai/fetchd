@@ -37,6 +37,17 @@ const (
 	VoteTablePrefix           byte = 0x40
 	VoteByProposalIndexPrefix byte = 0x41
 	VoteByVoterIndexPrefix    byte = 0x42
+
+	// Poll Table
+	PollTablePrefix          byte = 0x90
+	PollTableSeqPrefix       byte = 0x91
+	PollByGroupIndexPrefix   byte = 0x92
+	PollByCreatorIndexPrefix byte = 0x93
+
+	// VotePoll Table
+	VotePollTablePrefix        byte = 0xa0
+	VotePollByPollIndexPrefix  byte = 0xa1
+	VotePollByVoterIndexPrefix byte = 0xa2
 )
 
 type serverImpl struct {
@@ -69,9 +80,21 @@ type serverImpl struct {
 	voteTable           orm.PrimaryKeyTable
 	voteByProposalIndex orm.Index
 	voteByVoterIndex    orm.Index
+
+	// Poll Table
+	pollTable          orm.AutoUInt64Table
+	pollByGroupIndex   orm.Index
+	pollByCreatorIndex orm.Index
+
+	// VotePoll Table
+	votePollTable        orm.PrimaryKeyTable
+	votePollByPollIndex  orm.Index
+	votePollByVoterIndex orm.Index
 }
 
 func newServer(storeKey servermodule.RootModuleKey, accKeeper exported.AccountKeeper, bankKeeper exported.BankKeeper, cdc codec.Marshaler) serverImpl {
+	var err error
+
 	s := serverImpl{key: storeKey, accKeeper: accKeeper, bankKeeper: bankKeeper}
 
 	// Group Table
@@ -196,6 +219,52 @@ func newServer(storeKey servermodule.RootModuleKey, accKeeper exported.AccountKe
 		panic(err.Error())
 	}
 	s.voteTable = voteTableBuilder.Build()
+
+	// Poll Table
+	pollTableBuilder, err := orm.NewAutoUInt64TableBuilder(PollTablePrefix, PollTableSeqPrefix, storeKey, &group.Poll{}, cdc)
+	if err != nil {
+		panic(err.Error())
+	}
+	s.pollByGroupIndex, err = orm.NewIndex(pollTableBuilder, PollByGroupIndexPrefix, func(value interface{}) ([]interface{}, error) {
+		group := value.(*group.Poll).GroupId
+		return []interface{}{group}, nil
+	}, group.Poll{}.GroupId)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s.pollByCreatorIndex, err = orm.NewIndex(pollTableBuilder, PollByCreatorIndexPrefix, func(value interface{}) ([]interface{}, error) {
+		creator := value.(*group.Poll).Creator
+		addr, err := sdk.AccAddressFromBech32(creator)
+		if err != nil {
+			return nil, err
+		}
+		return []interface{}{addr.Bytes()}, nil
+	}, []byte{})
+	if err != nil {
+		panic(err.Error())
+	}
+	s.pollTable = pollTableBuilder.Build()
+
+	// VotePoll Table
+	votePollTableBuilder, err := orm.NewPrimaryKeyTableBuilder(VotePollTablePrefix, storeKey, &group.VotePoll{}, cdc)
+	if err != nil {
+		panic(err.Error())
+	}
+	s.votePollByPollIndex, err = orm.NewIndex(votePollTableBuilder, VotePollByPollIndexPrefix, func(value interface{}) ([]interface{}, error) {
+		return []interface{}{value.(*group.VotePoll).PollId}, nil
+	}, group.VotePoll{}.PollId)
+	s.votePollByVoterIndex, err = orm.NewIndex(votePollTableBuilder, VotePollByVoterIndexPrefix, func(value interface{}) ([]interface{}, error) {
+		addr, err := sdk.AccAddressFromBech32(value.(*group.VotePoll).Voter)
+		if err != nil {
+			return nil, err
+		}
+		return []interface{}{addr.Bytes()}, nil
+	}, []byte{})
+	if err != nil {
+		panic(err.Error())
+	}
+	s.votePollTable = votePollTableBuilder.Build()
 
 	return s
 }

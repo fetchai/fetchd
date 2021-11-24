@@ -11,6 +11,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -25,18 +27,22 @@ import (
 )
 
 type FixtureFactory struct {
-	t       *testing.T
-	modules []module.Module
-	signers []sdk.AccAddress
-	cdc     *codec.ProtoCodec
-	baseApp *baseapp.BaseApp
+	t          *testing.T
+	modules    []module.Module
+	signers    []sdk.AccAddress
+	signersBls []sdk.AccAddress
+	sksBls     []cryptotypes.PrivKey
+	cdc        *codec.ProtoCodec
+	baseApp    *baseapp.BaseApp
 }
 
 func NewFixtureFactory(t *testing.T, numSigners int) *FixtureFactory {
-	signers := makeTestAddresses(numSigners)
+	signers, signersBls, sksBls := makeTestAddresses(numSigners)
 	return &FixtureFactory{
-		t:       t,
-		signers: signers,
+		t:          t,
+		signers:    signers,
+		signersBls: signersBls,
+		sksBls:     sksBls,
 		// cdc and baseApp are initialized here just for compatibility with legacy modules which don't use ADR 033
 		// TODO: remove once all code using this uses ADR 033 module wiring
 		cdc:     codec.NewProtoCodec(types.NewInterfaceRegistry()),
@@ -60,12 +66,18 @@ func (ff *FixtureFactory) BaseApp() *baseapp.BaseApp {
 	return ff.baseApp
 }
 
-func makeTestAddresses(count int) []sdk.AccAddress {
+func makeTestAddresses(count int) ([]sdk.AccAddress, []sdk.AccAddress, []cryptotypes.PrivKey) {
 	addrs := make([]sdk.AccAddress, count)
 	for i := 0; i < count; i++ {
 		_, _, addrs[i] = testdata.KeyTestPubAddr()
 	}
-	return addrs
+
+	addrsBls := make([]sdk.AccAddress, count)
+	sksBls := make([]cryptotypes.PrivKey, count)
+	for i := 0; i < count; i++ {
+		sksBls[i], _, addrsBls[i] = testdata.KeyTestPubAddrBls12381()
+	}
+	return addrs, addrsBls, sksBls
 }
 
 func (ff FixtureFactory) Setup() testutil.Fixture {
@@ -82,6 +94,8 @@ func (ff FixtureFactory) Setup() testutil.Fixture {
 	err = baseApp.LoadLatestVersion()
 	require.NoError(ff.t, err)
 
+	std.RegisterInterfaces(registry)
+
 	return fixture{
 		baseApp:               baseApp,
 		router:                mm.router,
@@ -90,6 +104,8 @@ func (ff FixtureFactory) Setup() testutil.Fixture {
 		exportGenesisHandlers: mm.exportGenesisHandlers,
 		t:                     ff.t,
 		signers:               ff.signers,
+		signersBls:            ff.signersBls,
+		sksBls:                ff.sksBls,
 	}
 }
 
@@ -101,6 +117,8 @@ type fixture struct {
 	exportGenesisHandlers map[string]module.ExportGenesisHandler
 	t                     *testing.T
 	signers               []sdk.AccAddress
+	signersBls            []sdk.AccAddress
+	sksBls                []cryptotypes.PrivKey
 }
 
 func (f fixture) Context() context.Context {
@@ -108,7 +126,7 @@ func (f fixture) Context() context.Context {
 }
 
 func (f fixture) TxConn() grpc.ClientConnInterface {
-	return testKey{invokerFactory: f.router.testTxFactory(f.signers)}
+	return testKey{invokerFactory: f.router.testTxFactory(append(f.signers, f.signersBls...))}
 }
 
 func (f fixture) QueryConn() grpc.ClientConnInterface {
@@ -117,6 +135,14 @@ func (f fixture) QueryConn() grpc.ClientConnInterface {
 
 func (f fixture) Signers() []sdk.AccAddress {
 	return f.signers
+}
+
+func (f fixture) SignersBls() []sdk.AccAddress {
+	return f.signersBls
+}
+
+func (f fixture) SksBls() []cryptotypes.PrivKey {
+	return f.sksBls
 }
 
 func (f fixture) InitGenesis(ctx sdk.Context, genesisData map[string]json.RawMessage) (abci.ResponseInitChain, error) {
