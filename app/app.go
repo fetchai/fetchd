@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gorilla/mux"
+	"github.com/rakyll/statik/fs"
+	"github.com/spf13/cast"
+
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmclient "github.com/CosmWasm/wasmd/x/wasm/client"
 
@@ -88,11 +92,10 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/gorilla/mux"
-	"github.com/rakyll/statik/fs"
-	"github.com/spf13/cast"
-
 	appparams "github.com/fetchai/fetchd/app/params"
+	moduletypes "github.com/fetchai/fetchd/types/module"
+	"github.com/fetchai/fetchd/types/module/server"
+	group "github.com/fetchai/fetchd/x/group/module"
 )
 
 const Name = "fetchd"
@@ -164,6 +167,7 @@ var (
 		vesting.AppModuleBasic{},
 		wasm.AppModuleBasic{},
 		airdrop.AppModuleBasic{},
+		group.Module{},
 	)
 
 	// module account permissions
@@ -235,6 +239,10 @@ type App struct {
 
 	// the module manager
 	mm *module.Manager
+
+	smm *server.Manager
+
+	configurator module.Configurator
 }
 
 // New returns a reference to an initialized Gaia.
@@ -401,6 +409,7 @@ func New(
 	app.IBCKeeper.SetRouter(ibcRouter)
 
 	/****  Module Options ****/
+	app.smm = setCustomModules(app, interfaceRegistry)
 
 	// NOTE: we may consider parsing `appOpts` inside module constructors. For the moment
 	// we prefer to be more strict in what arguments the modules expect.
@@ -509,6 +518,31 @@ func New(
 	return app
 }
 
+func setCustomModules(app *App, interfaceRegistry types.InterfaceRegistry) *server.Manager {
+	/* New Module Wiring START */
+	newModuleManager := server.NewManager(app.BaseApp, codec.NewProtoCodec(interfaceRegistry))
+
+	// BEGIN HACK: this is a total, ugly hack until x/auth & x/bank supports ADR 033 or we have a suitable alternative
+	groupModule := group.Module{AccountKeeper: app.AccountKeeper}
+	// use a separate newModules from the global NewModules here because we need to pass state into the group module
+	newModules := []moduletypes.Module{
+		groupModule,
+	}
+	err := newModuleManager.RegisterModules(newModules)
+	if err != nil {
+		panic(err)
+	}
+	// END HACK
+
+	err = newModuleManager.CompleteInitialization()
+	if err != nil {
+		panic(err)
+	}
+
+	/* New Module Wiring END */
+	return newModuleManager
+}
+
 // Name returns the name of the App
 func (app *App) Name() string { return app.BaseApp.Name() }
 
@@ -528,7 +562,8 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
-	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
+	res := app.mm.InitGenesis(ctx, app.appCodec, genesisState)
+	return app.smm.InitGenesis(ctx, genesisState, res.Validators)
 }
 
 // LoadHeight loads a particular height
