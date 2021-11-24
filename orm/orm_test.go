@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/fetchai/fetchd/orm"
-	"github.com/fetchai/fetchd/testutil/testdata"
+	"github.com/fetchai/fetchd/orm/testdata"
 )
 
 func TestTypeSafeRowGetter(t *testing.T) {

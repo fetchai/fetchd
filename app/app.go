@@ -410,6 +410,11 @@ func New(
 
 	/****  Module Options ****/
 	app.smm = setCustomModules(app, interfaceRegistry)
+	err = app.smm.CompleteInitialization()
+	if err != nil {
+		panic(err)
+	}
+	app.smm.RegisterInvariants(&app.CrisisKeeper)
 
 	// NOTE: we may consider parsing `appOpts` inside module constructors. For the moment
 	// we prefer to be more strict in what arguments the modules expect.
@@ -478,7 +483,8 @@ func New(
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
-	app.mm.RegisterServices(module.NewConfigurator(app.MsgServiceRouter(), app.GRPCQueryRouter()))
+	app.configurator = module.NewConfigurator(app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.mm.RegisterServices(app.configurator)
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -523,7 +529,7 @@ func setCustomModules(app *App, interfaceRegistry types.InterfaceRegistry) *serv
 	newModuleManager := server.NewManager(app.BaseApp, codec.NewProtoCodec(interfaceRegistry))
 
 	// BEGIN HACK: this is a total, ugly hack until x/auth & x/bank supports ADR 033 or we have a suitable alternative
-	groupModule := group.Module{AccountKeeper: app.AccountKeeper}
+	groupModule := group.Module{AccountKeeper: app.AccountKeeper, BankKeeper: app.BankKeeper}
 	// use a separate newModules from the global NewModules here because we need to pass state into the group module
 	newModules := []moduletypes.Module{
 		groupModule,
@@ -533,11 +539,6 @@ func setCustomModules(app *App, interfaceRegistry types.InterfaceRegistry) *serv
 		panic(err)
 	}
 	// END HACK
-
-	err = newModuleManager.CompleteInitialization()
-	if err != nil {
-		panic(err)
-	}
 
 	/* New Module Wiring END */
 	return newModuleManager
