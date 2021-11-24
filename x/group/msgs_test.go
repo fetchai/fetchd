@@ -124,6 +124,7 @@ func TestMsgCreateGroupValidation(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -217,6 +218,7 @@ func TestMsgCreateGroupAccount(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			m, err := NewMsgCreateGroupAccount(
 				spec.admin,
@@ -298,6 +300,7 @@ func TestMsgCreateProposalRequest(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -380,6 +383,7 @@ func TestMsgVote(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -566,6 +570,7 @@ func TestMsgVoteBasicResponse(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -673,6 +678,7 @@ func TestMsgVoteAggRequest(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -694,7 +700,7 @@ func TestMsgCreatePollRequest(t *testing.T) {
 
 	longTitle := strings.Repeat("my title", 256)
 	manyOptions := make([]string, 300)
-	for i, _ := range manyOptions {
+	for i := range manyOptions {
 		manyOptions[i] = fmt.Sprintf("option-%d", i)
 	}
 
@@ -853,6 +859,7 @@ func TestMsgCreatePollRequest(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -935,6 +942,7 @@ func TestMsgVotePoll(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
@@ -1057,6 +1065,7 @@ func TestMsgVotePollAggRequest(t *testing.T) {
 		},
 	}
 	for msg, spec := range specs {
+		spec := spec
 		t.Run(msg, func(t *testing.T) {
 			err := spec.src.ValidateBasic()
 			if spec.expErr {
