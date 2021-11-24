@@ -115,29 +115,68 @@ clean:
 distclean: clean
 	rm -rf vendor/
 
-########################################
-### Testing
+###############################################################################
+###                           Tests & Simulation                            ###
+###############################################################################
 
+test: test-unit
+test-all: test-unit test-ledger-mock test-race test-cover
 
-test: test-unit 
-test-all: check test-race test-cover
+TEST_PACKAGES=./...
+TEST_TARGETS := test-unit test-unit-amino test-unit-proto test-ledger-mock test-race test-ledger test-race
 
-test-unit:
-	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./...
+# Test runs-specific rules. To add a new test target, just add
+# a new rule, customise ARGS or TEST_PACKAGES ad libitum, and
+# append the new rule to the TEST_TARGETS list.
+UNIT_TEST_ARGS		= cgo ledger test_ledger_mock norace
+AMINO_TEST_ARGS		= ledger test_ledger_mock test_amino norace
+LEDGER_TEST_ARGS	= cgo ledger norace
+LEDGER_MOCK_ARGS	= ledger test_ledger_mock norace
+TEST_RACE_ARGS		= cgo ledger test_ledger_mock
+ifeq ($(EXPERIMENTAL),true)
+	UNIT_TEST_ARGS		+= experimental
+	AMINO_TEST_ARGS		+= experimental
+	LEDGER_TEST_ARGS	+= experimental
+	LEDGER_MOCK_ARGS	+= experimental
+	TEST_RACE_ARGS		+= experimental
+endif
 
-test-race:
-	@VERSION=$(VERSION) go test -mod=readonly -race -tags='ledger test_ledger_mock' ./...
+test-unit: ARGS=-tags='$(UNIT_TEST_ARGS)'
+test-unit-amino: ARGS=-tags='${AMINO_TEST_ARGS}'
+test-ledger: ARGS=-tags='${LEDGER_TEST_ARGS}'
+test-ledger-mock: ARGS=-tags='${LEDGER_MOCK_ARGS}'
+test-race: ARGS=-race -tags='${TEST_RACE_ARGS}'
+test-race: TEST_PACKAGES=$(PACKAGES_NOSIMULATION)
+
+$(TEST_TARGETS): run-tests
+
+SUB_MODULES = $(shell find . -type f -name 'go.mod' -print0 | xargs -0 -n1 dirname | sort)
+CURRENT_DIR = $(shell pwd)
+run-tests:
+ifneq (,$(shell which tparse 2>/dev/null))
+	@echo "Unit tests"; \
+	for module in $(SUB_MODULES); do \
+		cd ${CURRENT_DIR}/$$module; \
+		go test -mod=readonly -json $(ARGS) $(TEST_PACKAGES) ./... | tparse; \
+	done
+else
+	@echo "Unit tests"; \
+	for module in $(SUB_MODULES); do \
+		cd ${CURRENT_DIR}/$$module; \
+		go test -mod=readonly $(ARGS) $(TEST_PACKAGES) ./... ; \
+	done
+endif
+
+.PHONY: run-tests test test-all $(TEST_TARGETS)
 
 test-cover:
-	@go test -mod=readonly -timeout 30m -race -coverprofile=coverage.txt -covermode=atomic -tags='ledger test_ledger_mock' ./...
-
-format:
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs misspell -w
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs goimports -w -local github.com/cosmos/cosmos-sdk
+	@export VERSION=$(VERSION);
+	@bash scripts/test_cover.sh
+.PHONY: test-cover
 
 benchmark:
-	@go test -mod=readonly -bench=. ./...
+	@go test -mod=readonly -bench=. $(PACKAGES_NOSIMULATION)
+.PHONY: benchmark
 
 
 ########################################

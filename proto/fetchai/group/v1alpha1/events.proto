@@ -52,3 +52,17 @@ message EventExec {
   // proposal_id is the unique ID of the proposal.
   uint64 proposal_id = 1;
 }
+
+// EventCreateProposal is an event emitted when a proposal is created.
+message EventCreatePoll {
+
+  // poll_id is the unique ID of the poll.
+  uint64 poll_id = 1;
+}
+
+// EventVotePoll is an event emitted when a voter votes on a proposal.
+message EventVotePoll {
+
+  // poll_id is the unique ID of the proposal.
+  uint64 poll_id = 1;
+}
