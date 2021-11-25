@@ -2765,9 +2765,9 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 				Options: group.Options{Titles: []string{"alice", "bob"}},
 			},
 			expVoteState: group.TallyPoll{
-				Counts: map[string]string{
-					"alice": "1",
-					"bob":   "1",
+				Entries: []*group.TallyPollEntry{
+					{OptionTitle: "alice", Weight: "1"},
+					{OptionTitle: "bob", Weight: "1"},
 				},
 			},
 			expPollStatus: group.PollStatusSubmitted,
@@ -2843,9 +2843,9 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 				s.Require().NoError(err)
 			},
 			expVoteState: group.TallyPoll{
-				Counts: map[string]string{
-					"alice": "2",
-					"bob":   "3",
+				Entries: []*group.TallyPollEntry{
+					{OptionTitle: "alice", Weight: "2"},
+					{OptionTitle: "bob", Weight: "3"},
 				},
 			},
 			expPollStatus: group.PollStatusSubmitted,
@@ -3239,9 +3239,9 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 			},
 			votes: validVotes,
 			expVoteState: group.TallyPoll{
-				Counts: map[string]string{
-					"alice": "4",
-					"bob":   "1",
+				Entries: []*group.TallyPollEntry{
+					{OptionTitle: "alice", Weight: "4"},
+					{OptionTitle: "bob", Weight: "1"},
 				},
 			},
 			expPollStatus: group.PollStatusSubmitted,
@@ -3265,10 +3265,10 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 				s.Require().NoError(err)
 			},
 			expVoteState: group.TallyPoll{
-				Counts: map[string]string{
-					"alice":   "3",
-					"bob":     "0",
-					"charlie": "1",
+				Entries: []*group.TallyPollEntry{
+					{OptionTitle: "alice", Weight: "3"},
+					{OptionTitle: "bob", Weight: "0"},
+					{OptionTitle: "charlie", Weight: "1"},
 				},
 			},
 			expPollStatus: group.PollStatusSubmitted,

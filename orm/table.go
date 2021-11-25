@@ -149,7 +149,9 @@ func (a table) Set(ctx HasKVStore, rowID RowID, newValue codec.ProtoMarshaler) e
 	var oldValue codec.ProtoMarshaler
 	if a.Has(ctx, rowID) {
 		oldValue = reflect.New(a.model).Interface().(codec.ProtoMarshaler)
-		a.GetOne(ctx, rowID, oldValue)
+		if err := a.GetOne(ctx, rowID, oldValue); err != nil {
+			return err
+		}
 	}
 
 	newValueEncoded, err := a.cdc.MarshalBinaryBare(newValue)
