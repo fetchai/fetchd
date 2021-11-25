@@ -254,6 +254,9 @@ func newServer(storeKey servermodule.RootModuleKey, accKeeper exported.AccountKe
 	s.votePollByPollIndex, err = orm.NewIndex(votePollTableBuilder, VotePollByPollIndexPrefix, func(value interface{}) ([]interface{}, error) {
 		return []interface{}{value.(*group.VotePoll).PollId}, nil
 	}, group.VotePoll{}.PollId)
+	if err != nil {
+		panic(err.Error())
+	}
 	s.votePollByVoterIndex, err = orm.NewIndex(votePollTableBuilder, VotePollByVoterIndexPrefix, func(value interface{}) ([]interface{}, error) {
 		addr, err := sdk.AccAddressFromBech32(value.(*group.VotePoll).Voter)
 		if err != nil {

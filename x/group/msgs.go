@@ -1100,9 +1100,9 @@ func (m MsgVotePollBasicResponse) VerifySignature() error {
 	}
 
 	// todo: repeated public keys can be coalesced in pairings
-	var pkss [][]*bls12381.PubKey
-	for _ = range m.Options.Titles {
-		pkss = append(pkss, []*bls12381.PubKey{pkBls})
+	pkss := make([][]*bls12381.PubKey, len(m.Options.Titles))
+	for i := range m.Options.Titles {
+		pkss[i] = []*bls12381.PubKey{pkBls}
 	}
 
 	if err := bls12381.VerifyAggregateSignature(msgsBytes, false, m.Sig, pkss); err != nil {

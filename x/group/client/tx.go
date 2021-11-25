@@ -814,29 +814,8 @@ Parameters:
 			}
 
 			// make sure group members are sorted by their addresses
-			sorted := sort.SliceIsSorted(groupMembers, func(i, j int) bool {
-				addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
-				if err != nil {
-					panic(err)
-				}
-				addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
-				if err != nil {
-					panic(err)
-				}
-				return bytes.Compare(addri, addrj) < 0
-			})
-			if !sorted {
-				sort.Slice(groupMembers, func(i, j int) bool {
-					addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
-					if err != nil {
-						panic(err)
-					}
-					addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
-					if err != nil {
-						panic(err)
-					}
-					return bytes.Compare(addri, addrj) < 0
-				})
+			if !sort.SliceIsSorted(groupMembers, sortGroupMembersFunc(groupMembers)) {
+				sort.SliceStable(groupMembers, sortGroupMembersFunc(groupMembers))
 			}
 
 			index := make(map[string]int, len(groupMembers))
@@ -1023,29 +1002,8 @@ Parameters:
 			}
 
 			// make sure group members are sorted by their addresses
-			sorted := sort.SliceIsSorted(groupMembers, func(i, j int) bool {
-				addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
-				if err != nil {
-					panic(err)
-				}
-				addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
-				if err != nil {
-					panic(err)
-				}
-				return bytes.Compare(addri, addrj) < 0
-			})
-			if !sorted {
-				sort.Slice(groupMembers, func(i, j int) bool {
-					addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
-					if err != nil {
-						panic(err)
-					}
-					addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
-					if err != nil {
-						panic(err)
-					}
-					return bytes.Compare(addri, addrj) < 0
-				})
+			if !sort.SliceIsSorted(groupMembers, sortGroupMembersFunc(groupMembers)) {
+				sort.SliceStable(groupMembers, sortGroupMembersFunc(groupMembers))
 			}
 
 			index := make(map[string]int, len(groupMembers))
@@ -1380,4 +1338,18 @@ Parameters:
 	}
 
 	return cmd
+}
+
+func sortGroupMembersFunc(groupMembers []*group.GroupMember) func(i, j int) bool {
+	return func(i, j int) bool {
+		addri, err := sdk.AccAddressFromBech32(groupMembers[i].Member.Address)
+		if err != nil {
+			panic(err)
+		}
+		addrj, err := sdk.AccAddressFromBech32(groupMembers[j].Member.Address)
+		if err != nil {
+			panic(err)
+		}
+		return bytes.Compare(addri, addrj) < 0
+	}
 }

@@ -275,10 +275,15 @@ message Vote {
     google.protobuf.Timestamp submitted_at = 5 [(gogoproto.nullable) = false];
 }
 
-// TallyPoll represents the sum of weighted votes for a poll.
 message TallyPoll {
     option (gogoproto.goproto_getters) = false;
-    map<string, string> counts = 1;
+    repeated TallyPollEntry entries = 1;
+}
+
+message TallyPollEntry {
+    option (gogoproto.goproto_getters) = false;
+    string option_title = 1;
+    string weight = 2;
 }
 
 // Options represents the choices voters can vote for a poll.
