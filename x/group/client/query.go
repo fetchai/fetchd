@@ -524,7 +524,7 @@ func QueryPollsByGroupCmd() *cobra.Command {
 // QueryPollsByCreatorCmd creates a CLI command for Query/PollsByCreator.
 func QueryPollsByCreatorCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "polls-by-group [creator]",
+		Use:   "polls-by-creator [creator]",
 		Short: "Query for polls by creator address with pagination flags",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
