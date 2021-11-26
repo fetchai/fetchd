@@ -65,7 +65,7 @@ func (s serverImpl) CreateGroup(goCtx context.Context, req *group.MsgCreateGroup
 	if bls {
 		for _, mem := range members.Members {
 			if err := s.validateBlsMember(ctx, mem); err != nil {
-				return nil, sdkerrors.Wrapf(err, "member %s failed bls validation", mem.Address)
+				return nil, sdkerrors.Wrapf(group.ErrBlsRequired, "member %s failed bls validation: %v", mem.Address, err)
 			}
 		}
 	}
@@ -140,7 +140,7 @@ func (s serverImpl) UpdateGroupMembers(goCtx context.Context, req *group.MsgUpda
 		if g.BlsOnly {
 			for _, mem := range req.MemberUpdates {
 				if err := s.validateBlsMember(ctx, mem); err != nil {
-					return err
+					return sdkerrors.Wrapf(group.ErrBlsRequired, "member %s failed bls validation: %v", mem.Address, err)
 				}
 			}
 		}

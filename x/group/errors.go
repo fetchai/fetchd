@@ -13,4 +13,5 @@ var (
 	ErrUnauthorized = sdkerrors.Register(ModuleName, 207, "unauthorized")
 	ErrModified     = sdkerrors.Register(ModuleName, 208, "modified")
 	ErrExpired      = sdkerrors.Register(ModuleName, 209, "expired")
+	ErrBlsRequired  = sdkerrors.Register(ModuleName, 210, "bls required")
 )
