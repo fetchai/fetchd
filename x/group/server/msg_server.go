@@ -950,7 +950,6 @@ func (s serverImpl) CreatePoll(goCtx context.Context, req *group.MsgCreatePoll) 
 		Metadata:     metadata,
 		SubmittedAt:  *blockTime,
 		GroupVersion: g.Version,
-		Status:       group.PollStatusSubmitted,
 		Timeout:      endTime,
 	}
 
@@ -982,14 +981,7 @@ func (s serverImpl) VotePoll(goCtx context.Context, req *group.MsgVotePoll) (*gr
 		return nil, err
 	}
 	// Ensure that we can still accept votes for this poll.
-	if poll.Status != group.PollStatusSubmitted {
-		return nil, sdkerrors.Wrap(group.ErrInvalid, "poll not open for voting")
-	}
 	if poll.Timeout.Compare(blockTime) <= 0 {
-		poll.Status = group.PollStatusClosed
-		if err = s.pollTable.Set(ctx, id, &poll); err != nil {
-			return nil, err
-		}
 		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period for the poll has ended")
 	}
 
@@ -1077,14 +1069,7 @@ func (s serverImpl) VotePollAgg(goCtx context.Context, req *group.MsgVotePollAgg
 		return nil, err
 	}
 	// Ensure that we can still accept votes for this poll.
-	if poll.Status != group.PollStatusSubmitted {
-		return nil, sdkerrors.Wrap(group.ErrInvalid, "poll not open for voting")
-	}
 	if poll.Timeout.Compare(blockTime) <= 0 {
-		poll.Status = group.PollStatusClosed
-		if err = s.pollTable.Set(ctx, id, &poll); err != nil {
-			return nil, err
-		}
 		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period for the poll has ended")
 	}
 

@@ -2472,7 +2472,6 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryPollCmd(), []string{pollID, fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
 	s.Require().NoError(err, out.String())
 	s.Require().NoError(val.ClientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), &pollRes))
-	s.Require().Equal(pollRes.Poll.Status, group.PollStatusSubmitted)
 	s.Require().Equal(pollRes.Poll.VoteState.Entries, []*group.TallyPollEntry{
 		{OptionTitle: "alice", Weight: "1"},
 		{OptionTitle: "bob", Weight: "2"},
