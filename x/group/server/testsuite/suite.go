@@ -2629,9 +2629,7 @@ func (s *IntegrationTestSuite) TestCreatePoll() {
 	oldTime, err := gogotypes.TimestampProto(past)
 	s.Require().NoError(err)
 
-	defaultPoll := group.Poll{
-		Status: group.PollStatusSubmitted,
-	}
+	defaultPoll := group.Poll{}
 
 	specs := map[string]struct {
 		req     *group.MsgCreatePoll
@@ -2712,7 +2710,6 @@ func (s *IntegrationTestSuite) TestCreatePoll() {
 			s.Assert().Equal(s.blockTime, submittedAt)
 
 			s.Assert().Equal(uint64(1), poll.GroupVersion)
-			s.Assert().Equal(spec.expPoll.Status, poll.Status)
 		})
 	}
 }
@@ -2751,12 +2748,11 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 	s.Require().NoError(err)
 
 	specs := map[string]struct {
-		srcCtx        sdk.Context
-		expVoteState  group.TallyPoll
-		req           *group.MsgVotePoll
-		doBefore      func(ctx context.Context)
-		expPollStatus group.Poll_Status
-		expErr        bool
+		srcCtx       sdk.Context
+		expVoteState group.TallyPoll
+		req          *group.MsgVotePoll
+		doBefore     func(ctx context.Context)
+		expErr       bool
 	}{
 		"all good": {
 			req: &group.MsgVotePoll{
@@ -2770,7 +2766,6 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 					{OptionTitle: "bob", Weight: "1"},
 				},
 			},
-			expPollStatus: group.PollStatusSubmitted,
 		},
 		"invalid option": {
 			req: &group.MsgVotePoll{
@@ -2848,7 +2843,6 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 					{OptionTitle: "bob", Weight: "3"},
 				},
 			},
-			expPollStatus: group.PollStatusSubmitted,
 		},
 		"voted already": {
 			req: &group.MsgVotePoll{
@@ -3008,7 +3002,6 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 	s.Assert().Equal(s.blockTime, submittedAt)
 
 	s.Assert().Equal(uint64(1), pollQuery.Poll.GroupVersion)
-	s.Assert().Equal(group.PollStatusSubmitted, pollQuery.Poll.Status)
 
 	type fullVote struct {
 		Address string
@@ -3220,13 +3213,12 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 	})
 
 	specs := map[string]struct {
-		srcCtx        sdk.Context
-		expVoteState  group.TallyPoll
-		req           *group.MsgVotePollAgg
-		votes         []fullVote
-		doBefore      func(ctx context.Context)
-		expPollStatus group.Poll_Status
-		expErr        bool
+		srcCtx       sdk.Context
+		expVoteState group.TallyPoll
+		req          *group.MsgVotePollAgg
+		votes        []fullVote
+		doBefore     func(ctx context.Context)
+		expErr       bool
 	}{
 		"all good": {
 			req: &group.MsgVotePollAgg{
@@ -3244,7 +3236,6 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 					{OptionTitle: "bob", Weight: "1"},
 				},
 			},
-			expPollStatus: group.PollStatusSubmitted,
 		},
 		"skip already voted": {
 			req: &group.MsgVotePollAgg{
@@ -3271,7 +3262,6 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 					{OptionTitle: "charlie", Weight: "1"},
 				},
 			},
-			expPollStatus: group.PollStatusSubmitted,
 		},
 		"on vote expiry": {
 			req: &group.MsgVotePollAgg{
@@ -3393,7 +3383,6 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 			s.Require().NoError(err)
 			poll := pollRes.Poll
 			s.Assert().Equal(spec.expVoteState, poll.VoteState)
-			s.Assert().Equal(spec.expPollStatus, poll.Status)
 		})
 	}
 }
