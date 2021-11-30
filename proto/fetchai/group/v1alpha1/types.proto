@@ -330,26 +330,6 @@ message Poll {
     // When group membership is changed, existing polls from previous group versions will become invalid.
     uint64 group_version = 10;
 
-    // Status defines poll statuses.
-    enum Status {
-        option (gogoproto.goproto_enum_prefix) = false;
-
-        // An empty value is invalid and not allowed.
-        STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "PollStatusInvalid"];
-
-        // Initial status of a poll when persisted.
-        STATUS_SUBMITTED = 1 [(gogoproto.enumvalue_customname) = "PollStatusSubmitted"];
-
-        // Final status of a poll when the final tally was executed.
-        STATUS_CLOSED = 2 [(gogoproto.enumvalue_customname) = "PollStatusClosed"];
-
-        // Final status of a poll when the group was modified before the final tally.
-        STATUS_ABORTED = 3 [(gogoproto.enumvalue_customname) = "PollStatusAborted"];
-    }
-
-    // Status represents the high level position in the life cycle of the poll. Initial value is Submitted.
-    Status status = 11;
-
     // timeout is the timestamp of the block where the poll times out. Header times of the votes
     // must be before this end time to be included in the election.
     google.protobuf.Timestamp timeout = 12 [(gogoproto.nullable) = false];
