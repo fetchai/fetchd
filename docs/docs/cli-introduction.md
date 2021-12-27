@@ -12,7 +12,7 @@ To connect to the mainnet v2 network run the following configuration steps:
 
 ```bash
 fetchd config chain-id fetchhub-2
-fetchd config node https://rpc-fetchhub.fetch-ai.com:443
+fetchd config node https://rpc-fetchhub.fetch.ai:443
 ```
 
 ### Connecting to stargateworld network
@@ -21,7 +21,7 @@ To connect to the stargateworld network run the following configuration steps:
 
 ```bash
 fetchd config chain-id stargateworld-3
-fetchd config node https://rpc-stargateworld.fetch-ai.com:443
+fetchd config node https://rpc-stargateworld.fetch.ai:443
 ```
 
 Checkout the [Network Information](../networks/) page for more detailed information on the available networks.
