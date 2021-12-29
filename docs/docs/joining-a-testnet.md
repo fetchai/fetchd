@@ -26,7 +26,7 @@ fetchd config node <rpc url>
 In the case of the Stargate network this would be as follows:
 
 ```bash
-fetchd config chain-id stargateworld-1
+fetchd config chain-id stargateworld-3
 fetchd config node https://rpc-stargateworld.fetch.ai:443
 ```
 
@@ -58,7 +58,7 @@ Less abstractly then, if you wants to connect to the Stargate test net for examp
 
 ```bash
 # init
-fetchd init my-first-fetch-node --chain-id stargateworld-1
+fetchd init my-first-fetch-node --chain-id stargateworld-3
 
 # genesis
 curl https://rpc-stargateworld.fetch.ai/genesis | jq '.result.genesis' > ~/.fetchd/config/genesis.json
