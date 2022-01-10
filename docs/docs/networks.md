@@ -60,7 +60,7 @@ This test-net is used for testing the future upgrade to mainnet. It supports Cos
 | Chain ID       | capricorn-1                                                                                |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | [v0.9.0-rc1 (fetchd >= v0.9.0-rc1)](https://github.com/fetchai/fetchd/tree/integration/capricorn)      |
+| Version        | [v0.9.0-rc3 (fetchd >= v0.9.0-rc3)](https://github.com/fetchai/fetchd/tree/integration/capricorn)      |
 | RPC Endpoint   | https://rpc-capricorn.fetch.ai:443                                                         |
 | REST Endpoint  | https://rest-capricorn.fetch.ai:443                                                        |
 | Block Explorer | [https://explore-capricorn.fetch.ai/](https://explore-capricorn.fetch.ai/)                 |
