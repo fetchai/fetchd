@@ -93,9 +93,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	appparams "github.com/fetchai/fetchd/app/params"
-	moduletypes "github.com/fetchai/fetchd/types/module"
-	"github.com/fetchai/fetchd/types/module/server"
-	group "github.com/fetchai/fetchd/x/group/module"
 )
 
 const Name = "fetchd"
@@ -167,7 +164,6 @@ var (
 		vesting.AppModuleBasic{},
 		wasm.AppModuleBasic{},
 		airdrop.AppModuleBasic{},
-		group.Module{},
 	)
 
 	// module account permissions
@@ -239,8 +235,6 @@ type App struct {
 
 	// the module manager
 	mm *module.Manager
-
-	smm *server.Manager
 
 	configurator module.Configurator
 }
@@ -409,13 +403,6 @@ func New(
 	app.IBCKeeper.SetRouter(ibcRouter)
 
 	/****  Module Options ****/
-	app.smm = setCustomModules(app, interfaceRegistry)
-	err = app.smm.CompleteInitialization()
-	if err != nil {
-		panic(err)
-	}
-	app.smm.RegisterInvariants(&app.CrisisKeeper)
-
 	// NOTE: we may consider parsing `appOpts` inside module constructors. For the moment
 	// we prefer to be more strict in what arguments the modules expect.
 	var skipGenesisInvariants = cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants))
@@ -524,26 +511,6 @@ func New(
 	return app
 }
 
-func setCustomModules(app *App, interfaceRegistry types.InterfaceRegistry) *server.Manager {
-	/* New Module Wiring START */
-	newModuleManager := server.NewManager(app.BaseApp, codec.NewProtoCodec(interfaceRegistry))
-
-	// BEGIN HACK: this is a total, ugly hack until x/auth & x/bank supports ADR 033 or we have a suitable alternative
-	groupModule := group.Module{AccountKeeper: app.AccountKeeper, BankKeeper: app.BankKeeper}
-	// use a separate newModules from the global NewModules here because we need to pass state into the group module
-	newModules := []moduletypes.Module{
-		groupModule,
-	}
-	err := newModuleManager.RegisterModules(newModules)
-	if err != nil {
-		panic(err)
-	}
-	// END HACK
-
-	/* New Module Wiring END */
-	return newModuleManager
-}
-
 // Name returns the name of the App
 func (app *App) Name() string { return app.BaseApp.Name() }
 
@@ -563,8 +530,7 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
-	res := app.mm.InitGenesis(ctx, app.appCodec, genesisState)
-	return app.smm.InitGenesis(ctx, genesisState, res.Validators)
+	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
 // LoadHeight loads a particular height
