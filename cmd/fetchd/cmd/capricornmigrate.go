@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -100,6 +102,16 @@ func AddCapricornMigrateCmd() *cobra.Command {
 			genDoc.ConsensusParams.Block.MaxBytes = maxBytes
 			genDoc.ConsensusParams.Block.MaxGas = maxGas
 
+			appState, err = migrateWasm(appState, cdc)
+			if err != nil {
+				return fmt.Errorf("failed to migrate wasm: %w", err)
+			}
+
+			// Validate state (same as fetchd validate-genesis cmd)
+			if err := app.ModuleBasics.ValidateGenesis(cdc, clientCtx.TxConfig, appState); err != nil {
+				return fmt.Errorf("failed to validate state: %w", err)
+			}
+
 			// build and print the new genesis state
 			genDoc.AppState, err = json.Marshal(appState)
 			if err != nil {
@@ -184,6 +196,27 @@ func enableIBC(appState types.AppMap, cdc codec.JSONMarshaler, numHistoricalEntr
 		return nil, fmt.Errorf("failed to marshal staking genesis state: %w", err)
 	}
 	appState[stakingtypes.ModuleName] = stakingStateBz
+
+	return appState, nil
+}
+
+func migrateWasm(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, error) {
+	// Unset wasm.codes[].code_info source and builder fields from wasm state (from https://github.com/CosmWasm/wasmd/pull/564)
+	var s map[string]interface{}
+	if err := json.Unmarshal(appState[wasmtypes.ModuleName], &s); err != nil {
+		panic(err)
+	}
+
+	for _, c := range s["codes"].([]interface{}) {
+		cmap := c.(map[string]interface{})
+		delete(cmap["code_info"].(map[string]interface{}), "builder")
+		delete(cmap["code_info"].(map[string]interface{}), "source")
+	}
+	statebz, err := json.Marshal(s)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal wasm json state: %w", err)
+	}
+	appState[wasmtypes.ModuleName] = statebz
 
 	return appState, nil
 }
