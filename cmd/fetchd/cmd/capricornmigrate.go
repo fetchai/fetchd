@@ -207,11 +207,22 @@ func migrateWasm(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, 
 		panic(err)
 	}
 
-	for _, c := range s["codes"].([]interface{}) {
-		cmap := c.(map[string]interface{})
-		delete(cmap["code_info"].(map[string]interface{}), "builder")
-		delete(cmap["code_info"].(map[string]interface{}), "source")
+	codes := s["codes"].([]interface{})
+	var newCodes []interface{}
+	for _, c := range codes {
+		code := c.(map[string]interface{})
+		// remove duplicate & unused bridge code
+		if code["code_id"] == "1" {
+			continue
+		}
+
+		codeInfo := code["code_info"].(map[string]interface{})
+		delete(codeInfo, "builder")
+		delete(codeInfo, "source")
+		newCodes = append(newCodes, code)
 	}
+	s["codes"] = newCodes
+
 	statebz, err := json.Marshal(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal wasm json state: %w", err)
