@@ -40,9 +40,16 @@ const (
 )
 
 const (
-	wrongBridgeContractCodeID = 1
-	bridgeContractCodeID      = 2
-	mobixContractCodeID       = 3
+	bridgeContractCodeID = 2
+	mobixContractCodeID  = 3
+)
+
+var (
+	// contractCodeIDsToRemove list the codeIDs of the contracts to be removed by the migration
+	contractCodeIDsToRemove = []string{
+		"1", // Unused bridge contract (effective one use codeID 2)
+		"4", // Reconciliation contract (not needed anymore)
+	}
 )
 
 // AddCapricornMigrateCmd returns a command to migrate genesis to stargate version.
@@ -263,12 +270,13 @@ func deleteWrongBridgeContract(appState types.AppMap, cdc codec.JSONMarshaler) (
 		panic(err)
 	}
 
+	// filter codes
 	codes := s["codes"].([]interface{})
 	var keptCodes []interface{} // nolint: prealloc
 	for _, c := range codes {
 		code := c.(map[string]interface{})
 		// skip over the CodeID we want to remove
-		if code["code_id"] == fmt.Sprintf("%d", wrongBridgeContractCodeID) {
+		if isCodeIDToRemove(code["code_id"]) {
 			continue
 		}
 
@@ -279,6 +287,20 @@ func deleteWrongBridgeContract(appState types.AppMap, cdc codec.JSONMarshaler) (
 	}
 	s["codes"] = keptCodes
 
+	// filter instanciated contracts
+	contracts := s["contracts"].([]interface{})
+	var keptContracts []interface{} // nolint: prealloc
+	for _, c := range contracts {
+		contract := c.(map[string]interface{})
+		contractInfos := contract["contract_info"].(map[string]interface{})
+		if isCodeIDToRemove(contractInfos["code_id"]) {
+			continue
+		}
+
+		keptContracts = append(keptContracts, contract)
+	}
+	s["contracts"] = keptContracts
+
 	statebz, err := json.Marshal(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal wasm json state: %w", err)
@@ -286,6 +308,16 @@ func deleteWrongBridgeContract(appState types.AppMap, cdc codec.JSONMarshaler) (
 	appState[wasmtypes.ModuleName] = statebz
 
 	return appState, nil
+}
+
+func isCodeIDToRemove(codeID interface{}) bool {
+	for _, id := range contractCodeIDsToRemove {
+		if id == codeID {
+			return true
+		}
+	}
+
+	return false
 }
 
 // migrateWasmContracts replace contract codes and hash with their new and updated versions.
