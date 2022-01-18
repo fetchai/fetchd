@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/fetchai/fetchd/app"
@@ -33,6 +35,14 @@ const (
 	flagFoundationTokensToBurn         = "foundation-tokens-to-burn"
 	flagStakingParamsHistoricalEntries = "staking-historical-entries"
 	flagMinGasPrice                    = "min-gas-price"
+	flagBridgeNewContractPath          = "bridge-new-contract-path"
+	flagMobixNewContractPath           = "mobix-new-contract-path"
+)
+
+const (
+	wrongBridgeContractCodeID = 1
+	bridgeContractCodeID      = 2
+	mobixContractCodeID       = 3
 )
 
 // AddCapricornMigrateCmd returns a command to migrate genesis to stargate version.
@@ -40,13 +50,22 @@ func AddCapricornMigrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "capricorn-migrate [genesis-file]",
 		Short: "Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version",
-		Long:  `TODO`,
-		Args:  cobra.ExactArgs(1),
+		Long: `Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version.
+It does the following operations:
+	- set a minimum gas price in app.toml configuration file
+	- burn some foundation tokens (ERC20 stake migration cleanup)
+	- enable IBC transfers and set staking historical entries parameter (required by IBC module).
+	- increase consensus block max_bytes & max_gas
+	- delete unused bridge contract code
+	- update bridge and mobix contract codes to cosmwasm v1.0.0
+`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
 			depCdc := clientCtx.JSONMarshaler
 			cdc := depCdc.(codec.Marshaler)
 
+			// set min-gas-prices in app.toml
 			minGasPriceStr, err := cmd.Flags().GetString(flagMinGasPrice)
 			if err != nil {
 				return fmt.Errorf("failed to retrieve flag %q: %w", flagMinGasPrice, err)
@@ -116,9 +135,25 @@ func AddCapricornMigrateCmd() *cobra.Command {
 			genDoc.ConsensusParams.Block.MaxBytes = maxBytes
 			genDoc.ConsensusParams.Block.MaxGas = maxGas
 
-			appState, err = migrateWasm(appState, cdc)
+			// removes unused bridge contract
+			appState, err = deleteWrongBridgeContract(appState, cdc)
 			if err != nil {
-				return fmt.Errorf("failed to migrate wasm: %w", err)
+				return fmt.Errorf("failed to delete wrong bridge contract: %w", err)
+			}
+
+			// update bridge and mobix contract codes
+			newBridgeContractPath, err := cmd.Flags().GetString(flagBridgeNewContractPath)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagBridgeNewContractPath, err)
+			}
+			newMobixContractPath, err := cmd.Flags().GetString(flagMobixNewContractPath)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagMobixNewContractPath, err)
+			}
+
+			appState, err = migrateWasmContracts(appState, cdc, newBridgeContractPath, newMobixContractPath)
+			if err != nil {
+				return fmt.Errorf("failed to migrate wasm contracts: %w", err)
 			}
 
 			// Validate state (same as fetchd validate-genesis cmd)
@@ -152,10 +187,13 @@ func AddCapricornMigrateCmd() *cobra.Command {
 	cmd.Flags().String(flagFoundationTokensToBurn, "30000000000000000000000000afet", "fetch.ai foundation tokens to burn")
 	cmd.Flags().Uint32(flagStakingParamsHistoricalEntries, 1000, "override staking.params.historical_entries with this flag")
 	cmd.Flags().String(flagMinGasPrice, "500000000000afet", "set min-gas-prices to this value in app.toml if its unset")
+	cmd.Flags().String(flagBridgeNewContractPath, "", "path to cosmwasm 1.0.0 bridge.wasm contract file")
+	cmd.Flags().String(flagMobixNewContractPath, "", "path to cosmwasm 1.0.0 mobix.wasm contract file")
 
 	return cmd
 }
 
+// burnTokens removes given coins from given address and decrease total supply accordingly.
 func burnTokens(state types.AppMap, cdc codec.JSONMarshaler, addr sdk.AccAddress, coins sdk.Coins) (types.AppMap, error) {
 	bankState := banktypes.GetGenesisStateFromAppState(cdc, state)
 
@@ -193,6 +231,7 @@ func burnTokens(state types.AppMap, cdc codec.JSONMarshaler, addr sdk.AccAddress
 	return state, nil
 }
 
+// enableIBC enable IBC transfer send & receive and set staking historical entries parameter (required by IBC module).
 func enableIBC(appState types.AppMap, cdc codec.JSONMarshaler, numHistoricalEntries uint32) (types.AppMap, error) {
 	// Enable transfer send & receive
 	appState[ibctransfer.ModuleName] = cdc.MustMarshalJSON(ibctransfer.NewGenesisState(
@@ -215,7 +254,8 @@ func enableIBC(appState types.AppMap, cdc codec.JSONMarshaler, numHistoricalEntr
 	return appState, nil
 }
 
-func migrateWasm(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, error) {
+// deleteWrongBridgeContract removes unused and duplicate token bridge contract.
+func deleteWrongBridgeContract(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, error) {
 	// Unset wasm.codes[].code_info source and builder fields from wasm state (from https://github.com/CosmWasm/wasmd/pull/564)
 	// we work with raw json as the updated wasm GenesisState fail to unmarshal because of these removed fields.
 	var s map[string]interface{}
@@ -224,11 +264,11 @@ func migrateWasm(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, 
 	}
 
 	codes := s["codes"].([]interface{})
-	var keptCodes []interface{}
+	var keptCodes []interface{} // nolint: prealloc
 	for _, c := range codes {
 		code := c.(map[string]interface{})
-		// remove duplicate & unused bridge code
-		if code["code_id"] == "1" {
+		// skip over the CodeID we want to remove
+		if code["code_id"] == fmt.Sprintf("%d", wrongBridgeContractCodeID) {
 			continue
 		}
 
@@ -244,6 +284,52 @@ func migrateWasm(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, 
 		return nil, fmt.Errorf("failed to marshal wasm json state: %w", err)
 	}
 	appState[wasmtypes.ModuleName] = statebz
+
+	return appState, nil
+}
+
+// migrateWasmContracts replace contract codes and hash with their new and updated versions.
+func migrateWasmContracts(appState types.AppMap, cdc codec.JSONMarshaler, newBridgeContractPath, newMobixContractPath string) (types.AppMap, error) {
+	var wasmState wasmtypes.GenesisState
+	if err := cdc.UnmarshalJSON(appState[wasmtypes.ModuleName], &wasmState); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal wasm genesis state: %w", err)
+	}
+
+	newBridgeContractBytes, err := ioutil.ReadFile(newBridgeContractPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read contract file %q: %w", newBridgeContractPath, err)
+	}
+	newBridgeContractHash := sha256.Sum256(newBridgeContractBytes)
+
+	newMobixContractBytes, err := ioutil.ReadFile(newMobixContractPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read contract file %q: %w", newMobixContractPath, err)
+	}
+	newMobixContractHash := sha256.Sum256(newMobixContractBytes)
+
+	var updated []uint64
+	for i, code := range wasmState.Codes {
+		switch code.CodeID {
+		case bridgeContractCodeID:
+			wasmState.Codes[i].CodeBytes = newBridgeContractBytes
+			wasmState.Codes[i].CodeInfo.CodeHash = newBridgeContractHash[:]
+			updated = append(updated, code.CodeID)
+		case mobixContractCodeID:
+			wasmState.Codes[i].CodeBytes = newMobixContractBytes
+			wasmState.Codes[i].CodeInfo.CodeHash = newMobixContractHash[:]
+			updated = append(updated, code.CodeID)
+		}
+	}
+
+	if got, want := len(updated), 2; got != want {
+		return nil, fmt.Errorf("failed to update contract code, got %d updates, want %d: %v", got, want, updated)
+	}
+
+	wasmStateBz, err := cdc.MarshalJSON(&wasmState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal wasm genesis state: %w", err)
+	}
+	appState[wasmtypes.ModuleName] = wasmStateBz
 
 	return appState, nil
 }
