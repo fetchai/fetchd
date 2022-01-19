@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
@@ -14,10 +13,7 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -34,7 +30,6 @@ const (
 	flagFoundationAddress              = "foundation-address"
 	flagFoundationTokensToBurn         = "foundation-tokens-to-burn"
 	flagStakingParamsHistoricalEntries = "staking-historical-entries"
-	flagMinGasPrice                    = "min-gas-price"
 	flagBridgeNewContractPath          = "bridge-new-contract-path"
 	flagMobixNewContractPath           = "mobix-new-contract-path"
 )
@@ -59,7 +54,6 @@ func AddCapricornMigrateCmd() *cobra.Command {
 		Short: "Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version",
 		Long: `Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version.
 It does the following operations:
-	- set a minimum gas price in app.toml configuration file
 	- burn some foundation tokens (ERC20 stake migration cleanup)
 	- enable IBC transfers and set staking historical entries parameter (required by IBC module).
 	- increase consensus block max_bytes & max_gas
@@ -71,16 +65,6 @@ It does the following operations:
 			clientCtx := client.GetClientContextFromCmd(cmd)
 			depCdc := clientCtx.JSONMarshaler
 			cdc := depCdc.(codec.Marshaler)
-
-			// set min-gas-prices in app.toml
-			minGasPriceStr, err := cmd.Flags().GetString(flagMinGasPrice)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve flag %q: %w", flagMinGasPrice, err)
-			}
-
-			if err := setMinGasPriceConfig(server.GetServerContextFromCmd(cmd), minGasPriceStr); err != nil {
-				return fmt.Errorf("failed to set min-gas-price config: %w", err)
-			}
 
 			importGenesis := args[0]
 
@@ -193,7 +177,6 @@ It does the following operations:
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 	cmd.Flags().String(flagFoundationTokensToBurn, "30000000000000000000000000afet", "fetch.ai foundation tokens to burn")
 	cmd.Flags().Uint32(flagStakingParamsHistoricalEntries, 1000, "override staking.params.historical_entries with this flag")
-	cmd.Flags().String(flagMinGasPrice, "500000000000afet", "set min-gas-prices to this value in app.toml if its unset")
 	cmd.Flags().String(flagBridgeNewContractPath, "", "path to cosmwasm 1.0.0 bridge.wasm contract file")
 	cmd.Flags().String(flagMobixNewContractPath, "", "path to cosmwasm 1.0.0 mobix.wasm contract file")
 
@@ -364,33 +347,4 @@ func migrateWasmContracts(appState types.AppMap, cdc codec.JSONMarshaler, newBri
 	appState[wasmtypes.ModuleName] = wasmStateBz
 
 	return appState, nil
-}
-
-// setMinGasPriceConfig set the min-gas-prices value in HOME/config/app.toml to
-// the given value, only if current value for min-gas-prices == "".
-func setMinGasPriceConfig(serverCtx *server.Context, minGasPriceStr string) error {
-	cfg, err := config.ParseConfig(serverCtx.Viper)
-	if err != nil {
-		return fmt.Errorf("failed to parse config: %w", err)
-	}
-
-	// do not modify if user have already set something there
-	if cfg.MinGasPrices != "" {
-		return nil
-	}
-
-	// sanity check
-	minGasPrice, err := sdk.ParseCoinsNormalized(minGasPriceStr)
-	if err != nil {
-		return fmt.Errorf("invalid minGasPrice value %q: %w", minGasPriceStr, err)
-	}
-
-	cfg.MinGasPrices = minGasPrice.String()
-
-	rootDir := serverCtx.Viper.GetString(flags.FlagHome)
-	configPath := filepath.Join(rootDir, "config")
-	appCfgFilePath := filepath.Join(configPath, "app.toml")
-	config.WriteConfigFile(appCfgFilePath, cfg)
-
-	return nil
 }
