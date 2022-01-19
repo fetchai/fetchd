@@ -58,11 +58,12 @@ func AddCapricornMigrateCmd() *cobra.Command {
 		Short: "Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version",
 		Long: `Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version.
 It does the following operations:
+	- set new chain-id and genesis-time
+	- increase consensus block max_bytes & max_gas
 	- burn some foundation tokens (ERC20 stake migration cleanup)
 	- enable IBC transfers and set staking historical entries parameter (required by IBC module).
-	- increase consensus block max_bytes & max_gas
-	- delete unused bridge contract code
-	- update bridge and mobix contract codes to cosmwasm v1.0.0
+	- delete unused contract codes and states
+	- update bridge and mobix contracts to cosmwasm v1.0.0
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
