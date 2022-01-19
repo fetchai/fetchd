@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
@@ -25,6 +27,8 @@ import (
 )
 
 const (
+	flagGenesisTime                    = "genesis-time"
+	flagInitialHeight                  = "initial-height"
 	flagConsensusBlockMaxBytes         = "consensus-block-max-bytes"
 	flagConsensusBlockMaxGas           = "consensus-block-max-gas"
 	flagFoundationAddress              = "foundation-address"
@@ -73,6 +77,51 @@ It does the following operations:
 				return fmt.Errorf("failed to load genesis file at %q: %w", importGenesis, err)
 			}
 
+			// set genesis time
+			genesisTime, err := cmd.Flags().GetString(flagGenesisTime)
+			if err != nil {
+				return fmt.Errorf("failed to read %q flag: %w", flagGenesisTime, err)
+			}
+			if genesisTime != "" {
+				var t time.Time
+
+				err := t.UnmarshalText([]byte(genesisTime))
+				if err != nil {
+					return errors.Wrap(err, "failed to unmarshal genesis time")
+				}
+
+				genDoc.GenesisTime = t
+			}
+
+			// set initial height
+			initialHeight, err := cmd.Flags().GetInt64(flagInitialHeight)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagInitialHeight, err)
+			}
+			genDoc.InitialHeight = initialHeight
+
+			// increase consensus block max_bytes & max_gas
+			maxBytes, err := cmd.Flags().GetInt64(flagConsensusBlockMaxBytes)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagConsensusBlockMaxBytes, err)
+			}
+			maxGas, err := cmd.Flags().GetInt64(flagConsensusBlockMaxGas)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagConsensusBlockMaxGas, err)
+			}
+
+			genDoc.ConsensusParams.Block.MaxBytes = maxBytes
+			genDoc.ConsensusParams.Block.MaxGas = maxGas
+
+			// set new chain-id
+			chainID, err := cmd.Flags().GetString(flags.FlagChainID)
+			if err != nil {
+				return fmt.Errorf("failed to read %q flag: %w", flags.FlagChainID, err)
+			}
+			if chainID != "" {
+				genDoc.ChainID = chainID
+			}
+
 			var appState types.AppMap
 			if err := json.Unmarshal(genDoc.AppState, &appState); err != nil {
 				return errors.Wrap(err, "failed to JSON unmarshal initial genesis state")
@@ -112,19 +161,6 @@ It does the following operations:
 			if err != nil {
 				return fmt.Errorf("failed to enable IBC: %w", err)
 			}
-
-			// Increase consensus block max_bytes & max_gas
-			maxBytes, err := cmd.Flags().GetInt64(flagConsensusBlockMaxBytes)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve flag %q: %w", flagConsensusBlockMaxBytes, err)
-			}
-			maxGas, err := cmd.Flags().GetInt64(flagConsensusBlockMaxGas)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve flag %q: %w", flagConsensusBlockMaxGas, err)
-			}
-
-			genDoc.ConsensusParams.Block.MaxBytes = maxBytes
-			genDoc.ConsensusParams.Block.MaxGas = maxGas
 
 			// removes unused bridge contract
 			appState, err = deleteWrongBridgeContract(appState, cdc)
@@ -172,6 +208,9 @@ It does the following operations:
 		},
 	}
 
+	cmd.Flags().String(flagGenesisTime, "", "override genesis_time with this flag")
+	cmd.Flags().Int64(flagInitialHeight, 0, "override initial_height with this flag")
+	cmd.Flags().String(flags.FlagChainID, "fetchub-3", "override chain_id with this flag")
 	cmd.Flags().Int64(flagConsensusBlockMaxBytes, 200_000, "override consensus.block.max_bytes with this flag")
 	cmd.Flags().Int64(flagConsensusBlockMaxGas, 2_000_000, "override consensus.block.max_gas with this flag")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
