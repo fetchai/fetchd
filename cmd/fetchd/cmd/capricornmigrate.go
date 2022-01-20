@@ -54,7 +54,7 @@ var (
 // AddCapricornMigrateCmd returns a command to migrate genesis to capricorn version.
 func AddCapricornMigrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "capricorn-migrate [genesis-file]",
+		Use:   "capricorn-migrate <genesis-file> --bridge-new-contract-path /path/to/bridge.wasm --mobix-new-contract-path /path/to/mobix.wasm",
 		Short: "Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version",
 		Long: `Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version.
 It does the following operations:
