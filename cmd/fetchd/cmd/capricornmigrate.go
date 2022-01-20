@@ -51,7 +51,7 @@ var (
 	}
 )
 
-// AddCapricornMigrateCmd returns a command to migrate genesis to stargate version.
+// AddCapricornMigrateCmd returns a command to migrate genesis to capricorn version.
 func AddCapricornMigrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "capricorn-migrate [genesis-file]",
