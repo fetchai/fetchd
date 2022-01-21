@@ -216,7 +216,7 @@ It does the following operations:
 	cmd.Flags().Int64(flagConsensusBlockMaxGas, 2_000_000, "override consensus.block.max_gas with this flag")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 	cmd.Flags().String(flagFoundationTokensToBurn, "80616475991676767023462315afet", "fetch.ai foundation tokens to burn")
-	cmd.Flags().Uint32(flagStakingParamsHistoricalEntries, 1000, "override staking.params.historical_entries with this flag")
+	cmd.Flags().Uint32(flagStakingParamsHistoricalEntries, 10000, "override staking.params.historical_entries with this flag")
 	cmd.Flags().String(flagBridgeNewContractPath, "", "path to cosmwasm 1.0.0 bridge.wasm contract file")
 	cmd.Flags().String(flagMobixNewContractPath, "", "path to cosmwasm 1.0.0 mobix.wasm contract file")
 
