@@ -33,7 +33,7 @@ nav:
   - Block Explorer: 'block-explorer.md'
   - Governance: 'governance.md'
   - Faucet: 'faucet.md'
-  - Reconciliation Service: 'Reconciliation Service.md'
+  - Reconciliation Service: 'reconciliation-service.md'
 
 extra_css:
   - css/my-styles.css
