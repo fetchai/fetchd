@@ -211,7 +211,7 @@ It does the following operations:
 
 	cmd.Flags().String(flagGenesisTime, "", "override genesis_time with this flag")
 	cmd.Flags().Int64(flagInitialHeight, 0, "override initial_height with this flag")
-	cmd.Flags().String(flags.FlagChainID, "fetchub-3", "override chain_id with this flag")
+	cmd.Flags().String(flags.FlagChainID, "fetchhub-3", "override chain_id with this flag")
 	cmd.Flags().Int64(flagConsensusBlockMaxBytes, 200_000, "override consensus.block.max_bytes with this flag")
 	cmd.Flags().Int64(flagConsensusBlockMaxGas, 2_000_000, "override consensus.block.max_gas with this flag")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
