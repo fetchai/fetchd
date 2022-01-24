@@ -47,7 +47,8 @@ var (
 	// contractCodeIDsToRemove list the codeIDs of the contracts to be removed by the migration
 	contractCodeIDsToRemove = []string{
 		"1", // Unused bridge contract (effective one use codeID 2)
-		"4", // Reconciliation contract (not needed anymore)
+		"4", // Reconciliation contract v0 (not needed anymore)
+		"5", // Reconciliation contract v1 (not needed anymore)
 	}
 )
 
