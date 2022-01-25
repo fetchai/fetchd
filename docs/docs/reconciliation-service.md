@@ -25,6 +25,6 @@ In order to use the reconciliation service, you will need to have access to:
 * Please keep 1 to 3 Native FET tokens. If you are unable to acquire them, we have you covered. You can [get some native FET from Indacoin](https://indacoin.io/buy-fetch.ai-with-card) using your VISA or Mastercard to pay for the registered transaction to verify your reconciliation request. This service is available for FET holders in 180 countries. 
 * Your Metamask configured with the address which was used in the original staking.
 * The Fetch Browser Extension wallet which is configured with the destination address you made that the funds should be recovered to. 
-* Once your registered transaction is successful and your reconciliation request has been deemed valid, the funds will be automatically distributed during the network upgrade planned on February 7th 2022 to your Mainnet address on the Fetch browser wallet. 
+* Once your registered transaction is successful and your reconciliation request has been deemed valid, the funds will be automatically distributed during the network upgrade planned on February 8th 2022 to your Mainnet address on the Fetch browser wallet. 
 
 If you have these ready, to begin the reconciliation service click [here](https://browse-fetchhub.fetch.ai/reconciliation) and follow the instructions.
