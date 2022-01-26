@@ -2,7 +2,7 @@
 
 ## Mainnet
 
-Fetchhub is our mainnet v2 production network.
+The chain identifier of our production network is fetchhub-2.
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
