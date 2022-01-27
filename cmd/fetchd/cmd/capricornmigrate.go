@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"time"
 
 	"github.com/fetchai/fetchd/app"
@@ -65,6 +67,7 @@ It does the following operations:
 	- enable IBC transfers and set staking historical entries parameter (required by IBC module).
 	- delete unused contract codes and states
 	- update bridge and mobix contracts to cosmwasm v1.0.0
+	- adjust mobix config unbonding_period from nanoseconds to seconds
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -181,6 +184,11 @@ It does the following operations:
 			}
 
 			appState, err = migrateWasmContracts(appState, cdc, newBridgeContractPath, newMobixContractPath)
+			if err != nil {
+				return fmt.Errorf("failed to migrate wasm contracts: %w", err)
+			}
+
+			appState, err = updateMobixContractState(appState, cdc)
 			if err != nil {
 				return fmt.Errorf("failed to migrate wasm contracts: %w", err)
 			}
@@ -379,6 +387,53 @@ func migrateWasmContracts(appState types.AppMap, cdc codec.JSONMarshaler, newBri
 
 	if got, want := len(updated), 2; got != want {
 		return nil, fmt.Errorf("failed to update contract code, got %d updates, want %d: %v", got, want, updated)
+	}
+
+	wasmStateBz, err := cdc.MarshalJSON(&wasmState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal wasm genesis state: %w", err)
+	}
+	appState[wasmtypes.ModuleName] = wasmStateBz
+
+	return appState, nil
+}
+
+// updateMobixContractState updates the config.unbonding_period entry of the mobix contract states (both staging and production)
+// because the new cosmwasm v1.0.0 contract have changed the unit of this field from nanosecond to seconds.
+func updateMobixContractState(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, error) {
+	var wasmState wasmtypes.GenesisState
+	if err := cdc.UnmarshalJSON(appState[wasmtypes.ModuleName], &wasmState); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal wasm genesis state: %w", err)
+	}
+
+	for cid, contract := range wasmState.Contracts {
+		if contract.ContractInfo.CodeID != mobixContractCodeID {
+			continue
+		}
+
+		for eid, entry := range contract.ContractState {
+			if !bytes.Equal(entry.Key.Bytes(), []byte("config")) {
+				continue
+			}
+
+			configMap := make(map[string]interface{})
+			if err := json.Unmarshal(entry.Value, &configMap); err != nil {
+				return nil, err
+			}
+
+			unbondingPeriod, err := strconv.ParseInt(configMap["unbonding_period"].(string), 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read unbonding_period: %w", err)
+			}
+			configMap["unbonding_period"] = fmt.Sprintf("%d", int64(time.Duration(unbondingPeriod).Seconds()))
+
+			configMapBz, err := json.Marshal(configMap)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal mobix config: %w", err)
+			}
+
+			wasmState.Contracts[cid].ContractState[eid].Value = configMapBz
+		}
 	}
 
 	wasmStateBz, err := cdc.MarshalJSON(&wasmState)
