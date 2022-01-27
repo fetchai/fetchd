@@ -103,7 +103,12 @@ It does the following operations:
 			if err != nil {
 				return fmt.Errorf("failed to retrieve flag %q: %w", flagInitialHeight, err)
 			}
-			genDoc.InitialHeight = initialHeight
+			// only set initial height if it was given
+			// otherwise, keep the initial_height from exported genesis
+			// that should already be set to last committed block+1
+			if initialHeight > 0 {
+				genDoc.InitialHeight = initialHeight
+			}
 
 			// increase consensus block max_bytes & max_gas
 			maxBytes, err := cmd.Flags().GetInt64(flagConsensusBlockMaxBytes)
