@@ -71,6 +71,7 @@ It does the following operations:
 	- delete unused contract codes and states
 	- update bridge and mobix contracts to cosmwasm v1.0.0
 	- adjust mobix config unbonding_period from nanoseconds to seconds
+	- increase slashing.params.slash_fraction_double_sign value
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
