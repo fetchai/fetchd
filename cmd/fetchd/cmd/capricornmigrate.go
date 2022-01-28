@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -25,7 +24,10 @@ import (
 	ibctransfer "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	ibchost "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	ibccoretypes "github.com/cosmos/cosmos-sdk/x/ibc/core/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/fetchai/fetchd/app"
 )
 
 const (
@@ -38,6 +40,7 @@ const (
 	flagStakingParamsHistoricalEntries = "staking-historical-entries"
 	flagBridgeNewContractPath          = "bridge-new-contract-path"
 	flagMobixNewContractPath           = "mobix-new-contract-path"
+	flagNewSlashFractionDoubleSign     = "new-slash-fraction-double-sign"
 )
 
 const (
@@ -198,6 +201,21 @@ It does the following operations:
 				return fmt.Errorf("failed to migrate wasm contracts: %w", err)
 			}
 
+			slashingParamDoubleSignFractionStr, err := cmd.Flags().GetString(flagNewSlashFractionDoubleSign)
+			if err != nil {
+				return fmt.Errorf("failed to retrieve flag %q: %w", flagNewSlashFractionDoubleSign, err)
+			}
+
+			slashingParamDoubleSignFraction, err := sdk.NewDecFromStr(slashingParamDoubleSignFractionStr)
+			if err != nil {
+				return fmt.Errorf("invalid flag %q value: %w", flagNewSlashFractionDoubleSign, err)
+			}
+
+			appState, err = setNewSlashFractionDoubleSign(appState, cdc, slashingParamDoubleSignFraction)
+			if err != nil {
+				return fmt.Errorf("failed to set new slashing double sign fraction param: %w", err)
+			}
+
 			// Validate state (same as fetchd validate-genesis cmd)
 			if err := app.ModuleBasics.ValidateGenesis(cdc, clientCtx.TxConfig, appState); err != nil {
 				return fmt.Errorf("failed to validate state: %w", err)
@@ -233,6 +251,7 @@ It does the following operations:
 	cmd.Flags().Uint32(flagStakingParamsHistoricalEntries, 10000, "override staking.params.historical_entries with this flag")
 	cmd.Flags().String(flagBridgeNewContractPath, "", "path to cosmwasm 1.0.0 bridge.wasm contract file")
 	cmd.Flags().String(flagMobixNewContractPath, "", "path to cosmwasm 1.0.0 mobix.wasm contract file")
+	cmd.Flags().String(flagNewSlashFractionDoubleSign, "0.1", "new slashing fraction params for double sign")
 
 	return cmd
 }
@@ -446,6 +465,23 @@ func updateMobixContractState(appState types.AppMap, cdc codec.JSONMarshaler) (t
 		return nil, fmt.Errorf("failed to marshal wasm genesis state: %w", err)
 	}
 	appState[wasmtypes.ModuleName] = wasmStateBz
+
+	return appState, nil
+}
+
+func setNewSlashFractionDoubleSign(appState types.AppMap, cdc codec.JSONMarshaler, newValue sdk.Dec) (types.AppMap, error) {
+	var slashingState slashingtypes.GenesisState
+	if err := cdc.UnmarshalJSON(appState[slashingtypes.ModuleName], &slashingState); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal slashing genesis state: %w", err)
+	}
+
+	slashingState.Params.SlashFractionDoubleSign = newValue
+
+	slashingStateBz, err := cdc.MarshalJSON(&slashingState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal slashing genesis state: %w", err)
+	}
+	appState[slashingtypes.ModuleName] = slashingStateBz
 
 	return appState, nil
 }
