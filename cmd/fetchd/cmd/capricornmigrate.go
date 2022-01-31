@@ -65,7 +65,7 @@ func AddCapricornMigrateCmd() *cobra.Command {
 		Long: `Migrate fetchAI mainnet genesis from the Stargate version to the Capricorn version.
 It does the following operations:
 	- set new chain-id and genesis-time
-	- increase consensus block max_bytes & max_gas
+	- increase consensus block max_bytes & max_gas & evidence max_bytes
 	- burn some foundation tokens (ERC20 stake migration cleanup)
 	- enable IBC transfers and set staking historical entries parameter (required by IBC module).
 	- delete unused contract codes and states
@@ -126,6 +126,7 @@ It does the following operations:
 
 			genDoc.ConsensusParams.Block.MaxBytes = maxBytes
 			genDoc.ConsensusParams.Block.MaxGas = maxGas
+			genDoc.ConsensusParams.Evidence.MaxBytes = maxBytes
 
 			// set new chain-id
 			chainID, err := cmd.Flags().GetString(flags.FlagChainID)
