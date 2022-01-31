@@ -1,0 +1,190 @@
+{
+  "app_state": {
+    "auth": {
+      "accounts": [
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "0",
+          "address": "fetch1g8alxtr2u9dcefm5ydc4ms234nwgsvygnt57tp",
+          "pub_key": null,
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "1",
+          "address": "fetch18x3kspdsct2sfddt4xcptvl9t3whzzwvzyc0pv",
+          "pub_key": null,
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "2",
+          "address": "fetch1gmakgmqwaw7eusz3thn7l6nx9mq6sdan5lq55q",
+          "pub_key": null,
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "3",
+          "address": "fetch1ayhm8yfucqvlrknnqcslcz4ll4j003x6z0yvfr",
+          "pub_key": null,
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "4",
+          "address": "fetch13rhthqhve78m2rn3uzd55f4m72cjulv5xcl9hn",
+          "pub_key": null,
+          "sequence": "1"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "5",
+          "address": "fetch1yq8xg4whn2mzdjpuafn78spz2ppzht2vvcemay",
+          "pub_key": null,
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "10",
+          "address": "fetch132eeynqltmz32e7w8v2z6gzs2y3pk67wpmth38",
+          "pub_key": null,
+          "sequence": "10"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "11",
+          "address": "fetch136nwh9yag4gf704ge6crmm39uwrfdgptdd69me",
+          "pub_key": null,
+          "sequence": "11"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "12",
+          "address": "fetch18mkqnlemesnwqp89u3fduvm35k3rp7q0084ajg",
+          "pub_key": null,
+          "sequence": "12"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "13",
+          "address": "fetch19qzs247qvk5msspdwc4g8k3j2qhaurkkzl7zfj",
+          "pub_key": null,
+          "sequence": "13"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "account_number": "14",
+          "address": "fetch1f38vfqu48yr9w0jmdhcn6m6d9cawwmvjzvlrs6",
+          "pub_key": null,
+          "sequence": "14"
+        }
+      ]
+    },
+    "bank": {
+      "balances": [
+        {
+          "address": "fetch1g8alxtr2u9dcefm5ydc4ms234nwgsvygnt57tp",
+          "coins": [
+            {
+              "amount": "10000000000000000",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch18x3kspdsct2sfddt4xcptvl9t3whzzwvzyc0pv",
+          "coins": [
+            {
+              "amount": "20000000000000000",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch1gmakgmqwaw7eusz3thn7l6nx9mq6sdan5lq55q",
+          "coins": [
+            {
+              "amount": "30000000000000000",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch1ayhm8yfucqvlrknnqcslcz4ll4j003x6z0yvfr",
+          "coins": [
+            {
+              "amount": "40000000000000001",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch13rhthqhve78m2rn3uzd55f4m72cjulv5xcl9hn",
+          "coins": [
+            {
+              "amount": "50000000000000000",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch1yq8xg4whn2mzdjpuafn78spz2ppzht2vvcemay",
+          "coins": [
+            {
+              "amount": "60000000000000000",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch132eeynqltmz32e7w8v2z6gzs2y3pk67wpmth38",
+          "coins": [
+            {
+              "amount": "101111111111111111",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch136nwh9yag4gf704ge6crmm39uwrfdgptdd69me",
+          "coins": [
+            {
+              "amount": "202222222222222222",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch18mkqnlemesnwqp89u3fduvm35k3rp7q0084ajg",
+          "coins": [
+            {
+              "amount": "303333333333333333",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch19qzs247qvk5msspdwc4g8k3j2qhaurkkzl7zfj",
+          "coins": [
+            {
+              "amount": "404444444444444444",
+              "denom": "afet"
+            }
+          ]
+        },
+        {
+          "address": "fetch1f38vfqu48yr9w0jmdhcn6m6d9cawwmvjzvlrs6",
+          "coins": [
+            {
+              "amount": "505555555555555555",
+              "denom": "afet"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "chain_id": "localnet"
+}
+
