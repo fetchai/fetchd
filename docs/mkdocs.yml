@@ -1,5 +1,5 @@
-site_name: ledger
-site_url: https://docs.fetch.ai/ledger/
+site_name: ledger_v2
+site_url: https://docs.fetch.ai/ledger_v2/
 site_description: Documentation for the Fetch.ai ledger project
 repo_url: https://github.com/fetchai/fetchd/
 site_author: developer@fetch.ai
