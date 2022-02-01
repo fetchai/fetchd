@@ -71,6 +71,7 @@ It does the following operations:
 	- delete unused contract codes and states
 	- update bridge and mobix contracts to cosmwasm v1.0.0
 	- adjust mobix config unbonding_period from nanoseconds to seconds
+	- lift wasm code upload and instantiate restriction on fetch.ai foundation address
 	- increase slashing.params.slash_fraction_double_sign value
 `,
 		Args: cobra.ExactArgs(1),
@@ -216,6 +217,11 @@ It does the following operations:
 			appState, err = setNewSlashFractionDoubleSign(appState, cdc, slashingParamDoubleSignFraction)
 			if err != nil {
 				return fmt.Errorf("failed to set new slashing double sign fraction param: %w", err)
+			}
+
+			appState, err = liftWasmInstantiateRestrictions(appState, cdc)
+			if err != nil {
+				return fmt.Errorf("failed to lift wasm instantiate restrictions: %w", err)
 			}
 
 			// Validate state (same as fetchd validate-genesis cmd)
@@ -484,6 +490,25 @@ func setNewSlashFractionDoubleSign(appState types.AppMap, cdc codec.JSONMarshale
 		return nil, fmt.Errorf("failed to marshal slashing genesis state: %w", err)
 	}
 	appState[slashingtypes.ModuleName] = slashingStateBz
+
+	return appState, nil
+}
+
+// liftWasmInstantiateRestrictions opens the code upload and instantiate permissions to everyone
+func liftWasmInstantiateRestrictions(appState types.AppMap, cdc codec.JSONMarshaler) (types.AppMap, error) {
+	var wasmState wasmtypes.GenesisState
+	if err := cdc.UnmarshalJSON(appState[wasmtypes.ModuleName], &wasmState); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal wasm genesis state: %w", err)
+	}
+
+	wasmState.Params.CodeUploadAccess = wasmtypes.AllowEverybody
+	wasmState.Params.InstantiateDefaultPermission = wasmtypes.AccessTypeEverybody
+
+	wasmStateBz, err := cdc.MarshalJSON(&wasmState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal wasm genesis state: %w", err)
+	}
+	appState[wasmtypes.ModuleName] = wasmStateBz
 
 	return appState, nil
 }
