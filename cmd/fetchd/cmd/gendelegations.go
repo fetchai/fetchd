@@ -38,7 +38,6 @@ func AddGenesisDelegationCmd(defaultNodeHome string) *cobra.Command {
 		Use:   "add-genesis-delegation [address_or_key_name] [validator_address] [amount]",
 		Short: "Create a genesis account and try to create a genesis delegation.",
 		Long: `Create a genesis account and try to create a genesis delegation.
-
 > when amount is greater than or equal to <min-delegated-amount>, <account-reserved-amount>
 will be subtracted and added to the account balance 
 (to allow users to pay transaction fees to redelegate or unbond...). 
