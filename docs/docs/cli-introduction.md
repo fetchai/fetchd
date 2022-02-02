@@ -6,9 +6,9 @@ The command line client provides all of the capabilities for interacting with th
 
 While some users will want to connect a node to the network and sync the entire blockchain, for many however, it is quicker and easier to connect directly to existing publically available nodes.
 
-### Connecting to fetchhub mainnet v2 network
+### Connecting to fetchhub mainnet 
 
-To connect to the mainnet v2 network run the following configuration steps:
+To connect to the mainnet run the following configuration steps:
 
 ```bash
 fetchd config chain-id fetchhub-2
