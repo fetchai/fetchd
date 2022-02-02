@@ -27,13 +27,13 @@ This network is running the same software as our mainnet (`fetchhub-2`), and is 
 | Chain ID       | stargateworld-3                                                                            |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)                 |
+| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)         |
 | RPC Endpoint   | https://rpc-stargateworld.fetch.ai:443                                                     |
 | GRPC Endpoint  | https://grpc-stargateworld.t-v2-london-c.fetch-ai.com:443                                  |
 | REST Endpoint  | https://rest-stargateworld.fetch.ai:443                                                    |
 | Block Explorer | [https://explore-stargateworld.fetch.ai/](https://explore-stargateworld.fetch.ai/)         |
 | Token Faucet   | Use block explorer                                                                         |
-| Seed Node(s)   | 0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.t-v2-london-c.fetch-ai.com:36656 |
+| Seed Node(s)   | 0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.fetch.ai:36656              |
 
 ### Andromeda
 
@@ -44,7 +44,7 @@ This network is also a clone of mainnet but is used for internal testing and net
 | Chain ID       | andromeda-1                                                                                |
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
-| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)                 |
+| Version        | [v0.8.x (fetchd >= v0.8.2)](https://github.com/fetchai/fetchd/tree/release/v0.8.x)         |
 | RPC Endpoint   | https://rpc-andromeda.fetch.ai:443                                                         |
 | REST Endpoint  | https://rest-andromeda.fetch.ai:443                                                        |
 | Block Explorer | [https://explore-andromeda.fetch.ai/](https://explore-andromeda.fetch.ai/)                 |
