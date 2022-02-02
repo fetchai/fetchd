@@ -66,9 +66,15 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		Use:   app.Name,
 		Short: "fetch.ai cosmos application",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			initClientCtx = client.ReadHomeFlag(initClientCtx, cmd)
+			cmd.SetOut(cmd.OutOrStdout())
+			cmd.SetErr(cmd.ErrOrStderr())
 
-			initClientCtx, err := config.ReadFromClientConfig(initClientCtx)
+			initClientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			initClientCtx, err = config.ReadFromClientConfig(initClientCtx)
 			if err != nil {
 				return err
 			}
@@ -93,7 +99,8 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		config.Cmd(),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
-		AddStargateMigrateCmd(),
+		AddStakeReconciliationMigrateCmd(),
+		AddCapricornMigrateCmd(),
 		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 		AddGenesisAccountCmd(app.DefaultNodeHome),

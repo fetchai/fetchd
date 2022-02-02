@@ -1,32 +1,25 @@
 package app
 
 import (
-	airdropkeeper "github.com/cosmos/cosmos-sdk/x/airdrop/keeper"
-	airdroptypes "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/spf13/cast"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	dbm "github.com/tendermint/tm-db"
-
-	"strings"
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmclient "github.com/CosmWasm/wasmd/x/wasm/client"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -34,6 +27,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/airdrop"
+	airdropkeeper "github.com/cosmos/cosmos-sdk/x/airdrop/keeper"
+	airdroptypes "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
@@ -89,9 +84,15 @@ import (
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	appparams "github.com/fetchai/fetchd/app/params"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
+	"github.com/tendermint/tendermint/libs/log"
+	tmos "github.com/tendermint/tendermint/libs/os"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
+
+	appparams "github.com/fetchai/fetchd/app/params"
 )
 
 const Name = "fetchd"
@@ -234,6 +235,8 @@ type App struct {
 
 	// the module manager
 	mm *module.Manager
+
+	configurator module.Configurator
 }
 
 // New returns a reference to an initialized Gaia.
@@ -363,7 +366,7 @@ func New(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "staking,stargate"
+	supportedFeatures := "iterator,staking,stargate"
 	app.wasmKeeper = wasm.NewKeeper(
 		appCodec,
 		keys[wasm.StoreKey],
@@ -400,7 +403,6 @@ func New(
 	app.IBCKeeper.SetRouter(ibcRouter)
 
 	/****  Module Options ****/
-
 	// NOTE: we may consider parsing `appOpts` inside module constructors. For the moment
 	// we prefer to be more strict in what arguments the modules expect.
 	var skipGenesisInvariants = cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants))
@@ -437,7 +439,7 @@ func New(
 	// CanWithdrawInvariant invariant.
 	// NOTE: staking module is required if HistoricalEntries param > 0
 	app.mm.SetOrderBeginBlockers(
-		upgradetypes.ModuleName, minttypes.ModuleName, airdroptypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
+		upgradetypes.ModuleName, capabilitytypes.ModuleName, minttypes.ModuleName, airdroptypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
 		evidencetypes.ModuleName, stakingtypes.ModuleName, ibchost.ModuleName,
 	)
 
@@ -468,7 +470,8 @@ func New(
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
-	app.mm.RegisterServices(module.NewConfigurator(app.MsgServiceRouter(), app.GRPCQueryRouter()))
+	app.configurator = module.NewConfigurator(app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.mm.RegisterServices(app.configurator)
 
 	// initialize stores
 	app.MountKVStores(keys)

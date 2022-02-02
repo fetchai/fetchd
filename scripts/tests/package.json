@@ -1,0 +1,15 @@
+{
+  "name": "fetchd_reconciliation_migration_test_harness",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "test:unit": "node_modules/.bin/bats ./*.bats"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bats": "^1.5.0",
+    "bats-assert": "^2.0.0",
+    "bats-support": "^0.3.0"
+  }
+}
