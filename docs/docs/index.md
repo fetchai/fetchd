@@ -2,13 +2,13 @@
 
 Fetchhub, our mainnet v2 is here! You will find all information to setup your client and connect on the [network](./networks/) and [cli-introduction](./cli-introduction/) pages. Previous test networks are still available as well for your tests and experiments.
 
-This documentation covers some of the things you need to know in order to prepare for and develop for this new network:
+This documentation covers some of the things you need to know in order to prepare yourself and develop for this new network:
 
 ## Test Networks
 
-The starting point for most developers will be our Agent Land test network, since this is primarily used for agent development and testing. Agent Land is **fully supported** by our Agent Framework from version 0.6 and above. If you are developing autonomous economic agents using our latest framework, then moving to Agent Land is relatively straightforward, unless smart contracts are involved.
+The starting point for most developers will be our [test network](https://explore-stargateworld.fetch.ai), since this is primarily used for agent development and testing. The test net is **fully supported** by our Agent Framework from version 0.6 and above. If you are developing autonomous economic agents using our latest framework, then moving to the newest test net is relatively straightforward, unless smart contracts are involved.
 
-Agentland and other testnets on the journey have a new address format. Here is a typical example:
+The newest test net has a new address format. Here is a typical example:
 
 ```text
 fetch1almpjpf769p23k0v4m5eglvzr4jupsjs66vxf4
@@ -21,7 +21,7 @@ fetch1almpjpf769p23k0v4m5eglvzr4jupsjs66vxf4
 
 ## Key links and information
 
-Block explorer and token tap: [https://explore-agent-land.fetch.ai/](https://explore-agent-land.fetch.ai/)
+Block explorer and token tap: [https://explore-agent-land.fetch.ai/](https://explore-stargateworld.fetch.ai)
 
 Understanding building block relationships: [https://docs.fetch.ai/aea/oef-ledger/](https://docs.fetch.ai/aea/oef-ledger/)
 
