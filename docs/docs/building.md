@@ -3,20 +3,20 @@
 ## Prerequisites
 
 - Go 1.16+ (installation instructions available [here](https://golang.org/dl/))
-- Packages: `make`, `gcc` (on ubunty, install them with `sudo apt-get update && sudo apt-get install -y make gcc`)
+- Packages: `make`, `gcc` (on ubunty, install them with `sudo apt-get update && sudo apt-get install -y make gcc`). For mac ist is recomended to use the clang compiler that comes with xcode. No additional installation is needed.
 
 ## Building the code
 
 Download the latest released version from github and build the project using the following commands:
 
 ```
-git clone https://github.com/fetchai/fetchd.git && cd fetchd
+gh repo clone fetchai/fetchd && cd fetchd
 ```
 
 Then select the particular tag version you want to build, ie:
 
 ```bash
-git checkout v0.8.7
+git switch v0.8.7
 ```
 
 Then build the code with the command:
