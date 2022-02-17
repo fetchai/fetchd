@@ -22,6 +22,8 @@ pagination:
 
 ## Sending funds
 
+Before sending funds, make sure the sender address has tokens available by querying your balance as shown above. Checkout the [Token Faucet](../faucet/) page for more information on how to add test tokens to your address.
+
 To send funds from one address to another address then you would use the `tx send` subcommand. As shown below:
 
 ```bash
