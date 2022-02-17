@@ -19,9 +19,9 @@ nav:
   - Commandline Client:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'
-    - Multisig Keys: 'cli-multisig.md'
     # - BLS Signatures: 'cli-bls.md'
     - Tokens: 'cli-tokens.md'
+    - Multisig Keys: 'cli-multisig.md'
     - Delegator Guide: 'delegator-guide-cli.md'
     - Governance Proposals: 'cli-governance.md'
   - Validators:
