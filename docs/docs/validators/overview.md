@@ -14,7 +14,7 @@ If validators double sign, are frequently offline or do not participate in gover
 
 The hardware resources for running a validator node largely depend on the network load. As a recommended configuration we sugest the following requirements
 
-- 2 x CPU, either Intel or AMD, with the SSE4.1 and SSE4.2 flags (use lscpu to verify)
+- 2 x CPU, either Intel or AMD, with the SSE4.1, SSE4.2 and AVX flags (use lscpu to verify)
 - 4 GB RAM
 - 500 GB SSD
 - 100 Mbit/s always-on internet connection
