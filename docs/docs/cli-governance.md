@@ -13,25 +13,16 @@ The values within this code can be changed in order to alter the minimum deposit
 # equal to 2 hours, instead of the standard 2 days (in nanoseconds).
 
 {
-  "title": "Deposit Value Proposal",
-  "description": "Update min proposal threshold and deposit period",
+  "title": "Staking Param Change",
+  "description": "Update max validators",
   "changes": [
     {
-      "subspace": "deposit_params",
-      "key": "min_deposit",
-      "value": [
-        {
-          "denom":"stake",
-          "amount":"1000"
-        }
-      ]
-    },
-    {
-      "subspace": "deposit_params",
-      "key": "max_deposit_period",
-      "value": "7200000000000"
+      "subspace": "staking",
+      "key": "MaxValidators",
+      "value": 105
     }
-  ]
+  ],
+  "deposit": "1000000000000000000atestfet"
 }
 ```
 ```
