@@ -68,9 +68,9 @@ It is important to note that this method of signing transactions can apply to al
 ```
 # In order to create a staking transaction using a multisig key
 # the same process as above can be used with the output file of this command
-fetchd tx staking delegate <wallet address> 10000atestfet --generate-only > stake.json
+fetchd tx staking delegate <wallet address> 10000atestfet --from <address> --generate-only > stake.json
 
 # The following command can also be used to create a withdrawal transaction for the
 # rewards from staking when using a multisig key - this too must be signed as before
-fetchd tx distribution withdraw-all-rewards --generate-only > withdrawal.json
+fetchd tx distribution withdraw-all-rewards --from <address> --generate-only > withdrawal.json
 ```

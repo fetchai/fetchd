@@ -13,31 +13,22 @@ The values within this code can be changed in order to alter the minimum deposit
 # equal to 2 hours, instead of the standard 2 days (in nanoseconds).
 
 {
-  "title": "Deposit Value Proposal",
-  "description": "Update min proposal threshold and deposit period",
+  "title": "Staking Param Change",
+  "description": "Update max validators",
   "changes": [
     {
-      "subspace": "deposit_params",
-      "key": "min_deposit",
-      "value": [
-        {
-          "denom":"stake",
-          "amount":"1000"
-        }
-      ]
-    },
-    {
-      "subspace": "deposit_params",
-      "key": "max_deposit_period",
-      "value": "7200000000000"
+      "subspace": "staking",
+      "key": "MaxValidators",
+      "value": 105
     }
-  ]
+  ],
+  "deposit": "1000000000000000000atestfet"
 }
 ```
 ```
 # Create initial proposal by uploading the JSON file
 # this is signed by a key 'proposer' that provides a portion of the current threshold deposit
-fetchd tx gov submit-proposal --proposal ~/json_path/proposal.json --deposit <deposit_value> --from proposer
+fetchd tx gov submit-proposal --proposal ~/json_path/proposal.json --from proposer
 
 # In order to later refer to this proposal, the proposal_id can be determined
 fetchd query gov proposals
@@ -49,6 +40,9 @@ The characteristics of the deposit phase are described by a set of network gover
 At any point of the deposit stage, the deposit pot can be queried.
 
 ```
+# To get the proposal ID, use the txhash obtained when the proposal was submitted and run the following command:
+fetchd query tx <txhash>
+
 # This command returns a text representation of the current total deposit value of a proposal
 fetchd query gov deposits <proposal_id>
 
