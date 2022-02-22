@@ -67,6 +67,10 @@ For example:
 
 `fetchd tx gov deposit 2 100atestfet --from validator`
 
+To get the proposalID, use the txhash obtained when the proposal was submitted and run the following command:
+
+`fetchd query tx <txhash>`
+
 ## Listing current proposals
 
 Current proposals are visible from the block explorer and using the CLI.

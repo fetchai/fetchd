@@ -37,7 +37,7 @@ The values within this code can be changed in order to alter the minimum deposit
 ```
 # Create initial proposal by uploading the JSON file
 # this is signed by a key 'proposer' that provides a portion of the current threshold deposit
-fetchd tx gov submit-proposal --proposal ~/json_path/proposal.json --deposit <deposit_value> --from proposer
+fetchd tx gov submit-proposal --proposal ~/json_path/proposal.json --from proposer
 
 # In order to later refer to this proposal, the proposal_id can be determined
 fetchd query gov proposals
@@ -49,6 +49,9 @@ The characteristics of the deposit phase are described by a set of network gover
 At any point of the deposit stage, the deposit pot can be queried.
 
 ```
+# To get the proposal ID, use the txhash obtained when the proposal was submitted and run the following command:
+fetchd query tx <txhash>
+
 # This command returns a text representation of the current total deposit value of a proposal
 fetchd query gov deposits <proposal_id>
 
