@@ -35,7 +35,7 @@ Transactions must be signed and broadcast before they are carried out.
 
 In order to sign a multisig transaction, the transaction itself must not be immediately broadcast; but instead, the keyholders must each sign until a minimum threshold K signatures are present.
 
-*For this example we will be performing the transaction on the [Stargate](https://explore-stargateworld.fetch.ai/) network and therefore will be using `atestfet` as the denomination - this should be changed to the currency used network*
+*For this example we will be performing the transaction on the [Stargate](https://explore-stargateworld.fetch.ai/) network and therefore will be using `atestfet` as the denomination (this should be changed depending on the actual currency and network used).*
 
 ### Multisig transaction example
 
