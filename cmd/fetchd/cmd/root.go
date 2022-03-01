@@ -9,10 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/snapshots"
-	"github.com/fetchai/fetchd/app/params"
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -23,21 +19,25 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/server"
+	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	"github.com/cosmos/cosmos-sdk/snapshots"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
-	"github.com/fetchai/fetchd/app"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
+
+	"github.com/fetchai/fetchd/app"
+	"github.com/fetchai/fetchd/app/params"
 )
 
 var ChainID string
@@ -48,17 +48,16 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 	// Set config for prefixes
 	app.SetConfig()
 	// Set custom power reduction
-	sdk.PowerReduction = sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	sdk.DefaultPowerReduction = sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
 
 	encodingConfig := app.MakeEncodingConfig()
 	initClientCtx := client.Context{}.
-		WithJSONMarshaler(encodingConfig.Marshaler).
+		WithCodec(encodingConfig.Marshaler).
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
 		WithTxConfig(encodingConfig.TxConfig).
 		WithLegacyAmino(encodingConfig.Amino).
 		WithInput(bufio.NewReader(os.Stdin)).
 		WithAccountRetriever(types.AccountRetriever{}).
-		WithBroadcastMode(flags.BroadcastBlock).
 		WithHomeDir(app.DefaultNodeHome).
 		WithViper("FETCH")
 
@@ -83,7 +82,9 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 				return err
 			}
 
-			return server.InterceptConfigsPreRunHandler(cmd)
+			customAppTemplate, customAppConfig := initAppConfig()
+
+			return server.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig)
 		},
 	}
 
@@ -92,15 +93,33 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 	return rootCmd, encodingConfig
 }
 
-func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
-	authclient.Codec = encodingConfig.Marshaler
+// initAppConfig helps to override default appConfig template and configs.
+// return "", nil if no custom configuration is required for the application.
+func initAppConfig() (string, interface{}) {
+	// Optionally allow the chain developer to overwrite the SDK's default
+	// server config.
+	srvCfg := serverconfig.DefaultConfig()
+	srvCfg.API.Enable = true
+	// The SDK's default minimum gas price is set to "" (empty value) inside
+	// app.toml. If left empty by validators, the node will halt on startup.
+	// However, the chain developer can set a default app.toml value for their
+	// validators here.
+	//
+	// In summary:
+	// - if you leave srvCfg.MinGasPrices = "", all validators MUST tweak their
+	//   own app.toml config,
+	// - if you set srvCfg.MinGasPrices non-empty, validators CAN tweak their
+	//   own app.toml to override, or use this default value.
+	srvCfg.MinGasPrices = ""
 
+	return "", srvCfg
+}
+
+func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		config.Cmd(),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
-		AddStakeReconciliationMigrateCmd(),
-		AddCapricornMigrateCmd(),
 		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 		AddGenesisAccountCmd(app.DefaultNodeHome),

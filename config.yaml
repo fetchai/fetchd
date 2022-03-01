@@ -1,6 +1,6 @@
 accounts:
   - name: alice
-    coins: ["1000000000000000000000atestfet", "500stake"]
+    coins: ["1000000000000000000000atestfet"]
   - name: bob
     coins: ["1000000000000000000000atestfet"]
 validator:
@@ -30,6 +30,8 @@ init:
     consensus.create_empty_blocks_interval: "5s"
   # custom app.toml
   app:
+    minimum-gas-prices: "5000000000atestfet"
+    api.enable: true
 
 # custom genesis
 genesis:
