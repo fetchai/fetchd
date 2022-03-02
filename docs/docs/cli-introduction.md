@@ -11,17 +11,17 @@ While some users will want to connect a node to the network and sync the entire 
 To connect to the mainnet run the following configuration steps:
 
 ```bash
-fetchd config chain-id fetchhub-2
+fetchd config chain-id fetchhub-3
 fetchd config node https://rpc-fetchhub.fetch.ai:443
 ```
 
-### Connecting to stargateworld network
+### Connecting to capricorn network
 
 To connect to the stargateworld network run the following configuration steps:
 
 ```bash
-fetchd config chain-id stargateworld-3
-fetchd config node https://rpc-stargateworld.fetch.ai:443
+fetchd config chain-id capricorn-1
+fetchd config node https://rpc-capricorn.fetch.ai:443
 ```
 
 Checkout the [Network Information](../networks/) page for more detailed information on the available networks.

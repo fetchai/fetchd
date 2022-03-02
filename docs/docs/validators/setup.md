@@ -19,7 +19,7 @@ fetchd tx staking create-validator \
   --from=<key_name>
 ```
 
-** Stargateworld Example **
+** Capricorn Example **
 
 Before trying to create a validator you should verify that you have some tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/).
 
@@ -30,7 +30,7 @@ fetchd tx staking create-validator \
   --amount=1000000000000000000atestfet \
   --pubkey=$(fetchd tendermint show-validator) \
   --moniker="my-test-validator" \
-  --chain-id=stargateworld-3 \
+  --chain-id=capricorn-1 \
   --commission-rate="0.10" \
   --commission-max-rate="0.20" \
   --commission-max-change-rate="0.01" \
