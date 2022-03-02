@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/CosmWasm/wasmd v0.23.0
 	github.com/cosmos/cosmos-sdk v0.45.1
-	github.com/cosmos/ibc-go/v2 v2.0.2
+	github.com/cosmos/ibc-go/v2 v2.0.3
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/prometheus/client_golang v1.12.1

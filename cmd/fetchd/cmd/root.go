@@ -40,8 +40,6 @@ import (
 	"github.com/fetchai/fetchd/app/params"
 )
 
-var ChainID string
-
 // NewRootCmd creates a new root command for simd. It is called once in the
 // main function.
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
@@ -98,6 +96,10 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 func initAppConfig() (string, interface{}) {
 	// Optionally allow the chain developer to overwrite the SDK's default
 	// server config.
+	type CustomAppConfig struct {
+		serverconfig.Config
+	}
+
 	srvCfg := serverconfig.DefaultConfig()
 	srvCfg.API.Enable = true
 	// The SDK's default minimum gas price is set to "" (empty value) inside
@@ -110,9 +112,14 @@ func initAppConfig() (string, interface{}) {
 	//   own app.toml config,
 	// - if you set srvCfg.MinGasPrices non-empty, validators CAN tweak their
 	//   own app.toml to override, or use this default value.
-	srvCfg.MinGasPrices = ""
+	srvCfg.BaseConfig.MinGasPrices = ""
 
-	return "", srvCfg
+	// required to deref srvCfg ptr.
+	customAppConfig := CustomAppConfig{
+		Config: *srvCfg,
+	}
+
+	return serverconfig.DefaultConfigTemplate, customAppConfig
 }
 
 func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
