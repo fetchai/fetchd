@@ -52,10 +52,10 @@ fetchd tx bank send <business_key address> <vendor address> 1000atestfet --gener
 	
 # This transaction file (transfer.json) is then made available for
 # the first keyholder to sign, 'fred'
-fetchd tx sign transfer.json --chain-id stargateworld-1 --from fred --multisig <address of business_key> > transfer_fredsigned.json
+fetchd tx sign transfer.json --chain-id capricorn-1 --from fred --multisig <address of business_key> > transfer_fredsigned.json
 
 # This is repeated for 'ted'
-fetchd tx sign transfer.json --chain-id stargateworld-1 --from ted --multisig <address of business_key> > transfer_tedsigned.json
+fetchd tx sign transfer.json --chain-id capricorn-1 --from ted --multisig <address of business_key> > transfer_tedsigned.json
 
 # These two files are then collated together and used as inputs to the
 # multisign command to create a fully signed transaction
