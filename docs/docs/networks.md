@@ -35,3 +35,21 @@ This network is running the same software as our mainnet (`fetchhub-3`), and is 
 | Block Explorer | [https://explore-capricorn.fetch.ai/](https://explore-capricorn.fetch.ai/)                 |
 | Token Faucet   | Use block explorer                                                                         |
 | Seed Node(s)   | fec822ecf6e503a694a709ce663fd0c6da5fda3e@connect-capricorn.fetch.ai:36956                  |
+
+### Dorado
+
+This network is used for testing the future upgrade to mainnet.
+
+| Parameter       | Value                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID        | dorado-1                                                                                   |
+| Denomination    | atestfet                                                                                   |
+| Decimals        | 18 (1testfet = 1000000000000000000atestfet)                                                |
+| Version         | [v0.10.x (fetchd >= v0.10.x)](https://github.com/fetchai/fetchd/releases/tag/v0.10.0-rc1)  |
+| RPC Endpoint    | <https://rpc-dorado.fetch.ai:443>                                                          |
+| GRPC Endpoint   | <https://grpc-dorado.fetch.ai:443>                                                         |
+| REST Endpoint   | <https://rest-dorado.fetch.ai:443>                                                         |
+| Block Explorer  | [https://explore-dorado.fetch.ai/](https://explore-dorado.fetch.ai/)                       |
+| Ledger Explorer | [https://browse-dorado.fetch.ai/](https://browse-dorado.fetch.ai/)                         |
+| Token Faucet    | Use block explorer                                                                         |
+| Seed Node(s)    | b9b9717975b49a57e62ea93aa4480e091ae0660@connect-dorado.fetch.ai:36556,46d2f86a255ece3daf244e2ca11d5be0f16cb633@connect-dorado.fetch.ai:36557,066fc564979b1f3173615f101b62448ac7e00eb1@connect-dorado.fetch.ai:36558 |
