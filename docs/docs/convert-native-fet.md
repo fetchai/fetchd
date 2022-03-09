@@ -12,8 +12,7 @@ Using the Fetch.ai token bridge, here is an easy process explaining how to send 
 
     Save your 12/24 word mnemonic safely somewhere. 
 
-
-    Do not share this with anyone and if you lose it, you cannot recover your assets.
+    **Do not share this with anyone and if you lose it, you cannot recover your assets.**
 
 <img src="../images/keplr_wallet.png" alt="Keplr Wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
 

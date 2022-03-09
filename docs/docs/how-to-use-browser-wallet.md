@@ -21,11 +21,11 @@ This is how to use the Browser Extension Wallet:
 
 4. After entering all the details, the browser wallet will prompt you to review the operation and approve it if you are happy with it.
 
-That’s it! Your transaction will be sent to the native address you input.
+That's it! Your transaction will be sent to the native address you input.
 
 To see previous transactions you can also check out one of many different [block explorers](https://explore-fetchhub.fetch.ai/account/fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y) that have Fetch.ai as an option and input your mainnet address.
 
-**Disclaimer — Although you can access test networks from the browser wallet, do not send TESTFET tokens to a Fetch.ai address on Cosmostation as TESTFET has no value and will not appear.**
+**Disclaimer - Although you can access test networks from the browser wallet, do not send TESTFET tokens to a Fetch.ai address on Cosmostation as TESTFET has no value and will not appear.**
 
 
 ## **FAQs**

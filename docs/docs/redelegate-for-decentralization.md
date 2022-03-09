@@ -30,14 +30,14 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 
 
 1. On the main screen, click **Delegate**.
-2. Select the validator you’re staking with that you wish to move your stake from.
+2. Select the validator you're staking with that you wish to move your stake from.
 3. Select **Redelegate**.
 4. Enter the amount of $FET you wish to redelegate.
 5. Click **Next**.
 6. Choose a validator outside of the top 10 that you wish to redelegate to.
 7. Click **Next**.
 
-    You’ll be prompted to enter an optional memo, but you can leave it blank.
+    You'll be prompted to enter an optional memo, but you can leave it blank.
 
 8. Click **Next**.
 9. Choose the transaction fee for redelegating (low is fine).
@@ -49,7 +49,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 12. Click **Yes **on the popup.
 13. Enter your PIN.
 
-And then you’re done.
+And then you're done.
 
 
 ## Steps for those redelegating on Keystation/Cosmostation Web Wallet
@@ -61,7 +61,7 @@ And then you’re done.
 3. Scroll to **My Validators**.
 4. Select **Redelegate**.
 5. Pick the validator outside of the top 10 that you would like to Redelegate to.
-6. Enter the amount of $FET you’d like to redelegate to them.
+6. Enter the amount of $FET you'd like to redelegate to them.
 
     Leave the memo blank.
 
@@ -69,7 +69,7 @@ And then you’re done.
 8. On the pop-up select** Allow**.
 9. Enter your PIN.
 
-    And then you’re done!
+    And then you're done!
 
 
 
@@ -78,14 +78,14 @@ And then you’re done.
 <img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
 
 
-1. First you must ensure that you have the Fetch.ai wallet that you’re staking with connected to the [Fetch.ai Browser Extension Wallet](https://bit.ly/3G31QII).
+1. First you must ensure that you have the Fetch.ai wallet that you're staking with connected to the [Fetch.ai Browser Extension Wallet](https://bit.ly/3G31QII).
 2. Head over to the [Fetch.ai Validator Explorer page.](https://browse-fetchhub.fetch.ai/validators)
 3. Click **Connect** in the top right of the web page.
-4. Once you’re connected, click on your wallet address that is now listed in the top right on the web page.
+4. Once you're connected, click on your wallet address that is now listed in the top right on the web page.
 5. From there scroll down to the **Delegations **section. 
-6. Find the validator you’d like to redelegate from.
+6. Find the validator you'd like to redelegate from.
 7. Click **Transfer Stake**.
-8. In the pop-up that appears, select a validator below the top 10 that you’d like to redelegate to.
+8. In the pop-up that appears, select a validator below the top 10 that you'd like to redelegate to.
 
     Please keep in mind they are not in order on the drop-down, so you will need to have the [Validator Voting Power Distribution List](https://explore.fetch.ai/voting-power-distribution) open in another tab to see the order.
 
@@ -97,7 +97,7 @@ And then you’re done.
 
 12.  Click **Approve**.
 
-    And then you’re done.
+    And then you're done.
 
 
 
@@ -105,9 +105,9 @@ And then you’re done.
 
 The top 10 validators on the Fetch.ai network currently control roughly 50% of the total voting power on chain through delegations.
 
-For the Fetch.ai network to be as secure as possible, we shouldn’t have more than 33% of delegated $FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it’s simply outlining who has the most $FET staked to them, that’s it. 
+For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them, that's it. 
 
-When it comes to reputation or how the validator has performed, it’s up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as “passive income”).
+When it comes to reputation or how the validator has performed, it's up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as "passive income").
 
 When you select a validator to delegate with, that is essentially your vote to the network saying they are trustworthy, and you are given staking rewards for that.
 
@@ -130,4 +130,4 @@ People always ask what they should be looking for in a validator. So here is a s
 * Do they vote on proposals?
 * Do they have a mission and principles that align with your own?
 
-Some of these questions can be answered through one of the Fetch.ai block explorers, such as our [Native Block Explorer](https://explore.fetch.ai/validators) or [Mintscan](https://www.mintscan.io/fetchai/validators). But other things on this list will require you to reach out to validators for answers, which is a good opportunity to see if they are active frequently or not. It should also be noted that not every single one of these questions needs to be answered “yes” but if they are, then it’s extremely helpful.
+Some of these questions can be answered through one of the Fetch.ai block explorers, such as our [Native Block Explorer](https://explore.fetch.ai/validators) or [Mintscan](https://www.mintscan.io/fetchai/validators). But other things on this list will require you to reach out to validators for answers, which is a good opportunity to see if they are active frequently or not. It should also be noted that not every single one of these questions needs to be answered "yes" but if they are, then it's extremely helpful.
