@@ -1,8 +1,3 @@
-
-
-
-
-
 # How to Redelegate for Decentralization
 
 **Introduction **
@@ -15,7 +10,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 
  If this is the case, then we would greatly appreciate it if you followed this guide on the importance of redelegating part of your stake outside the top 10 validators and how to do it.
 
-**Disclaimer — please note the following:**
+**Disclaimer ï¿½ please note the following:**
 
 
 
