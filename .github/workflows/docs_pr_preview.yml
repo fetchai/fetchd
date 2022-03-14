@@ -31,26 +31,26 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: dist
-          path: docs
+          path: docs/site
 
-  # deploy:
-  #   name: Fronend Ephemerial Deploy
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
+  deploy:
+    name: Docs Ephemerial Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-  #     - name: Download Artifact
-  #       uses: actions/download-artifact@master
-  #       with:
-  #         name: dist
-  #         path: services/frontend/build
+      - name: Download Artifact
+        uses: actions/download-artifact@master
+        with:
+          name: dist
+          path: docs/site
 
-  #     - uses: FirebaseExtended/action-hosting-deploy@v0
-  #       with:
-  #         repoToken: "${{ secrets.GITHUB_TOKEN }}"
-  #         firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-  #         expires: 1d
-  #         projectId: fetch-ai-agent-platform
-  #         entryPoint: services/frontend/
-  #         target: staging
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          expires: 5d
+          projectId: fetch-docs-preview
+          entryPoint: docs/
+          target: default
