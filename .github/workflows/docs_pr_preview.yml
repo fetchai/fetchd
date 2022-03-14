@@ -1,4 +1,4 @@
-name: Firebase Ephemerial Deployment
+name: Documentation Preview
 
 on:
   pull_request:
