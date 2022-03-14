@@ -1,6 +1,10 @@
 name: Firebase Ephemerial Deployment
 
 on:
+  push:
+    branches:
+      - feature/docs-preview
+
   pull_request:
     branches:
       - master
