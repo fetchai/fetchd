@@ -53,4 +53,3 @@ jobs:
           expires: 5d
           projectId: fetch-docs-preview
           entryPoint: docs/
-          target: default
