@@ -1,10 +1,6 @@
 name: Firebase Ephemerial Deployment
 
 on:
-  push:
-    branches:
-      - feature/docs-preview
-
   pull_request:
     branches:
       - master
@@ -26,7 +22,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        run: cd docs && pipenv install
+        run: cd docs && pip3 install pipenv && pipenv install
 
       - name: Build
         run: cd docs && pipenv run mkdocs build
