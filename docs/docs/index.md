@@ -18,8 +18,6 @@ fetch1almpjpf769p23k0v4m5eglvzr4jupsjs66vxf4
 
 Block explorer and token tap: [https://explore-agent-land.fetch.ai/](https://explore-agent-land.fetch.ai/)
 
-Understanding building block relationships: [https://docs.fetch.ai/aea/oef-ledger/](https://docs.fetch.ai/aea/oef-ledger/)
-
 For more detailed information, have a look at our [network](./networks/) information page.
 
 ## Roadmap for Smart Contracts

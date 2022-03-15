@@ -21,13 +21,13 @@ fetchd config chain-id <chain-id>
 fetchd config node <rpc url>
 ```
 
-### Stargate example
+### Capricorn example
 
-In the case of the Stargate network this would be as follows:
+In the case of the Capricorn network this would be as follows:
 
 ```bash
-fetchd config chain-id stargateworld-3
-fetchd config node https://rpc-stargateworld.fetch.ai:443
+fetchd config chain-id capricorn-1
+fetchd config node https://rpc-capricorn.fetch.ai:443
 ```
 
 ### Configuring the server `fetchd`
@@ -52,19 +52,19 @@ Finally connect fetchd to the network by getting it to connect to a seed node fo
 fetchd start --p2p.seeds=<network seed peers>
 ```
 
-**Stargate Example**
+**Capricorn Example**
 
-Less abstractly then, if you wants to connect to the Stargate test net for example, you would need to run the following steps:
+Less abstractly then, if you wants to connect to the Capricorn test net for example, you would need to run the following steps:
 
 ```bash
 # init
-fetchd init my-first-fetch-node --chain-id stargateworld-3
+fetchd init my-first-fetch-node --chain-id capricorn-1
 
 # genesis
-curl https://rpc-stargateworld.fetch.ai/genesis | jq '.result.genesis' > ~/.fetchd/config/genesis.json
+curl https://rpc-capricorn.fetch.ai:443 | jq '.result.genesis' > ~/.fetchd/config/genesis.json
 
 # start
-fetchd start --p2p.seeds=0831c7f4cb4b12fe02b35cc682c7edb03f6df36c@connect-stargateworld.t-v2-london-c.fetch-ai.com:36656
+fetchd start --p2p.seeds=fec822ecf6e503a694a709ce663fd0c6da5fda3e@connect-capricorn.fetch.ai:36956
 ```
 
 Your local node will then start to synchronise itself with the network, replaying all blocks and transactions up to the current block. Depending on the age of the network and your hard disk speed, this could take a while. 
