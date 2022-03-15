@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"errors"
-
 	"fmt"
 	"io"
 	"math/big"
