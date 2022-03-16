@@ -167,7 +167,7 @@ It does the following operations:
 	cmd.Flags().String(flags.FlagChainID, "fetchhub-4", "override chain_id with this flag")
 	// see https://github.com/cosmos/ibc-go/blob/v2.0.3/modules/core/03-connection/types/connection.pb.go#L359-L362
 	cmd.Flags().Uint64(flagIBCMaxExpectedTimePerBlock, 30000000000, "value for ibc.connection_genesis.params.max_expected_time_per_block (nanoseconds)")
-	cmd.Flags().String(flagNanonomxSupply, "1000000000000000000nanonomx", "initial nanonomx supply (9 decimals)")
+	cmd.Flags().String(flagNanonomxSupply, "1000000000000000000nanonomx", "initial nanonomx supply")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 
 	return cmd
