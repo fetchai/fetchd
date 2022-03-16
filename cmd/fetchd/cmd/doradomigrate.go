@@ -12,9 +12,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	authz "github.com/cosmos/cosmos-sdk/x/authz"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
 	legacyibc "github.com/cosmos/ibc-go/v2/modules/core/legacy/v100"
 	"github.com/fetchai/fetchd/app"
@@ -24,6 +26,8 @@ const (
 	flagGenesisTime                = "genesis-time"
 	flagInitialHeight              = "initial-height"
 	flagIBCMaxExpectedTimePerBlock = "max-expected-time-per-block"
+	flagNanonomxSupply             = "nanonomx-supply"
+	flagFoundationAddress          = "foundation-address"
 )
 
 // AddDoradoMigrateCmd returns a command to migrate genesis to Dorado version.
@@ -31,8 +35,13 @@ func AddDoradoMigrateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dorado-migrate <genesis-file>",
 		Short: "Migrate fetchAI mainnet genesis from the Capricorn version to the Dorado version",
-		Long:  ``,
-		Args:  cobra.ExactArgs(1),
+		Long: `Migrate fetchAI mainnet genesis from the Capricorn version to the Dorado version.
+It does the following operations:
+	- migrate IBC module state from v1 to v2
+	- init authz module state
+	- add initial nanonomx supply to fetch foundation account 
+`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
 			importGenesis := args[0]
@@ -103,6 +112,29 @@ func AddDoradoMigrateCmd() *cobra.Command {
 			}
 			appState[authz.ModuleName] = authzbz
 
+			// Add initial nanonomx supply
+			foundationAddrStr, err := cmd.Flags().GetString(flagFoundationAddress)
+			if err != nil {
+				return fmt.Errorf("failed to read %q flag: %w", flagFoundationAddress, err)
+			}
+			foundationAddr, err := sdk.AccAddressFromBech32(foundationAddrStr)
+			if err != nil {
+				return fmt.Errorf("failed to parse bech32 foundation address: %w", err)
+			}
+			nanonomxStr, err := cmd.Flags().GetString(flagNanonomxSupply)
+			if err != nil {
+				return fmt.Errorf("failed to read %q flag: %w", flagNanonomxSupply, err)
+			}
+			nanonomxCoin, err := sdk.ParseCoinNormalized(nanonomxStr)
+			if err != nil {
+				return fmt.Errorf("failed to parse nanonmox coin: %w", err)
+			}
+
+			appState, err = mintTokens(appState, clientCtx.Codec, foundationAddr, nanonomxCoin)
+			if err != nil {
+				return fmt.Errorf("failed to mint tokens: %w", err)
+			}
+
 			// ------------ End of custom migration operations ------------
 
 			// Validate state (same as fetchd validate-genesis cmd)
@@ -134,7 +166,37 @@ func AddDoradoMigrateCmd() *cobra.Command {
 	cmd.Flags().Int64(flagInitialHeight, 0, "override initial_height with this flag")
 	cmd.Flags().String(flags.FlagChainID, "fetchhub-4", "override chain_id with this flag")
 	// see https://github.com/cosmos/ibc-go/blob/v2.0.3/modules/core/03-connection/types/connection.pb.go#L359-L362
-	cmd.Flags().Uint64(flagIBCMaxExpectedTimePerBlock, 30000000000, "value for ibc.connection_genesis.params.max_expected_time_per_block")
+	cmd.Flags().Uint64(flagIBCMaxExpectedTimePerBlock, 30000000000, "value for ibc.connection_genesis.params.max_expected_time_per_block (nanoseconds)")
+	cmd.Flags().String(flagNanonomxSupply, "1000000000000000000nanonomx", "initial nanonomx supply (9 decimals)")
+	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 
 	return cmd
+}
+
+// mintTokens add given coins to given address and increase total supply accordingly.
+func mintTokens(state types.AppMap, cdc codec.JSONCodec, addr sdk.AccAddress, coin sdk.Coin) (types.AppMap, error) {
+	bankState := banktypes.GetGenesisStateFromAppState(cdc, state)
+
+	var updated bool
+	for i, balance := range bankState.Balances {
+		if balance.GetAddress().Equals(addr) {
+			bankState.Balances[i].Coins = bankState.Balances[i].Coins.Add(coin)
+			bankState.Supply = bankState.Supply.Add(coin)
+
+			updated = true
+			break
+		}
+	}
+
+	if !updated {
+		return nil, fmt.Errorf("account %s not found", addr.String())
+	}
+
+	bankStateBz, err := cdc.MarshalJSON(bankState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal bank genesis state: %w", err)
+	}
+	state[banktypes.ModuleName] = bankStateBz
+
+	return state, nil
 }
