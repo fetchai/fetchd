@@ -3,7 +3,7 @@ module github.com/fetchai/fetchd
 go 1.16
 
 require (
-	github.com/CosmWasm/wasmd v0.23.0
+	github.com/CosmWasm/wasmd v0.24.0
 	github.com/cosmos/cosmos-sdk v0.45.1
 	github.com/cosmos/ibc-go/v2 v2.2.0
 	github.com/google/go-cmp v0.5.7 // indirect
@@ -13,7 +13,7 @@ require (
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/cobra v1.3.0
 	github.com/tendermint/tendermint v0.34.16
-	github.com/tendermint/tm-db v0.6.6
+	github.com/tendermint/tm-db v0.6.7
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
 	google.golang.org/genproto v0.0.0-20220118154757-00ab72f36ad5 // indirect
 )
