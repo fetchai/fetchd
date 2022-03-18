@@ -1,7 +1,3 @@
-
-
-
-
 # How to Convert Native Fet to Erc20 Fet Using Fetch.ai Browser Extension Wallet
 
 Using the Fetch.ai token bridge, here is an easy process explaining how to send tokens across the native to ERC20 side using the [Fetch browser wallet](https://bit.ly/3G31QII).
@@ -19,7 +15,7 @@ Using the Fetch.ai token bridge, here is an easy process explaining how to send 
 
 2. Send the amount of tokens you wish to transfer from your cosmostation mobile wallet or your ledger to the generated address on your fetch browser wallet.
 3. Once you have done so, browse to [https://token-bridge.fetch.ai/](https://token-bridge.fetch.ai/)
-4. Switch to the **Native to ERC20**”tab.
+4. Switch to the **Native to ERC20**ï¿½tab.
 5. Click on **connect browser wallet **and permit the token bridge to connect with your browser wallet.
 
 <img src="../images/connect_to_keplr.png" alt="Requesting connection" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
@@ -33,4 +29,4 @@ Using the Fetch.ai token bridge, here is an easy process explaining how to send 
 7. Enter the amount.
 8. Click **Transfer**.
 
-**Disclaimer for the ledger users: The wallet integration for ledger nano is currently being worked upon — If you’d like to transfer directly from your ledger, please use the “Connect ledger” button from the Bridge UI instead of using the “Import ledger” button of the wallet.**
+**Disclaimer for the ledger users: The wallet integration for ledger nano is currently being worked upon ï¿½ If youï¿½d like to transfer directly from your ledger, please use the ï¿½Connect ledgerï¿½ button from the Bridge UI instead of using the ï¿½Import ledgerï¿½ button of the wallet.**
