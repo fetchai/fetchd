@@ -8,10 +8,10 @@ The chain identifier of our production network is fetchhub-3.
 | -------------- | ------------------------------------------------------------------------------------------ |
 | Chain ID       | fetchhub-3                                                                                 |
 | Block range    | 4,504,601 -->                                                                              |
-| Date range     | 08/02/2022 -->                                                                   |
+| Date range     | 08/02/2022 -->                                                                             |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | [v0.9.x (fetchcli >= v0.9.0)](https://github.com/fetchai/fetchd/tree/release/v0.9.x)       |
+| Version        | [v0.9.1](https://github.com/fetchai/fetchd/releases/tag/v0.9.1)                            |
 | RPC Endpoint   | <https://rpc-fetchhub.fetch.ai:443>                                                        |
 | GRPC Endpoint  | <https://grpc-fetchhub.fetch.ai:443>                                                       |
 | REST Endpoint  | <https://rest-fetchhub.fetch.ai:443>                                                       |
@@ -32,7 +32,7 @@ Archived data for previous mainnet versions.
 | Date range     | 15/09/2021 --> 08/02/2022                                                                  |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | [v0.8.7](https://github.com/fetchai/fetchd/tree/v0.8.7)                                    |
+| Version        | [v0.8.7](https://github.com/fetchai/fetchd/releases/tag/v0.8.7)                                    |
 | RPC Endpoint   | <https://rpc-fetchhub2-archive.fetch.ai:443>                                               |
 | GRPC Endpoint  | <https://grpc-fetchhub2-archive.fetch.ai:443>                                              |
 | REST Endpoint  | <https://rest-fetchhub2-archive.fetch.ai:443>                                              |
@@ -49,7 +49,7 @@ Archived data for previous mainnet versions.
 | Date range     | 31/03/2021 --> 15/09/2021                                                                  |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | [v0.7.4](https://github.com/fetchai/fetchd/tree/v0.7.4)                                    |
+| Version        | [v0.7.4](https://github.com/fetchai/fetchd/releases/tag/v0.7.4)                            |
 | RPC Endpoint   | <https://rpc-fetchhub1-archive.fetch.ai:443>                                               |
 | GRPC Endpoint  | N/A                                                                                        |
 | REST Endpoint  | <https://rest-fetchhub1-archive.fetch.ai:443>                                              |
@@ -69,7 +69,7 @@ This network is running the same software as our mainnet (`fetchhub-3`), and is 
 | Denomination   | atestfet                                                                                   |
 | Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                                |
 | Min Gas Prices | 5000000000atestfet                                                                         |
-| Version        | [v0.9.0 (fetchd >= v0.9.0)](https://github.com/fetchai/fetchd/releases/tag/v0.9.0)         |
+| Version        | [v0.9.1](https://github.com/fetchai/fetchd/releases/tag/v0.9.1)                            |
 | RPC Endpoint   | <https://rpc-capricorn.fetch.ai:443>                                                       |
 | GRPC Endpoint  | <https://grpc-capricorn.fetch.ai:443>                                                      |
 | REST Endpoint  | <https://rest-capricorn.fetch.ai:443>                                                      |
@@ -87,7 +87,7 @@ This network is used for testing the future upgrade to mainnet.
 | Denomination    | atestfet                                                                                   |
 | Decimals        | 18 (1testfet = 1000000000000000000atestfet)                                                |
 | Min Gas Prices  | 1000000000atestfet                                                                         |
-| Version         | [v0.10.x (fetchd >= v0.10.x)](https://github.com/fetchai/fetchd/releases/tag/v0.10.0-rc1)  |
+| Version         | [v0.10.x (fetchd >= v0.10.x)](https://github.com/fetchai/fetchd/releases/tag/v0.10.0)      |
 | RPC Endpoint    | <https://rpc-dorado.fetch.ai:443>                                                          |
 | GRPC Endpoint   | <https://grpc-dorado.fetch.ai:443>                                                         |
 | REST Endpoint   | <https://rest-dorado.fetch.ai:443>                                                         |
