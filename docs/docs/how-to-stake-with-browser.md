@@ -17,7 +17,7 @@ It is now possible for the Fetch.ai Browser Extension Wallet to be used for stak
 ## **Steps for staking with the Fetch.ai Browser Extension Wallet**
 
 
-<img src="../images/staking_browser_extension_wallet.png" alt="How to stake with the browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
+<img src="../images/staking_browser_extension_wallet.png" alt="How to stake with the browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
 1. Ensure you've installed the [Fetch.ai Browser Extension Wallet](https://bit.ly/3CuiHSO) on your browser and that you're already logged into it.
 2. Next, head over to the [Fetch.ai Validator Explorer](https://bit.ly/3CuYXP1) page and click the **Connect **button in the top right of the web page.
@@ -28,7 +28,7 @@ It is now possible for the Fetch.ai Browser Extension Wallet to be used for stak
 
 ## **Steps for unstaking/removing stake with the Fetch.ai Browser Extension Wallet**
 
-<img src="../images/unstake_browser_extension_wallet.png" alt="How to unstake/remove stake with the browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
+<img src="../images/unstake_browser_extension_wallet.png" alt="How to unstake/remove stake with the browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
 
 1. Click on your wallet address on the top right of the web page and you'll be taken to your **staking** dashboard.
