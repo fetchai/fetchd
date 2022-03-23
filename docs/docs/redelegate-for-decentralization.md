@@ -10,7 +10,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 
  If this is the case, then we would greatly appreciate it if you followed this guide on the importance of redelegating part of your stake outside the top 10 validators and how to do it.
 
-**Disclaimer � please note the following:**
+**Disclaimer - please note the following:**
 
 
 
@@ -21,7 +21,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 ## Steps for those redelegating on Cosmostation App
 
 
-<img src="../images/Redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
+<img src="../images/Redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width :400px;">
 
 
 1. On the main screen, click **Delegate**.
@@ -49,7 +49,7 @@ And then you're done.
 
 ## Steps for those redelegating on Keystation/Cosmostation Web Wallet
 
-<img src="../images/redel_to_keystation.png" alt="How to redelegate on Keystation/Cosmostation web wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
+<img src="../images/redel_to_keystation.png" alt="How to redelegate on Keystation/Cosmostation web wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
 1. Connect your Fetch.ai wallet to the [Cosmostation web wallet](https://wallet.cosmostation.io/?network=fetchai).
 2. Select **Reward** from the options on the left side panel.
@@ -70,7 +70,7 @@ And then you're done.
 
 ## Steps for those redelegating with the Fetch.ai Browser Extension Wallet
 
-<img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
+<img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
 
 1. First you must ensure that you have the Fetch.ai wallet that you're staking with connected to the [Fetch.ai Browser Extension Wallet](https://bit.ly/3G31QII).
