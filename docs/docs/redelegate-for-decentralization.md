@@ -21,7 +21,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 ## Steps for those redelegating on Cosmostation App
 
 
-<img src="../images/Redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width :400px;">
+<img src="../images/redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width :400px;">
 
 
 1. On the main screen, click **Delegate**.
