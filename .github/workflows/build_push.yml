@@ -22,7 +22,7 @@ jobs:
           target: hub
 
       - name: Setup GCloud
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ secrets.GCLOUD_KEY_IMAGES }}
 
