@@ -45,8 +45,8 @@ To see previous transactions you can also check out one of many different [block
 
 4. **When can I download the Browser extension wallet?**
 
-       Browser extension wallet is available on [Chrome webstore](https://chrome.google.com/webstore/detail/fetchai-network-wallet/ellkdbaphhldpeajbepobaecooaoafpg?hl=en-GB).
-{:start="5"}
+      Browser extension wallet is available on [Chrome webstore](https://chrome.google.com/webstore/detail/fetchai-network-wallet/ellkdbaphhldpeajbepobaecooaoafpg?hl=en-GB).
+
 5. **What are TESTFET tokens?**
 
     TESTFET tokens do not have an intrinsic value and are purely for the purpose of interacting with testnets. You can get access to TESTFET from the Capricorn testnet [block explorer](https://explore-capricorn.fetch.ai/) with the Token Tap button.
