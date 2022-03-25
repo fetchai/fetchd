@@ -6,9 +6,9 @@
 
 Open the Browser Extension Wallet:
 
-<img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
+    <img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 
-To send some FET to another account
+To send some FET to another account:
 
 1. Press **Send**.
 
