@@ -4,12 +4,13 @@
 
 # How to Use the Browser Extension Wallet
 
-This is how to use the Browser Extension Wallet:
+Open the Browser Extension Wallet:
 
-<img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 400px">
-    
-<img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 200px">
+<img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 
+To send some FET to another account, press Send:
+
+img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 1. In the recipient field enter your native address.
 2. Enter the amount you wish to send.
 3. Choose **Average** gas fees.
