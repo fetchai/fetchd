@@ -1,8 +1,3 @@
-
-
-
-
-
 # How to Redelegate for Decentralization
 
 **Introduction **
@@ -15,7 +10,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 
  If this is the case, then we would greatly appreciate it if you followed this guide on the importance of redelegating part of your stake outside the top 10 validators and how to do it.
 
-**Disclaimer — please note the following:**
+**Disclaimer - please note the following:**
 
 
 
@@ -23,89 +18,11 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 2. **Redelegating, unlike undelegating, is an instant way for you to move part (or all) of your delegated $FET to different validators. Doing this is a very easy process and is what we will be outlining in this article.**
 
 
-## Steps for those redelegating on Cosmostation App
-
-
-<img src="../images/Redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
-
-
-1. On the main screen, click **Delegate**.
-2. Select the validator you're staking with that you wish to move your stake from.
-3. Select **Redelegate**.
-4. Enter the amount of $FET you wish to redelegate.
-5. Click **Next**.
-6. Choose a validator outside of the top 10 that you wish to redelegate to.
-7. Click **Next**.
-
-    You'll be prompted to enter an optional memo, but you can leave it blank.
-
-8. Click **Next**.
-9. Choose the transaction fee for redelegating (low is fine).
-10. Click **Next**.
-11. Review the details of your redelegation.
-
-    Click **Confirm**.
-
-12. Click **Yes **on the popup.
-13. Enter your PIN.
-
-And then you're done.
-
-
-## Steps for those redelegating on Keystation/Cosmostation Web Wallet
-
-<img src="../images/redel_to_keystation.png" alt="How to redelegate on Keystation/Cosmostation web wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
-
-1. Connect your Fetch.ai wallet to the [Cosmostation web wallet](https://wallet.cosmostation.io/?network=fetchai).
-2. Select **Reward** from the options on the left side panel.
-3. Scroll to **My Validators**.
-4. Select **Redelegate**.
-5. Pick the validator outside of the top 10 that you would like to Redelegate to.
-6. Enter the amount of $FET you'd like to redelegate to them.
-
-    Leave the memo blank.
-
-7. Click **Generate & Sign Transaction**.
-8. On the pop-up select** Allow**.
-9. Enter your PIN.
-
-    And then you're done!
-
-
-
-## Steps for those redelegating with the Fetch.ai Browser Extension Wallet
-
-<img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:80%;">
-
-
-1. First you must ensure that you have the Fetch.ai wallet that you're staking with connected to the [Fetch.ai Browser Extension Wallet](https://bit.ly/3G31QII).
-2. Head over to the [Fetch.ai Validator Explorer page.](https://browse-fetchhub.fetch.ai/validators)
-3. Click **Connect** in the top right of the web page.
-4. Once you're connected, click on your wallet address that is now listed in the top right on the web page.
-5. From there scroll down to the **Delegations **section. 
-6. Find the validator you'd like to redelegate from.
-7. Click **Transfer Stake**.
-8. In the pop-up that appears, select a validator below the top 10 that you'd like to redelegate to.
-
-    Please keep in mind they are not in order on the drop-down, so you will need to have the [Validator Voting Power Distribution List](https://explore.fetch.ai/voting-power-distribution) open in another tab to see the order.
-
-9. Enter in the amount of $FET you wish to redelegate to this new validator.
-10. Select **Transfer Stake**.
-11. You will then be prompted by a transaction request.
-
-    Choose the gas fee (Low is fine)
-
-12.  Click **Approve**.
-
-    And then you're done.
-
-
-
 ## Why redelegating is important right now
 
 The top 10 validators on the Fetch.ai network currently control roughly 50% of the total voting power on chain through delegations.
 
-For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them, that's it. 
+For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them. 
 
 When it comes to reputation or how the validator has performed, it's up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as "passive income").
 
@@ -113,6 +30,72 @@ When you select a validator to delegate with, that is essentially your vote to t
 
  So please ensure that you do your due diligence in ensuring you know as much about a validator as possible.
 
+
+## Steps for those redelegating on Cosmostation App
+
+
+<img src="../images/redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width :700px;">
+
+
+1. On the main screen, click **Delegate**.
+2. Select the validator you're staking with that you wish to move your stake from.
+3. Select **Redelegate**.
+4. Enter the amount of FET you wish to redelegate and click **Next**.
+5. Choose a validator outside of the top 10 that you wish to redelegate to, and click **Next**.
+6. You'll be prompted to enter an optional memo, but you can leave it blank. 
+   Click **Next**.
+7. Choose the transaction fee for redelegating (low is fine). Click **Next**.
+8. Review the details of your redelegation.
+   Click **Confirm**.
+9. Click **Yes** on the popup.
+   Enter your PIN.
+
+
+
+## Steps for those redelegating on Keystation/Cosmostation Web Wallet
+
+<img src="../images/redel_to_keystation.png" alt="How to redelegate on Keystation/Cosmostation web wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
+
+1. Connect your Fetch.ai wallet to the [Cosmostation web wallet](https://wallet.cosmostation.io/?network=fetchai).
+2. Select **Reward** from the options on the left side panel.
+3. Scroll to **My Validators** and select **Redelegate**.
+4. Pick the validator outside of the top 10 that you would like to Redelegate to.
+5. Enter the amount of FET you'd like to redelegate to them.
+   Leave the memo blank.
+6. Click **Generate & Sign Transaction**.
+   On the pop-up select **Allow**.
+7. Enter your PIN.
+
+
+
+## Steps for those redelegating with the Fetch.ai Browser Extension Wallet
+
+<img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
+
+
+First you must ensure that you have the Fetch.ai wallet that you're staking with connected to the [Fetch.ai Browser Extension Wallet](https://bit.ly/3G31QII).
+
+
+
+1. Connect to the Browser Extension Wallet.
+2. In the [Fetch.ai Validator Explorer page.](https://browse-fetchhub.fetch.ai/validators), click **Connect** in the top right of the web page.
+   Once you're connected, click on your wallet address that is now listed in the top right on the web page.
+3. From there scroll down to the **Delegations** section. 
+   Find the validator you'd like to redelegate from.
+4. Click **Transfer Stake**.
+   In the pop-up that appears, select a validator below the top 10 that you'd like to redelegate to.
+
+    Please keep in mind they are not in order on the drop-down, so you will need to have the [Validator Voting Power Distribution List](https://explore.fetch.ai/voting-power-distribution) open in another tab to see the order.
+
+5. Enter in the amount of FET you wish to redelegate to this new validator.
+6. Select **Transfer Stake**.
+   You will then be prompted by a transaction request.
+
+    Choose the gas fee (Low is fine)
+
+7.  Click **Approve**.
+
+    And then you're done.
 
 ## What should you look for in a validator?
 
@@ -123,7 +106,7 @@ People always ask what they should be looking for in a validator. So here is a s
 * Do they have a website?
 * Do they have social media? (Twitter, Reddit, Instagram)
 * Are they easy to contact? (Discord, Telegram)
-* Do they have $FET self-bonded to their node?
+* Do they have FET self-bonded to their node?
 * Are they active in the community?
 * Do they have a good uptime?
 * Do they offer slashing & double sign protection?
