@@ -41,7 +41,7 @@ To see previous transactions you can also check out one of many different [block
 
 2. **Can I use this wallet to send tokens from native to ERC20 without requiring a ledger?**
 
-    Yes. This was a highly requested feature from our community and we are happy to confirm you can deposit your native tokens from ledger or cosmostation on the     browser extension wallet and then send it via the [token bridge](https://token-bridge.fetch.ai/) (native to ERC20).
+    Yes. This was a highly requested feature from our community and we are happy to confirm that you can deposit your native tokens from the ledger or Cosmostation on the browser extension wallet and then send it via the [token bridge](https://token-bridge.fetch.ai/) (native to ERC20).
 
 3. **Will this wallet replace the token bridge?**
 
