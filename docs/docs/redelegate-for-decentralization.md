@@ -37,7 +37,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 9. Click **Yes** on the popup.
    Enter your PIN.
 
-And then you're done.
+   And then you're done.
 
 
 ## Steps for those redelegating on Keystation/Cosmostation Web Wallet
@@ -54,7 +54,7 @@ And then you're done.
    On the pop-up select **Allow**.
 7. Enter your PIN.
 
-    And then you're done!
+    And then you're done.
 
 
 
