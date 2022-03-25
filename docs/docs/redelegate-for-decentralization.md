@@ -18,6 +18,19 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 2. **Redelegating, unlike undelegating, is an instant way for you to move part (or all) of your delegated $FET to different validators. Doing this is a very easy process and is what we will be outlining in this article.**
 
 
+## Why redelegating is important right now
+
+The top 10 validators on the Fetch.ai network currently control roughly 50% of the total voting power on chain through delegations.
+
+For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them, that's it. 
+
+When it comes to reputation or how the validator has performed, it's up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as "passive income").
+
+When you select a validator to delegate with, that is essentially your vote to the network saying they are trustworthy, and you are given staking rewards for that.
+
+ So please ensure that you do your due diligence in ensuring you know as much about a validator as possible.
+
+
 ## Steps for those redelegating on Cosmostation App
 
 
@@ -86,21 +99,6 @@ First you must ensure that you have the Fetch.ai wallet that you're staking with
 7.  Click **Approve**.
 
     And then you're done.
-
-
-
-## Why redelegating is important right now
-
-The top 10 validators on the Fetch.ai network currently control roughly 50% of the total voting power on chain through delegations.
-
-For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them, that's it. 
-
-When it comes to reputation or how the validator has performed, it's up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as "passive income").
-
-When you select a validator to delegate with, that is essentially your vote to the network saying they are trustworthy, and you are given staking rewards for that.
-
- So please ensure that you do your due diligence in ensuring you know as much about a validator as possible.
-
 
 ## What should you look for in a validator?
 
