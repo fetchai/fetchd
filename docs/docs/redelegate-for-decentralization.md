@@ -31,7 +31,7 @@ When you select a validator to delegate with, that is essentially your vote to t
  So please ensure that you do your due diligence in ensuring you know as much about a validator as possible.
 
 
-## Steps for those redelegating on Cosmostation App
+## To redelegate using the Cosmostation App
 
 
 <img src="../images/redel_to_cosmo.png" alt="Redelegating on Cosmostation App" class="center" style="display: block; margin-left: auto; margin-right: auto;width :700px;">
@@ -41,7 +41,7 @@ When you select a validator to delegate with, that is essentially your vote to t
 2. Select the validator you're staking with that you wish to move your stake from.
 3. Select **Redelegate**.
 4. Enter the amount of FET you wish to redelegate and click **Next**.
-5. Choose a validator outside of the top 10 that you wish to redelegate to, and click **Next**.
+5. Choose a validator outside of the top 10 that you wish to redelegate to (see [here](https://explore.fetch.ai/voting-power-distribution) for the voting power of the validators), and click **Next**.
 6. You'll be prompted to enter an optional memo, but you can leave it blank. 
    Click **Next**.
 7. Choose the transaction fee for redelegating (low is fine). Click **Next**.
@@ -52,7 +52,7 @@ When you select a validator to delegate with, that is essentially your vote to t
 
 
 
-## Steps for those redelegating on Keystation/Cosmostation Web Wallet
+## To redelegate using Keystation/Cosmostation Web Wallet
 
 <img src="../images/redel_to_keystation.png" alt="How to redelegate on Keystation/Cosmostation web wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
@@ -68,7 +68,7 @@ When you select a validator to delegate with, that is essentially your vote to t
 
 
 
-## Steps for those redelegating with the Fetch.ai Browser Extension Wallet
+## To redelegate using the Fetch.ai Browser Extension Wallet:
 
 <img src="../images/redel_to_browser_extension_wallet.png" alt="How to redelegate with the Fetch.ai browser extension wallet" class="center" style="display: block; margin-left: auto; margin-right: auto;width:400px;">
 
@@ -80,7 +80,7 @@ First you must ensure that you have the Fetch.ai wallet that you're staking with
 1. Connect to the Browser Extension Wallet.
 2. In the [Fetch.ai Validator Explorer page.](https://browse-fetchhub.fetch.ai/validators), click **Connect** in the top right of the web page.
    Once you're connected, click on your wallet address that is now listed in the top right on the web page.
-3. From there scroll down to the **Delegations** section. 
+3. From there, scroll down to the **Delegations** section. 
    Find the validator you'd like to redelegate from.
 4. Click **Transfer Stake**.
    In the pop-up that appears, select a validator below the top 10 that you'd like to redelegate to.

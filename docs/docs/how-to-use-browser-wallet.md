@@ -14,15 +14,17 @@ To send some FET to another account:
 
     <img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 
-2. In the recipient field enter your native address.
-3. Enter the amount you wish to send.
+2. In the recipient field enter your native address. Leave "Token" type to `FET`.
+3. Enter the amount you wish to send. Leave the "Memo" field empty.
 4. Choose **Average** gas fees.
 
     You can set a custom gas fee, but that is not required in most cases.
+    
+5. If everything looks good, press **Send**.
 
     <img src="../images/fetchhub2.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 400px">
 
-5. After entering all the details, the browser wallet will prompt you to review the operation and approve it if you are happy with it.
+6. The browser wallet now shows you all the details to review. **Approve** if you are happy.
 
 Your transaction will be sent to the native address you input.
 
@@ -37,7 +39,7 @@ To see previous transactions you can also check out one of many different [block
 
 1. **Can I send my ERC20 FET to this wallet?**
 
-    No. If you do, you will lose your tokens. The wallet can hold native FET tokens and not ERC20.
+    No. If you do, you will lose your tokens. The wallet can only hold native FET tokens and not ERC20 FET tokens.
 
 2. **Can I use this wallet to send tokens from native to ERC20 without requiring a ledger?**
 
@@ -49,7 +51,7 @@ To see previous transactions you can also check out one of many different [block
 
 4. **When can I download the Browser extension wallet?**
 
-      Browser extension wallet is available on [Chrome webstore](https://chrome.google.com/webstore/detail/fetchai-network-wallet/ellkdbaphhldpeajbepobaecooaoafpg?hl=en-GB).
+      Browser extension wallet is available now on [Chrome webstore](https://chrome.google.com/webstore/detail/fetchai-network-wallet/ellkdbaphhldpeajbepobaecooaoafpg?hl=en-GB).
 
 5. **What are TESTFET tokens?**
 
