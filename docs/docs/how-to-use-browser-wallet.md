@@ -1,12 +1,13 @@
 
 
 
-
 # How to Use the Browser Extension Wallet
 
-Open the Browser Extension Wallet:
 
-    <img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
+Open the Browser Extension Wallet.
+
+
+<img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 
 To send some FET to another account:
 
