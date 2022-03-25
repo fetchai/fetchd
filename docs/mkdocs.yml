@@ -35,7 +35,12 @@ nav:
   - Governance: 'governance.md'
   - Faucet: 'faucet.md'
   - Reconciliation Service: 'reconciliation-service.md'
-
+  - Guides:
+    - How to Use the Browser Extension Wallet: 'how-to-use-browser-wallet.md'
+    - How to Stake with the Browser Extension Wallet: 'how-to-stake-with-browser.md'
+    - How to Redelegate for Decentralization: 'redelegate-for-decentralization.md'
+    - How to Convert Native Fet to Erc20 Fet Using Fetch.ai Browser Extension Wallet: 'convert-native-fet.md'
+   
 extra_css:
   - css/my-styles.css
 
