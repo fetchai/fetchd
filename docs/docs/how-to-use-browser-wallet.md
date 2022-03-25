@@ -8,18 +8,21 @@ Open the Browser Extension Wallet:
 
 <img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
 
-To send some FET to another account, press Send:
+To send some FET to another account
 
-img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
-1. In the recipient field enter your native address.
-2. Enter the amount you wish to send.
-3. Choose **Average** gas fees.
+1. Press **Send**.
+
+    <img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 300px">
+
+2. In the recipient field enter your native address.
+3. Enter the amount you wish to send.
+4. Choose **Average** gas fees.
 
     You can set a custom gas fee, but that is not required in most cases.
 
     <img src="../images/fetchhub2.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 400px">
 
-4. After entering all the details, the browser wallet will prompt you to review the operation and approve it if you are happy with it.
+5. After entering all the details, the browser wallet will prompt you to review the operation and approve it if you are happy with it.
 
 That's it! Your transaction will be sent to the native address you input.
 
