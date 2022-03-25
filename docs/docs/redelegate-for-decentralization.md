@@ -22,7 +22,7 @@ You can tell if your validator is in the top 10 validators by going to the [Vali
 
 The top 10 validators on the Fetch.ai network currently control roughly 50% of the total voting power on chain through delegations.
 
-For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them, that's it. 
+For the Fetch.ai network to be as secure as possible, we shouldn't have more than 33% of delegated FET staked within the top 10 validators. It should be made clear that lists of validators on block explorers are not the highest to lowest for reputation or benefits, it's simply outlining who has the most FET staked to them. 
 
 When it comes to reputation or how the validator has performed, it's up to you as a delegator to find that out. Delegating is meant to be an active role between you and a Validator (although commonly perceived incorrectly as "passive income").
 
@@ -40,7 +40,7 @@ When you select a validator to delegate with, that is essentially your vote to t
 1. On the main screen, click **Delegate**.
 2. Select the validator you're staking with that you wish to move your stake from.
 3. Select **Redelegate**.
-4. Enter the amount of $FET you wish to redelegate and click **Next**.
+4. Enter the amount of FET you wish to redelegate and click **Next**.
 5. Choose a validator outside of the top 10 that you wish to redelegate to, and click **Next**.
 6. You'll be prompted to enter an optional memo, but you can leave it blank. 
    Click **Next**.
@@ -50,7 +50,6 @@ When you select a validator to delegate with, that is essentially your vote to t
 9. Click **Yes** on the popup.
    Enter your PIN.
 
-   And then you're done.
 
 
 ## Steps for those redelegating on Keystation/Cosmostation Web Wallet
@@ -61,13 +60,11 @@ When you select a validator to delegate with, that is essentially your vote to t
 2. Select **Reward** from the options on the left side panel.
 3. Scroll to **My Validators** and select **Redelegate**.
 4. Pick the validator outside of the top 10 that you would like to Redelegate to.
-5. Enter the amount of $FET you'd like to redelegate to them.
+5. Enter the amount of FET you'd like to redelegate to them.
    Leave the memo blank.
 6. Click **Generate & Sign Transaction**.
    On the pop-up select **Allow**.
 7. Enter your PIN.
-
-    And then you're done.
 
 
 
@@ -90,7 +87,7 @@ First you must ensure that you have the Fetch.ai wallet that you're staking with
 
     Please keep in mind they are not in order on the drop-down, so you will need to have the [Validator Voting Power Distribution List](https://explore.fetch.ai/voting-power-distribution) open in another tab to see the order.
 
-5. Enter in the amount of $FET you wish to redelegate to this new validator.
+5. Enter in the amount of FET you wish to redelegate to this new validator.
 6. Select **Transfer Stake**.
    You will then be prompted by a transaction request.
 
@@ -109,7 +106,7 @@ People always ask what they should be looking for in a validator. So here is a s
 * Do they have a website?
 * Do they have social media? (Twitter, Reddit, Instagram)
 * Are they easy to contact? (Discord, Telegram)
-* Do they have $FET self-bonded to their node?
+* Do they have FET self-bonded to their node?
 * Are they active in the community?
 * Do they have a good uptime?
 * Do they offer slashing & double sign protection?
