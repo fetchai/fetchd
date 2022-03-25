@@ -35,9 +35,9 @@ It is now possible for the Fetch.ai Browser Extension Wallet to be used for stak
 
 1. Click on your wallet address on the top right of the web page and you'll be taken to your **staking** dashboard.
 2. Scroll down to **Delegations.**
-3. Click **Remove Stake**.
-4. In the pop-up, enter the amount of $FET you wish to unbond.
-5. Click **Remove Stake**.
-6. You should now be prompted to pay the gas fee for the transaction and you can do so by selecting **Approve** and then you're done.
+  Click **Remove Stake**.
+3. In the pop-up, enter the amount of $FET you wish to unbond.
+  Click **Remove Stake**.
+4. You should now be prompted to pay the gas fee for the transaction and you can do so by selecting **Approve** and then you're done.
 
 On the staking dashboard you can also claim your staking rewards, redelegate your stake with the how to redelegate guide.
