@@ -8,7 +8,7 @@ This is how to use the Browser Extension Wallet:
 
 <img src="../images/browser_wallet.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 400px">
     
-<img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 400px">
+<img src="../images/fetchhub.png" alt="FetchHub" class="center" style="display: block; margin-left: auto; margin-right: auto; width: 200px">
 
 1. In the recipient field enter your native address.
 2. Enter the amount you wish to send.
