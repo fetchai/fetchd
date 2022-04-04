@@ -27,7 +27,7 @@ const (
 	flagInitialHeight              = "initial-height"
 	flagIBCMaxExpectedTimePerBlock = "max-expected-time-per-block"
 	flagNanonomxSupply             = "nanonomx-supply"
-	flagUrlnSupply                 = "urln-supply"
+	flagUlrnSupply                 = "ulrn-supply"
 	flagFoundationAddress          = "foundation-address"
 )
 
@@ -137,18 +137,18 @@ It does the following operations:
 				return fmt.Errorf("failed to mint nanonomx: %w", err)
 			}
 
-			// Add initial urln supply
-			urlnStr, err := cmd.Flags().GetString(flagUrlnSupply)
+			// Add initial ulrn supply
+			ulrnStr, err := cmd.Flags().GetString(flagUlrnSupply)
 			if err != nil {
-				return fmt.Errorf("failed to read %q flag: %w", flagUrlnSupply, err)
+				return fmt.Errorf("failed to read %q flag: %w", flagUlrnSupply, err)
 			}
-			urlnCoin, err := sdk.ParseCoinNormalized(urlnStr)
+			ulrnCoin, err := sdk.ParseCoinNormalized(ulrnStr)
 			if err != nil {
-				return fmt.Errorf("failed to parse urln coin: %w", err)
+				return fmt.Errorf("failed to parse ulrn coin: %w", err)
 			}
-			appState, err = mintTokens(appState, clientCtx.Codec, foundationAddr, urlnCoin)
+			appState, err = mintTokens(appState, clientCtx.Codec, foundationAddr, ulrnCoin)
 			if err != nil {
-				return fmt.Errorf("failed to mint urln: %w", err)
+				return fmt.Errorf("failed to mint ulrn: %w", err)
 			}
 
 			// ------------ End of custom migration operations ------------
@@ -184,7 +184,7 @@ It does the following operations:
 	// see https://github.com/cosmos/ibc-go/blob/v2.0.3/modules/core/03-connection/types/connection.pb.go#L359-L362
 	cmd.Flags().Uint64(flagIBCMaxExpectedTimePerBlock, 30000000000, "value for ibc.connection_genesis.params.max_expected_time_per_block (nanoseconds)")
 	cmd.Flags().String(flagNanonomxSupply, "1000000000000000000nanonomx", "initial nanonomx supply")
-	cmd.Flags().String(flagUrlnSupply, "100000000000000ulrn", "initial ulrn supply")
+	cmd.Flags().String(flagUlrnSupply, "100000000000000ulrn", "initial ulrn supply")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 
 	return cmd
