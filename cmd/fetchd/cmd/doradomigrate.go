@@ -27,6 +27,7 @@ const (
 	flagInitialHeight              = "initial-height"
 	flagIBCMaxExpectedTimePerBlock = "max-expected-time-per-block"
 	flagNanonomxSupply             = "nanonomx-supply"
+	flagUrlnSupply                 = "urln-supply"
 	flagFoundationAddress          = "foundation-address"
 )
 
@@ -40,6 +41,7 @@ It does the following operations:
 	- migrate IBC module state from v1 to v2
 	- init authz module state
 	- add initial nanonomx supply to fetch foundation account 
+	- add initial ulrn supply to fetch foundation account 
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -112,7 +114,6 @@ It does the following operations:
 			}
 			appState[authz.ModuleName] = authzbz
 
-			// Add initial nanonomx supply
 			foundationAddrStr, err := cmd.Flags().GetString(flagFoundationAddress)
 			if err != nil {
 				return fmt.Errorf("failed to read %q flag: %w", flagFoundationAddress, err)
@@ -121,6 +122,8 @@ It does the following operations:
 			if err != nil {
 				return fmt.Errorf("failed to parse bech32 foundation address: %w", err)
 			}
+
+			// Add initial nanonomx supply
 			nanonomxStr, err := cmd.Flags().GetString(flagNanonomxSupply)
 			if err != nil {
 				return fmt.Errorf("failed to read %q flag: %w", flagNanonomxSupply, err)
@@ -129,10 +132,23 @@ It does the following operations:
 			if err != nil {
 				return fmt.Errorf("failed to parse nanonmox coin: %w", err)
 			}
-
 			appState, err = mintTokens(appState, clientCtx.Codec, foundationAddr, nanonomxCoin)
 			if err != nil {
-				return fmt.Errorf("failed to mint tokens: %w", err)
+				return fmt.Errorf("failed to mint nanonomx: %w", err)
+			}
+
+			// Add initial urln supply
+			urlnStr, err := cmd.Flags().GetString(flagUrlnSupply)
+			if err != nil {
+				return fmt.Errorf("failed to read %q flag: %w", flagUrlnSupply, err)
+			}
+			urlnCoin, err := sdk.ParseCoinNormalized(urlnStr)
+			if err != nil {
+				return fmt.Errorf("failed to parse urln coin: %w", err)
+			}
+			appState, err = mintTokens(appState, clientCtx.Codec, foundationAddr, urlnCoin)
+			if err != nil {
+				return fmt.Errorf("failed to mint urln: %w", err)
 			}
 
 			// ------------ End of custom migration operations ------------
@@ -168,6 +184,7 @@ It does the following operations:
 	// see https://github.com/cosmos/ibc-go/blob/v2.0.3/modules/core/03-connection/types/connection.pb.go#L359-L362
 	cmd.Flags().Uint64(flagIBCMaxExpectedTimePerBlock, 30000000000, "value for ibc.connection_genesis.params.max_expected_time_per_block (nanoseconds)")
 	cmd.Flags().String(flagNanonomxSupply, "1000000000000000000nanonomx", "initial nanonomx supply")
+	cmd.Flags().String(flagUrlnSupply, "100000000000000ulrn", "initial ulrn supply")
 	cmd.Flags().String(flagFoundationAddress, "fetch1c2wlfqn6eqqknpwcr0na43m9k6hux94dp6fx4y", "fetch.ai foundation address")
 
 	return cmd
