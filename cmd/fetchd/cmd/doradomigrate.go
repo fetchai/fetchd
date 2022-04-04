@@ -41,6 +41,7 @@ It does the following operations:
 	- migrate IBC module state from v1 to v2
 	- init authz module state
 	- add initial nanonomx supply to fetch foundation account 
+	- add initial ulrn supply to fetch foundation account 
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
