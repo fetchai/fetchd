@@ -2,26 +2,43 @@
 
 ## Mainnet
 
-The chain identifier of our production network is fetchhub-3.
+The chain identifier of our production network is fetchhub-4.
 
 | Parameter      | Value                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Chain ID       | fetchhub-3                                                                                 |
-| Block range    | 4,504,601 -->                                                                              |
-| Date range     | 08/02/2022 -->                                                                             |
+| Chain ID       | fetchhub-4                                                                                 |
+| Block range    | 5,300,201 -->                                                                              |
+| Date range     | 05/04/2022 -->                                                                             |
 | Denomination   | afet                                                                                       |
 | Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
-| Version        | [v0.9.1](https://github.com/fetchai/fetchd/releases/tag/v0.9.1)                            |
+| Version        | [v0.10.2](https://github.com/fetchai/fetchd/releases/tag/v0.10.2)                          |
 | RPC Endpoint   | <https://rpc-fetchhub.fetch.ai:443>                                                        |
 | GRPC Endpoint  | <https://grpc-fetchhub.fetch.ai:443>                                                       |
 | REST Endpoint  | <https://rest-fetchhub.fetch.ai:443>                                                       |
 | Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai)                     |
 | Token Faucet   | N/A                                                                                        |
-| Seed Node(s)   | 5f3fa6404a67b664be07d0e133a00c1600967396@connect-fetchhub.fetch.ai:36756                   |
+| Seed Node(s)   | 17693da418c15c95d629994a320e2c4f51a8069b@connect-fetchhub4.m-v2-london-c.fetch-ai.com:36456,a575c681c2861fe945f77cb3aba0357da294f1f2@connect-fetchhub4.m-v2-london-c.fetch-ai.com:36457,d7cda986c9f59ab9e05058a803c3d0300d15d8da@connect-fetchhub4.m-v2-london-c.fetch-ai.com:36458    |
 
 ## Mainnet Archives
 
 Archived data for previous mainnet versions.
+
+### Fetchhub-3 archive
+
+| Parameter      | Value                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Chain ID       | fetchhub-3                                                                                 |
+| Block range    | 4,504,601 --> 5,300,200                                                                    |
+| Date range     | 08/02/2022 --> 05/04/2022                                                                  |
+| Denomination   | afet                                                                                       |
+| Decimals       | 18 (1fet = 1000000000000000000afet)                                                        |
+| Version        | [v0.9.1](https://github.com/fetchai/fetchd/releases/tag/v0.9.1)                            |
+| RPC Endpoint   | <https://rpc-fetchhub3-archive.fetch.ai:443>                                               |
+| GRPC Endpoint  | <https://grpc-fetchhub3-archive.fetch.ai:443>                                              |
+| REST Endpoint  | <https://rest-fetchhub3-archive.fetch.ai:443>                                              |
+| Block Explorer | [https://explore-fetchhub3-archive.fetch.ai](https://explore-fetchhub3-archive.fetch.ai)   |
+| Token Faucet   | N/A                                                                                        |
+| Seed Node(s)   | N/A                                                                                        |
 
 ### Fetchhub-2 archive
 
