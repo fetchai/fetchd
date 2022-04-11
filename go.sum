@@ -74,9 +74,8 @@ github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d h1:nalkkPQ
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d/go.mod h1:URdX5+vg25ts3aCh8H5IFZybJYKWhJHYMTnf+ULtoC4=
 github.com/CosmWasm/wasmd v0.25.0 h1:Xshr94OaTrOVV0p6g6bTbDYjcmokO1T69hoi11nSnlM=
 github.com/CosmWasm/wasmd v0.25.0/go.mod h1:z9a5HPPJ6HSpsRzUtyi9iT07bO96w9ZJnDAwThHtP9Y=
+github.com/CosmWasm/wasmvm v1.0.0-beta10 h1:N99+PRcrh4FeDP1xQuJGaAsr+7U+TZAHKG8mybnAsKU=
 github.com/CosmWasm/wasmvm v1.0.0-beta10/go.mod h1:y+yd9piV8KlrB7ISRZz1sDwH4UVm4Q9rEX9501dBNog=
-github.com/CosmWasm/wasmvm v1.0.0-beta7 h1:hCa6P8tUTh8viabzeXfede5iPlopSav9Guh+hupXjvU=
-github.com/CosmWasm/wasmvm v1.0.0-beta7/go.mod h1:y+yd9piV8KlrB7ISRZz1sDwH4UVm4Q9rEX9501dBNog=
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/zstd v1.4.1/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
