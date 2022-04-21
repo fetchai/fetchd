@@ -3,7 +3,7 @@ module github.com/fetchai/fetchd
 go 1.17
 
 require (
-	github.com/CosmWasm/wasmd v0.25.0
+	github.com/CosmWasm/wasmd v0.26.0
 	github.com/cosmos/cosmos-sdk v0.45.1
 	github.com/cosmos/ibc-go/v2 v2.2.0
 	github.com/gorilla/mux v1.8.0
