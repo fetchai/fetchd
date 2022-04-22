@@ -176,7 +176,7 @@ Rewards can also be filtered for a given validator, like `validator5` here:
 fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-we now get only the reward from this validator:
+We now get only the reward from this validator:
 
 ```text
 - denom: atestfet
