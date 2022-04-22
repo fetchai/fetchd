@@ -153,7 +153,7 @@ To retrieve all the outstanding rewards for an address, issue the following comm
 fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
-This address having delegated tokens to 2 validators on `capricorn`, it produces the following output:
+This address having delegated tokens to 2 validators on `capricorn`, produces the following output:
 
 ```text
 rewards:
