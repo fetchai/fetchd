@@ -145,7 +145,7 @@ fetchd query staking redelegations fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 
 ### Query the user rewards
 
-After having delegated some tokens to a validator, the user is eligible to a share of the rewards the validator collect.
+After having delegated some tokens to a validator, the user is eligible to a share of the rewards the validator collects.
 
 To retrieve all the outstanding rewards for an address, issue the following command:
 
