@@ -105,7 +105,7 @@ Here is a sample of delegations `validator5` received on `capricorn`:
 
 ### Query the redelegations
 
-Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period, but the tokens can't be redelegated until the initial redelegation transaction complete after 21 days (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
+Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period. However, the tokens can't be redelegated until the initial redelegation transaction has completed its 21 day completion time (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
 
 To obtains the list of redelegations made from a validator, use the following command:
 
