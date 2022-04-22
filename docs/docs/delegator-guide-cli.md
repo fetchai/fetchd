@@ -63,7 +63,7 @@ On `capricorn` network, this will produce an output similar to the following, de
 ...
 ```
 
-To obtain the same informations for a single validator, use the following command, providing the `operatoraddress` of the validator.
+To obtain the same information for a single validator, use the following command, providing the `operatoraddress` of the validator.
 
 ```bash
 fetchd query staking validator fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
