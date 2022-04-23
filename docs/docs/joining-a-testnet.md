@@ -72,6 +72,6 @@ Your local node will then start to synchronise itself with the network, replayin
 To know when your node as finished syncing, you can query it's status from its RPC API:
 
 ```bash
-curl -s 127.0.01:26657/status |  jq '.result.sync_info.catching_up'
+curl -s 127.0.0.1:26657/status |  jq '.result.sync_info.catching_up'
 true # this will print "false" once your node is up to date
 ```
