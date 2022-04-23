@@ -216,7 +216,7 @@ From here, inspecting the delegations from our account, we'll see that our deleg
 - `600000atestfet` to validator `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` (our initial 1000000 minus the 400000 redelegated)
 - `400000atestfet` to validator `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`
 
-Now thoses `400000 atestfet` we redelegated can't be redelegated anymore for 21 days (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). Note that it's still possible to unbond those tokens if needed. 
+Now those `400000 atestfet` we redelegated can't be redelegated anymore for 21 days (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). Note that it's still possible to unbond those tokens if needed. 
 
 ### Unbonding tokens
 
