@@ -226,7 +226,7 @@ At any time, we can transfer parts or all of our delegated tokens back to our ac
 fetchd tx staking unbond fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 300000atestfet --from myKey
 ```
 
-Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 days period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
+Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 day period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
 
 ### Withdrawing rewards
 
