@@ -193,7 +193,7 @@ To delegate `1000000 atestfet` tokens to  the `fetchvaloper1z72rph6l5j6ex83n4urp
 fetchd tx staking delegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 1000000atestfet --from myKey
 ```
 
-This will prompt for confirmation before issuing a transaction. After the transaction get processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
+This will prompt for confirmation before issuing a transaction. After the transaction gets processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
 
 <div class="admonition note">
   <p class="admonition-title">Note</p>
