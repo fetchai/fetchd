@@ -17,7 +17,7 @@ The chain identifier of our production network is fetchhub-4.
 | REST Endpoint  | <https://rest-fetchhub.fetch.ai:443>                                                                                                                                                                                       |
 | Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai)                                                                                                                                                     |
 | Token Faucet   | N/A                                                                                                                                                                                                                        |
-| Genesis        | `curl https://raw.githubusercontent.com/fetchai/genesis-fetchhub/main/fetchhub-4/data/genesis_migrated_5300200.json --output ~/.fetchd/config/genesis.json`                                                                |
+| Genesis        | `curl https://raw.githubusercontent.com/fetchai/genesis-fetchhub/fetchhub-4/fetchhub-4/data/genesis_migrated_5300200.json --output ~/.fetchd/config/genesis.json`                                                                |
 | Seed Node(s)   | 17693da418c15c95d629994a320e2c4f51a8069b@connect-fetchhub.fetch.ai:36456,a575c681c2861fe945f77cb3aba0357da294f1f2@connect-fetchhub.fetch.ai:36457,d7cda986c9f59ab9e05058a803c3d0300d15d8da@connect-fetchhub.fetch.ai:36458 |
 
 ## Mainnet Archives
