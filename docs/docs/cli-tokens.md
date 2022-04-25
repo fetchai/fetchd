@@ -2,7 +2,7 @@
 
 ## Querying your balance
 
-Once `fetchd` is configured for the desired [network](../cli-introduction/). The user can query there balance using the following command:
+Once `fetchd` is configured for the desired [network](../cli-introduction/). The user can query their balance using the following command:
 
 ```bash
 fetchd query bank balances fetch1akvyhle79nts4rwn075t85xrwmp5ysuqynxcn4
