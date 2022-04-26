@@ -47,7 +47,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	crisiskeeper "github.com/cosmos/cosmos-sdk/x/crisis/keeper"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
-	distr "github.com/cosmos/cosmos-sdk/x/distribution"
+	"github.com/cosmos/cosmos-sdk/x/distribution"
 	distrclient "github.com/cosmos/cosmos-sdk/x/distribution/client"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -104,9 +104,11 @@ import (
 const Name = "fetchd"
 
 var (
+	// ProposalsEnabled controls x/wasm Proposals
 	// If EnabledSpecificProposals is "", and this is "true", then enable all x/wasm proposals.
 	// If EnabledSpecificProposals is "", and this is not "true", then disable all x/wasm proposals.
 	ProposalsEnabled = "false"
+	// EnableSpecificProposals allows to enable only specific x/wasm proposals
 	// If set to non-empty string it must be comma-separated list of values that are all a subset
 	// of "EnableAllProposals" (takes precedence over ProposalsEnabled)
 	// https://github.com/CosmWasm/wasmd/blob/02a54d33ff2c064f3539ae12d75d027d9c665f05/x/wasm/internal/types/proposal.go#L28-L34
@@ -144,7 +146,7 @@ var (
 		capability.AppModuleBasic{},
 		staking.AppModuleBasic{},
 		mint.AppModuleBasic{},
-		distr.AppModuleBasic{},
+		distribution.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			append(
 				wasmclient.ProposalHandlers,
@@ -239,8 +241,6 @@ type App struct {
 
 	// the module manager
 	mm *module.Manager
-
-	configurator module.Configurator
 }
 
 // New returns a reference to an initialized Gaia.
@@ -343,7 +343,7 @@ func New(
 	govRouter := govtypes.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
-		AddRoute(distrtypes.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(distrtypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(upgradetypes.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.UpgradeKeeper)).
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(app.IBCKeeper.ClientKeeper))
 
@@ -434,7 +434,7 @@ func New(
 		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
 		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
 		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		distribution.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
@@ -446,7 +446,7 @@ func New(
 		wasm.NewAppModule(appCodec, &app.WasmKeeper, app.StakingKeeper),
 	)
 
-	// During begin block slashing happens after distr.BeginBlocker so that
+	// During begin block slashing happens after distribution.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	// NOTE: staking module is required if HistoricalEntries param > 0
@@ -523,8 +523,10 @@ func New(
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
-	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
-	app.mm.RegisterServices(app.configurator)
+	cfg := module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
+
+	app.RegisterUpgradeHandlers(cfg)
+	app.mm.RegisterServices(cfg)
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -599,6 +601,7 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
+	app.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap())
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
@@ -665,6 +668,32 @@ func (app *App) GetMemKey(storeKey string) *sdk.MemoryStoreKey {
 func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	subspace, _ := app.ParamsKeeper.GetSubspace(moduleName)
 	return subspace
+}
+
+func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// manually add every existing modules to prevent the migration calling InitGenesis on them
+		fromVM[authz.ModuleName] = authzmodule.AppModule{}.ConsensusVersion()
+		fromVM[banktypes.ModuleName] = bank.AppModule{}.ConsensusVersion()
+		fromVM[capabilitytypes.ModuleName] = capability.AppModule{}.ConsensusVersion()
+		fromVM[crisistypes.ModuleName] = crisis.AppModule{}.ConsensusVersion()
+		fromVM[distrtypes.ModuleName] = distribution.AppModule{}.ConsensusVersion()
+		fromVM[stakingtypes.ModuleName] = staking.AppModule{}.ConsensusVersion()
+		fromVM[evidencetypes.ModuleName] = evidence.AppModule{}.ConsensusVersion()
+		fromVM[feegrant.ModuleName] = feegrantmodule.AppModule{}.ConsensusVersion()
+		fromVM[genutiltypes.ModuleName] = genutil.AppModule{}.ConsensusVersion()
+		fromVM[govtypes.ModuleName] = gov.AppModule{}.ConsensusVersion()
+		fromVM[ibchost.ModuleName] = ibc.AppModule{}.ConsensusVersion()
+		fromVM[minttypes.ModuleName] = mint.AppModule{}.ConsensusVersion()
+		fromVM[paramstypes.ModuleName] = params.AppModule{}.ConsensusVersion()
+		fromVM[slashingtypes.ModuleName] = slashing.AppModule{}.ConsensusVersion()
+		fromVM[ibctransfertypes.ModuleName] = transfer.AppModule{}.ConsensusVersion()
+		fromVM[authtypes.ModuleName] = auth.AppModule{}.ConsensusVersion()
+		fromVM[upgradetypes.ModuleName] = upgrade.AppModule{}.ConsensusVersion()
+		fromVM[vestingtypes.ModuleName] = vesting.AppModule{}.ConsensusVersion()
+		fromVM[wasm.ModuleName] = wasm.AppModule{}.ConsensusVersion()
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
