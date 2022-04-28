@@ -27,7 +27,7 @@ If using fetchd >= 0.10.4
 
 ### Download and install the snapshot
 
-Many options here!  The example below assumes a bash-like environment, uses a single connection for downloading, confirms the md5sum of the downloaded data against that of the original, and does not land the original compressed data to disk.  This is a good starting point, but depending on your local environment you may wish to make adaptations that eg sacrifice disk space and extra md5sum complexity for the benefit of parallel downloads with aria2.  Entirely up to you!
+Many options here!  The example below assumes a bash-like environment, uses a single connection for downloading, confirms the md5sum of the downloaded data against that of the original, and does not land the original compressed data to disk.  This is a good starting point, but depending on your local environment you may wish to make adaptations that eg sacrifice disk space and extra md5sum complexity for the benefit of parallel downloads with aria2.  Entirely up to you... let us know how you get on!
 
 ```bash
 # (optional) show the timestamp of the latest available snapshot
@@ -37,7 +37,7 @@ echo "Latest available snapshot timestamp : $(curl -s -I  https://storage.google
 curl -v https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-4-pruned.tgz -o- 2>headers.out | tee >(md5sum > md5sum.out) | gunzip -c | tar -xvf - --directory=~/.fetchd
 
 # (optional, but recommended) compare source md5 checksum provided in the headers by google, with the one calculated locally
-[[ $(awk -F\" '/etag:/{ print $2 }' headers.out) == $(awk '{ print $1 }' md5sum.out) ]] && echo "OK - md5sum match" || echo "ERROR - md5sum MISMATCH"
+[[ $(grep 'x-goog-hash: md5' headers.out | sed -z 's/^.*md5=\(.*\)/\1/g' | tr -d '\r' | base64 -d | od -An -vtx1 | tr -d ' \n') == $(awk '{ print $1 }' md5sum.out) ]] && echo "OK - md5sum match" || echo "ERROR - md5sum MISMATCH"
 
 # (optional) show the creation date of the downloaded snapshot
 echo "Downloaded snapshot timestamp: $(grep last-modified headers.out | cut -f3- -d' ')"
