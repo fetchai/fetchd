@@ -67,7 +67,7 @@ curl https://rpc-capricorn.fetch.ai:443 | jq '.result.genesis' > ~/.fetchd/confi
 fetchd start --p2p.seeds=fec822ecf6e503a694a709ce663fd0c6da5fda3e@connect-capricorn.fetch.ai:36956
 ```
 
-Your local node will then start to synchronise itself with the network, replaying all blocks and transactions up to the current block. Depending on the age of the network and your hard disk speed, this could take a while. 
+Your local node will then start to synchronise itself with the network, replaying all blocks and transactions up to the current block. Depending on the age of the network and your hard disk speed, this could take a while.  Consider using [chain snapshots](../snapshots/) to speed up this process.
 
 To know when your node as finished syncing, you can query it's status from its RPC API:
 
