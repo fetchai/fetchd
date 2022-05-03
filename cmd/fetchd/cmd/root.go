@@ -18,6 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -38,6 +39,7 @@ import (
 
 	"github.com/fetchai/fetchd/app"
 	"github.com/fetchai/fetchd/app/params"
+	"github.com/fetchai/fetchd/crypto/hd"
 )
 
 // NewRootCmd creates a new root command for simd. It is called once in the
@@ -57,7 +59,10 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		WithInput(bufio.NewReader(os.Stdin)).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithHomeDir(app.DefaultNodeHome).
-		WithViper("FETCH")
+		WithViper("FETCH").
+		WithKeyringOptions(func(options *keyring.Options) {
+			options.SupportedAlgos = append(options.SupportedAlgos, hd.Bls12381)
+		})
 
 	rootCmd := &cobra.Command{
 		Use:   app.Name,
