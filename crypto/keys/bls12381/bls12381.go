@@ -9,6 +9,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	blst "github.com/supranational/blst/bindings/go"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -31,6 +32,12 @@ const (
 
 var _ cryptotypes.PrivKey = &PrivKey{}
 var _ codec.AminoMarshaler = &PrivKey{}
+
+// IsPopValid return true when at least one transaction have been made with this account
+// which prove the knowledge of the associated private key.
+func IsPopValid(acc types.AccountI) bool {
+	return acc.GetSequence() > 0
+}
 
 // RegisterInterfaces register bls12381 PubKey implementation as a cryptotypes.PubKey
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
