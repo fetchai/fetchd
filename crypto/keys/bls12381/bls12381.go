@@ -28,6 +28,13 @@ const (
 	SignatureSize = 96
 	keyType       = "bls12381"
 	SeedSize      = 32
+
+	// DefaultSigVerifyCostBls12381 defines the default cost of a Bls signature verification
+	// NOTE: if for some reasons we want this as part of the state, same as for ED25519 or Secp256k1 keys,
+	// we'd need to have a custom module defining this parameter and create our own CustomSignatureVerificationGasConsumer
+	// given the complexity of this, we'll keep the hardcoded value until there's some need of having this
+	// as a gov-tweakable parameter.
+	DefaultSigVerifyCostBls12381 uint64 = 6300
 )
 
 var _ cryptotypes.PrivKey = &PrivKey{}
