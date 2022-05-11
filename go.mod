@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cosmos/cosmos-sdk v0.46.0-rc1
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/gogo/protobuf v1.3.2
+	github.com/gogo/protobuf v1.3.3
 	github.com/gorilla/mux v1.8.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.5.0
@@ -13,6 +13,8 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/supranational/blst v0.3.7
 	github.com/tendermint/tendermint v0.35.4
+	github.com/stretchr/testify v1.7.1
+	github.com/supranational/blst v0.3.7
 	github.com/tendermint/tm-db v0.6.7
 )
 
@@ -40,6 +42,8 @@ require (
 	github.com/confio/ics23/go v0.7.0 // indirect
 	github.com/cosmos/btcutil v1.0.4 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-alpha7 // indirect
+	github.com/cosmos/go-bip39 v1.0.0 // indirect
+	github.com/cosmos/cosmos-sdk/errors v1.0.0-beta.3 // indirect
 	github.com/cosmos/gorocksdb v1.2.0 // indirect
 	github.com/cosmos/iavl v0.18.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
