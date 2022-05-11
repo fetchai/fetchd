@@ -3,9 +3,7 @@ module github.com/fetchai/fetchd
 go 1.18
 
 require (
-	github.com/cosmos/cosmos-sdk v0.46.0-rc1
-	github.com/cosmos/go-bip39 v1.0.0
-	github.com/gogo/protobuf v1.3.3
+	github.com/cosmos/cosmos-sdk v0.46.0-beta2
 	github.com/gorilla/mux v1.8.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.5.0
