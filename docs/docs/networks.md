@@ -41,6 +41,7 @@ Archived data for previous mainnet versions.
 | Block Explorer | [https://explore-fetchhub3-archive.fetch.ai](https://explore-fetchhub3-archive.fetch.ai) |
 | Token Faucet   | N/A                                                                                      |
 | Seed Node(s)   | N/A                                                                                      |
+| Snapshots      | <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-3-archive.tgz>       |
 
 ### Fetchhub-2 archive
 
@@ -58,6 +59,7 @@ Archived data for previous mainnet versions.
 | Block Explorer | [https://explore-fetchhub2-archive.fetch.ai](https://explore-fetchhub2-archive.fetch.ai) |
 | Token Faucet   | N/A                                                                                      |
 | Seed Node(s)   | N/A                                                                                      |
+| Snapshots      | <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-2-archive.tgz>       |
 
 ### Fetchhub-1 archive
 
@@ -75,6 +77,7 @@ Archived data for previous mainnet versions.
 | Block Explorer | [https://explore-fetchhub1-archive.fetch.ai](https://explore-fetchhub1-archive.fetch.ai) |
 | Token Faucet   | N/A                                                                                      |
 | Seed Node(s)   | N/A                                                                                      |
+| Snapshots      | <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-1-archive.tgz>       |
 
 ## Test Nets
 
