@@ -81,27 +81,11 @@ Archived data for previous mainnet versions.
 
 ## Test Nets
 
-### Capricorn
-
-This network is running the same software as our mainnet (`fetchhub-3`), and is stable for deploying smart contracts and testing IBC.
-
-| Parameter      | Value                                                                      |
-| -------------- | -------------------------------------------------------------------------- |
-| Chain ID       | capricorn-1                                                                |
-| Denomination   | atestfet                                                                   |
-| Decimals       | 18 (1testfet = 1000000000000000000atestfet)                                |
-| Min Gas Prices | 5000000000atestfet                                                         |
-| Version        | [v0.9.1](https://github.com/fetchai/fetchd/releases/tag/v0.9.1)            |
-| RPC Endpoint   | <https://rpc-capricorn.fetch.ai:443>                                       |
-| GRPC Endpoint  | <https://grpc-capricorn.fetch.ai:443>                                      |
-| REST Endpoint  | <https://rest-capricorn.fetch.ai:443>                                      |
-| Block Explorer | [https://explore-capricorn.fetch.ai/](https://explore-capricorn.fetch.ai/) |
-| Token Faucet   | Use block explorer                                                         |
-| Seed Node(s)   | fec822ecf6e503a694a709ce663fd0c6da5fda3e@connect-capricorn.fetch.ai:36956  |
-
 ### Dorado
 
-This network is used for testing the future upgrade to mainnet.
+This network is running the same major version of fetchd as our mainnet (`fetchhub-4`), possibly at a more recent minor version.
+
+It is stable for deploying smart contracts and testing IBC.
 
 | Parameter       | Value                                                                                                                                                                                                                |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -73,7 +73,7 @@ height: "0"
 info: ""
 logs: []
 raw_log: 'signature verification failed; please verify account number (5815) and chain-id
-  (capricorn-1): unauthorized'
+  (dorado-1): unauthorized'
 timestamp: ""
 tx: null
 txhash: 23701B052B423D63EB4AC94773B5B8227B03A576692A57999E92F2554F2372D4
