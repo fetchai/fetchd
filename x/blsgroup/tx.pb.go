@@ -123,13 +123,6 @@ type MsgVoteAgg struct {
 	ProposalId uint64 `protobuf:"varint,2,opt,name=proposal_id,json=proposalId,proto3" json:"proposal_id,omitempty"`
 	// votes are the list of voters' choices on the proposal.
 	Votes []group.VoteOption `protobuf:"varint,3,rep,packed,name=votes,proto3,enum=cosmos.group.v1.VoteOption" json:"votes,omitempty"`
-	// TODO restore expiry?
-	// // expiry is the timestamp after which the vote expires.
-	// // All the votes to be aggregated must have the same expiry.
-	// // Expiry should be before the proposal timeout in order to
-	// // prevent replay attacks and also prevent the aggregator from removing
-	// // some votes.
-	// google.protobuf.Timestamp expiry = 4 [(gogoproto.nullable) = false];
 	// agg_sig is the bls aggregated signature for all the votes
 	AggSig []byte `protobuf:"bytes,5,opt,name=agg_sig,json=aggSig,proto3" json:"agg_sig,omitempty"`
 	// exec defines whether the proposal should be executed

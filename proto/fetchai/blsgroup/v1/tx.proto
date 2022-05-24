@@ -14,32 +14,25 @@ import "cosmos/group/v1/tx.proto";
 import "cosmos/msg/v1/msg.proto";
 
 
-
 // Msg is the fetchai.blsgroup.v1 Msg service.
 service Msg {
     // VoteAgg allows a sender to submit a set of votes
     rpc VoteAgg(MsgVoteAgg) returns (MsgVoteAggResponse);
 }
-  
 
 message MsgVoteResponse {
     option (cosmos.msg.v1.signer) = "voter";
-  
     // proposal is the unique ID of the proposal.
     uint64 proposal_id = 1;
     // voter is the voter account address.
     string voter = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
-  
     // option is the voter's choice on the proposal.
     cosmos.group.v1.VoteOption option = 3;
-    
     // pub_key is the voter's public key
     google.protobuf.Any pub_key = 4 [(gogoproto.jsontag) = "public_key,omitempty"];
-
     // sig is the individual signature which will be aggregated with other signatures
     bytes sig = 5;
 }
-
 
 // MsgVoteAgg is the Msg/VoteAgg request type.
 message MsgVoteAgg {
@@ -49,13 +42,6 @@ message MsgVoteAgg {
     uint64 proposal_id = 2;
     // votes are the list of voters' choices on the proposal.
     repeated cosmos.group.v1.VoteOption votes = 3;
-    // TODO restore expiry?
-    // // expiry is the timestamp after which the vote expires.
-    // // All the votes to be aggregated must have the same expiry.
-    // // Expiry should be before the proposal timeout in order to
-    // // prevent replay attacks and also prevent the aggregator from removing
-    // // some votes.
-    // google.protobuf.Timestamp expiry = 4 [(gogoproto.nullable) = false];
     // agg_sig is the bls aggregated signature for all the votes
     bytes agg_sig = 5;
     // exec defines whether the proposal should be executed

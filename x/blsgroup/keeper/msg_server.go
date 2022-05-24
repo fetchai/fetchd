@@ -48,9 +48,9 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 	members := groupMemberResp.Members
 
-	// can't have more votes than the group have members
-	if len(req.Votes) > len(members) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "too many votes")
+	// need the same number of votes than the group have members
+	if g, w := len(req.Votes), len(members); g != w {
+		return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "got %d votes, want %d", g, w)
 	}
 
 	signedBytes := make([][]byte, 0, len(req.Votes))
@@ -96,6 +96,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 
 	for _, msg := range allVoteMsgs {
+		msg.Exec = req.Exec
 		if _, err := k.groupKeeper.Vote(goCtx, msg); err != nil {
 			return nil, err
 		}

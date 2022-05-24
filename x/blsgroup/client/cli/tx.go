@@ -77,7 +77,6 @@ Parameters:
 				ProposalId: proposalID,
 				Voter:      clientCtx.GetFromAddress().String(),
 				Option:     choice,
-				// TODO: Add Metadata / Exec fields
 			}
 
 			if err = msg.ValidateBasic(); err != nil {
