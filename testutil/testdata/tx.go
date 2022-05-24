@@ -6,7 +6,7 @@ import (
 	"github.com/fetchai/fetchd/crypto/keys/bls12381"
 )
 
-// KeyTestPubAddr generates a new secp256k1 keypair.
+// KeyTestPubAddrBls12381 generates a new bls12381 keypair.
 func KeyTestPubAddrBls12381() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
 	key := bls12381.GenPrivKey()
 	pub := key.PubKey()
