@@ -15,13 +15,13 @@ fetchd config chain-id fetchhub-3
 fetchd config node https://rpc-fetchhub.fetch.ai:443
 ```
 
-### Connecting to capricorn network
+### Connecting to dorado network
 
-To connect to the stargateworld network run the following configuration steps:
+To connect to the dorado network run the following configuration steps:
 
 ```bash
-fetchd config chain-id capricorn-1
-fetchd config node https://rpc-capricorn.fetch.ai:443
+fetchd config chain-id dorado-1
+fetchd config node https://rpc-dorado.fetch.ai:443
 ```
 
 Checkout the [Network Information](../networks/) page for more detailed information on the available networks.

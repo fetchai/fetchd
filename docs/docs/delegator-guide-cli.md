@@ -11,7 +11,7 @@ The following command can be used to retrieve the current staking holdings of al
 fetchd query staking validators
 ```
 
-On `capricorn` network, this will produce an output similar to the following, describing the status of all the existing validators:
+On `dorado` network, this will produce an output similar to the following, describing the status of all the existing validators:
 
 ```text
 - |
@@ -84,7 +84,7 @@ From a validator address, we can retrieve the list of delegations it received:
 fetchd query staking delegations-to fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-Here is a sample of delegations `validator5` received on `capricorn`:
+Here is a sample of delegations `validator2` received on `dorado`:
 
 ```text
 - delegation:
@@ -153,7 +153,7 @@ To retrieve all the outstanding rewards for an address, issue the following comm
 fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
-This address having delegated tokens to 2 validators on `capricorn`, produces the following output:
+This address having delegated tokens to 2 validators on `dorado`, produces the following output:
 
 ```text
 rewards:

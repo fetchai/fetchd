@@ -55,4 +55,4 @@ To see previous transactions you can also check out one of many different [block
 
 5. **What are TESTFET tokens?**
 
-    TESTFET tokens do not have an intrinsic value and are purely for the purpose of interacting with testnets. You can get access to TESTFET from the Capricorn testnet [block explorer](https://explore-capricorn.fetch.ai/) with the **Token Tap** button.
+    TESTFET tokens do not have an intrinsic value and are purely for the purpose of interacting with testnets. You can get access to TESTFET from the Dorado testnet [block explorer](https://explore-dorado.fetch.ai/) with the **Token Tap** button.
