@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -71,6 +72,18 @@ Parameters:
 			choice, err := group.VoteOptionFromString(args[2])
 			if err != nil {
 				return err
+			}
+
+			rec, err := clientCtx.Keyring.KeyByAddress(clientCtx.GetFromAddress())
+			if err != nil {
+				return err
+			}
+			pub, err := rec.GetPubKey()
+			if err != nil {
+				return err
+			}
+			if _, ok := pub.(*bls12381.PubKey); !ok {
+				return errors.New("a bls12381 key is required")
 			}
 
 			msg := &group.MsgVote{
