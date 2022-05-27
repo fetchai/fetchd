@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -71,8 +70,6 @@ Eligible accounts:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
-			depCdc := clientCtx.JSONMarshaler
-			cdc := depCdc.(codec.Marshaler)
 
 			genesisPath := args[0]
 			genDoc, appState, err := loadAppStateFromGenesis(genesisPath)
@@ -84,8 +81,8 @@ Eligible accounts:
 				return err
 			}
 
-			bankGenesis := banktypes.GetGenesisStateFromAppState(cdc, appState)
-			authGenesis := authtypes.GetGenesisStateFromAppState(cdc, appState)
+			bankGenesis := banktypes.GetGenesisStateFromAppState(clientCtx.Codec, appState)
+			authGenesis := authtypes.GetGenesisStateFromAppState(clientCtx.Codec, appState)
 			genesisAccounts, err := authtypes.UnpackAccounts(authGenesis.Accounts)
 			if err != nil {
 				return fmt.Errorf("unable to unpack accounts: %w", err)
@@ -239,7 +236,7 @@ Eligible accounts:
 
 			}
 
-			updatedBankGenesisJSON, err := cdc.MarshalJSON(bankGenesis)
+			updatedBankGenesisJSON, err := clientCtx.Codec.MarshalJSON(bankGenesis)
 			if err != nil {
 				return fmt.Errorf("unable to marshal updated bank genesis state: %w", err)
 			}
@@ -248,7 +245,7 @@ Eligible accounts:
 			if err != nil {
 				return fmt.Errorf("unable to pack accounts: %w", err)
 			}
-			updatedAuthGenesisJSON, err := cdc.MarshalJSON(&authGenesis)
+			updatedAuthGenesisJSON, err := clientCtx.Codec.MarshalJSON(&authGenesis)
 			if err != nil {
 				return fmt.Errorf("unable to marshal updated auth genesis state: %w", err)
 			}
@@ -258,7 +255,7 @@ Eligible accounts:
 
 			// validate state (same as fetchd validate-genesis cmd)
 			if !skipValidate {
-				if err := app.ModuleBasics.ValidateGenesis(cdc, clientCtx.TxConfig, appState); err != nil {
+				if err := app.ModuleBasics.ValidateGenesis(clientCtx.Codec, clientCtx.TxConfig, appState); err != nil {
 					return fmt.Errorf("failed to validate state: %w", err)
 				}
 			}

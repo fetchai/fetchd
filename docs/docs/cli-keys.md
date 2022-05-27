@@ -113,7 +113,7 @@ fetchd keys add <name for the key> --ledger --index 0
   <p>The <code>--ledger</code> flag tells the command line tool to talk to the ledger device and the <code>--index</code> flag selects which HD index should be used.</p>
 </div>
 
-When running this command, the Ledger device will prompt you to verify the genereated address. Once you have done this you will get an output in the following form:
+When running this command, the Ledger device will prompt you to verify the generated address. Once you have done this you will get an output in the following form:
 
 ```bash
 - name: hw1

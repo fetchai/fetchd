@@ -16,6 +16,7 @@ nav:
   - Installation: 'building.md'
   - Versions: 'versions.md'
   - Networks: 'networks.md'
+  - Snapshots: 'snapshots.md'
   - Commandline Client:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'

@@ -11,7 +11,7 @@ The following command can be used to retrieve the current staking holdings of al
 fetchd query staking validators
 ```
 
-On `capricorn` network, this will produce an output similar to the following, describing the status of all the existing validators:
+On `dorado` network, this will produce an output similar to the following, describing the status of all the existing validators:
 
 ```text
 - |
@@ -63,7 +63,7 @@ On `capricorn` network, this will produce an output similar to the following, de
 ...
 ```
 
-To obtain the same informations for a single validator, use the following command, providing the `operatoraddress` of the validator.
+To obtain the same information for a single validator, use the following command, providing the `operatoraddress` of the validator.
 
 ```bash
 fetchd query staking validator fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
@@ -74,7 +74,7 @@ A delegator will be particularly interested in the following keys:
 - `commission/commission_rates/rate`: The commission rate on revenue charged to any delegator by the validator.
 - `commission/commission_rates/max_change_rate`: The maximum daily increase of the validator's commission. This parameter cannot be changed by the validator operator.
 - `commission/commission_rates/max_rate`: The maximum commission rate this validator can charge. This parameter cannot be changed by the validator operator.
-- `minselfdelegation`: Minimum amount of `atestfet` the validator need to have bonded at all time. If the validator's self-bonded stake falls below this limit, their entire staking pool (i.e. all its delegators) will unbond. This parameter exists as a safeguard for delegators. Indeed, when a validator misbehaves, part of their total stake gets slashed. This included the validator's self-delegateds stake as well as their delegators' stake. Thus, a validator with a high amount of self-delegated `atestfet` has more skin-in-the-game than a validator with a low amount. The minimum self-bond amount parameter guarantees to delegators that a validator will never fall below a certain amount of self-bonded stake, thereby ensuring a minimum level of skin-in-the-game. This parameter can only be increased by the validator operator.
+- `minselfdelegation`: Minimum amount of `atestfet` the validator need to have bonded at all time. If the validator's self-bonded stake falls below this limit, their entire staking pool (i.e. all its delegators) will unbond. This parameter exists as a safeguard for delegators. Indeed, when a validator misbehaves, part of their total stake gets slashed. This includes the validator's self-delegateds stake as well as their delegators' stake. Thus, a validator with a high amount of self-delegated `atestfet` has more skin-in-the-game than a validator with a low amount. The minimum self-bond amount parameter guarantees to delegators that a validator will never fall below a certain amount of self-bonded stake, thereby ensuring a minimum level of skin-in-the-game. This parameter can only be increased by the validator operator.
 
 ### Query the delegations made to a validator
 
@@ -84,7 +84,7 @@ From a validator address, we can retrieve the list of delegations it received:
 fetchd query staking delegations-to fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-Here is a sample of delegations `validator5` received on `capricorn`:
+Here is a sample of delegations `validator2` received on `dorado`:
 
 ```text
 - delegation:
@@ -105,15 +105,15 @@ Here is a sample of delegations `validator5` received on `capricorn`:
 
 ### Query the redelegations
 
-Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period, but the tokens can't be redelegated until the initial redelegation transaction complete after 21 days (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
+Delegators can choose to redelegate the tokens they already delegated from one validator to another. Redelegation takes effect immediately, without any waiting period. However, the tokens can't be redelegated until the initial redelegation transaction has completed its 21 day completion time (the unlocking time is indicated by the `redelegationentry/completion_time` field in the outputs below).
 
-To obtains the list of redelegations made from a validator, use the following command:
+To obtain the list of redelegations made from a validator, use the following command:
 
 ```bash
 fetchd query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-Which produce an output similar to the following, where delegator `fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m` issued 2 redelegations from `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` to `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`:
+This produces an output similar to the following, where delegator `fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m` issued 2 redelegations from `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` to `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`:
 
 ```text
 fetchd query staking redelegations-from fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
@@ -145,7 +145,7 @@ fetchd query staking redelegations fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 
 ### Query the user rewards
 
-After having delegated some tokens to a validator, the user is eligible to a share of the rewards the validator collect.
+After having delegated some tokens to a validator, the user is eligible to a share of the rewards the validator collects.
 
 To retrieve all the outstanding rewards for an address, issue the following command:
 
@@ -153,7 +153,7 @@ To retrieve all the outstanding rewards for an address, issue the following comm
 fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m
 ```
 
-This address having delegated tokens to 2 validators on `capricorn`, it produces the following output:
+This address having delegated tokens to 2 validators on `dorado`, produces the following output:
 
 ```text
 rewards:
@@ -176,7 +176,7 @@ Rewards can also be filtered for a given validator, like `validator5` here:
 fetchd query distribution rewards fetch15fn3meky8ktfry3qm73xkpjckzw4dazxpfx34m fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w
 ```
 
-we now get only the reward from this validator:
+We now get only the reward from this validator:
 
 ```text
 - denom: atestfet
@@ -193,7 +193,7 @@ To delegate `1000000 atestfet` tokens to  the `fetchvaloper1z72rph6l5j6ex83n4urp
 fetchd tx staking delegate fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 1000000atestfet --from myKey
 ```
 
-This will prompt for confirmation before issuing a transaction. After the transaction get processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
+This will prompt for confirmation before issuing a transaction. After the transaction gets processed, it should appear under the delegations of the `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator.
 
 <div class="admonition note">
   <p class="admonition-title">Note</p>
@@ -216,7 +216,7 @@ From here, inspecting the delegations from our account, we'll see that our deleg
 - `600000atestfet` to validator `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` (our initial 1000000 minus the 400000 redelegated)
 - `400000atestfet` to validator `fetchvaloper122veneudkzyalay6gusvrhhpp0560mparpanvu`
 
-Now thoses `400000 atestfet` we redelegated can't be redelegated anymore for 21 days (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). Note that it's still possible to unbond those tokens if needed. 
+Now those `400000 atestfet` we redelegated can't be redelegated anymore for 21 days (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). Note that it's still possible to unbond those tokens if needed. 
 
 ### Unbonding tokens
 
@@ -226,7 +226,7 @@ At any time, we can transfer parts or all of our delegated tokens back to our ac
 fetchd tx staking unbond fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w 300000atestfet --from myKey
 ```
 
-Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 days period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
+Once again, this will prompt for confirmation and issue a transaction, initiating the transfer of `300000 atestfet` from our stake on `fetchvaloper1z72rph6l5j6ex83n4urputykawcqg6t98xul2w` validator back to our account. Those tokens will then be available **after a 21 day period** (the exact date can be found by querying the redelegation transaction, under the `completion_time` key). 
 
 ### Withdrawing rewards
 

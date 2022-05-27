@@ -47,8 +47,7 @@ and the full amount is stored on the account balance.`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
-			depCdc := clientCtx.JSONMarshaler
-			cdc := depCdc.(codec.Marshaler)
+			cdc := clientCtx.Codec
 
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			config := serverCtx.Config
@@ -205,9 +204,9 @@ and the full amount is stored on the account balance.`,
 	return cmd
 }
 
-func addDelegation(cdc codec.JSONMarshaler, appState map[string]json.RawMessage, userAddr sdk.AccAddress, valAddr sdk.ValAddress, delegatedCoin sdk.Coin, currentHeight uint64) (map[string]json.RawMessage, error) {
+func addDelegation(cdc codec.JSONCodec, appState map[string]json.RawMessage, userAddr sdk.AccAddress, valAddr sdk.ValAddress, delegatedCoin sdk.Coin, currentHeight uint64) (map[string]json.RawMessage, error) {
 	stakingState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
-	shares := sdk.Dec(delegatedCoin.Amount.Mul(sdk.PowerReduction))
+	shares := sdk.Dec(delegatedCoin.Amount.Mul(sdk.DefaultPowerReduction))
 
 	var currentDelegation *stakingtypes.Delegation
 	// check if user already delegated to this validator
