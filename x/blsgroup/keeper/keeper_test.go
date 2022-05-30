@@ -63,9 +63,7 @@ func (s *TestSuite) SetupTest() {
 			PrivKey: priv,
 			Addr:    addr,
 		}
-
 		pubkeys[i] = pub
-
 	}
 	testutil.AddTestAddrsFromPubKeys(app, ctx, pubkeys, sdk.NewInt(30000000))
 
@@ -74,9 +72,11 @@ func (s *TestSuite) SetupTest() {
 		return bytes.Compare(s.accounts[i].Addr, s.accounts[j].Addr) < 0
 	})
 
+	// make pop checks happy
 	for _, testAcc := range s.accounts {
 		acc := s.app.AccountKeeper.GetAccount(ctx, testAcc.Addr)
 		s.Require().NoError(acc.SetPubKey(testAcc.Pubkey))
+		s.Require().NoError(acc.SetSequence(1))
 		s.app.AccountKeeper.SetAccount(ctx, acc)
 	}
 

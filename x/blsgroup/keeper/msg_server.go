@@ -68,6 +68,9 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 		if acc == nil {
 			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s does not exist", memAddr.String())
 		}
+		if !bls12381.IsPopValid(acc) {
+			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s have not proven possession of private key yet, make this account sign a transaction first", memAddr.String())
+		}
 		pk := acc.GetPubKey()
 		if pk == nil {
 			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "public key for account %s not set yet", memAddr.String())
