@@ -43,7 +43,7 @@ For more information checkout the complete [documentation on keys](../cli-keys/)
 **Step 5 - Adding the validator to the network**
 
 To set the initial state for the network use the following command. This allocates `100000000000000000000` stake tokens
-to the validator which can be bonded. We set a second token allocation for fet so that the account has funds to create transactions:
+to the validator which can be bonded. We set a second token allocation of fet so that the account has funds to create transactions:
 
    `fetchd add-genesis-account validator 100000000000000000000stake,9631fet`
 
