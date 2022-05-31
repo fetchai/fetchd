@@ -42,12 +42,12 @@ For more information checkout the complete [documentation on keys](../cli-keys/)
 
 **Step 5 - Adding the validator to the network**
 
-To set the initial state for the network use the following command. This allocates `100000000000000000000` stake tokens
-to the validator which can be bonded.
+To set the initial state for the network use the following command. This allocates `100000000000000000000` `stake` tokens
+to the validator which can be bonded. 
 
    `fetchd add-genesis-account validator 100000000000000000000stake`
 
-`stake` is the default test token denomination in the cosmos ecosystem, but you could use `afet`, `BTC` etc instead:
+`stake` is the default test token denomination in the cosmos ecosystem, but you could use `afet`, `BTC` etc.
 
 **Step 6 - Generating a validator transaction**
 
@@ -82,3 +82,4 @@ run the following command:
 
 This resets the chain back to genesis, you **DO NOT** need to perform the network setup steps again. After running this
 command you can simply run the `fetchd start` command again.
+
