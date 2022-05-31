@@ -13,12 +13,6 @@ Download the latest released version from github and build the project using the
 git clone https://github.com/fetchai/fetchd.git && cd fetchd
 ```
 
-Then select the particular tag version you want to build, ie:
-
-```bash
-git checkout v0.8.7
-```
-
 Then build the code with the command:
 
 ```bash
