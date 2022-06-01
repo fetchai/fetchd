@@ -765,3 +765,24 @@ func (s *TestSuite) TestVoteAggTimeout() {
 	}
 
 }
+
+func (s *TestSuite) TestGetAllGroupMembers() {
+	members := make([]group.Member, 67)
+	for i := 0; i < len(members); i++ {
+		_, _, addr := testdata.KeyTestPubAddrBls12381()
+		members[i] = group.Member{
+			Address: addr.String(),
+			Weight:  "2",
+		}
+	}
+
+	groupRes, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin:   s.groupAdmin.String(),
+		Members: members,
+	})
+	s.Require().NoError(err)
+
+	respMembers, err := s.app.BlsGroupKeeper.GetAllGroupMembers(s.ctx, groupRes.GroupId)
+	s.Require().NoError(err)
+	s.Require().Equal(len(members), len(respMembers))
+}

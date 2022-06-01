@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/group"
 	grouperrors "github.com/cosmos/cosmos-sdk/x/group/errors"
 
@@ -169,11 +170,10 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 		return nil, err
 	}
 
-	groupMemberResp, err := k.groupKeeper.GroupMembers(goCtx, &group.QueryGroupMembersRequest{GroupId: electorate.Info.Id})
+	members, err := k.GetAllGroupMembers(goCtx, electorate.Info.Id)
 	if err != nil {
 		return nil, err
 	}
-	members := groupMemberResp.Members
 
 	// need the same number of votes than the group have members
 	if g, w := len(req.Votes), len(members); g != w {
@@ -242,6 +242,24 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 
 	return &blsgroup.MsgVoteAggResponse{}, nil
+}
+
+func (k Keeper) GetAllGroupMembers(goCtx context.Context, groupID uint64) ([]*group.GroupMember, error) {
+	var members []*group.GroupMember
+
+	req := &group.QueryGroupMembersRequest{
+		GroupId:    groupID,
+		Pagination: &query.PageRequest{Offset: 0, Limit: 10},
+	}
+	for len(members) == 0 || (req.Pagination != nil && req.Pagination.Key != nil) {
+		groupMemberResp, err := k.groupKeeper.GroupMembers(goCtx, req)
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, groupMemberResp.Members...)
+		req.Pagination.Key = groupMemberResp.Pagination.NextKey
+	}
+	return members, nil
 }
 
 func encodeGroupID(groupID uint64) []byte {
