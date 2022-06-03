@@ -125,6 +125,79 @@ Parameters:
 	return cmd
 }
 
+func MsgRegisterBlsGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "register-bls-group [group_id]",
+		Short: "Register a group as a BLS group",
+		Long: `Register a group as a BLS group.
+
+This will check that all defined members of the group are using BLS keys, and they all verify their proof of possession.
+On modification (when the group version change), the group must be registered again.
+`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			groupID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			msg := &blsgroup.MsgRegisterBlsGroup{
+				Admin:   clientCtx.GetFromAddress().String(),
+				GroupId: groupID,
+			}
+
+			if err = msg.ValidateBasic(); err != nil {
+				return fmt.Errorf("message validation failed: %w", err)
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
+}
+
+func MsgUnregisterBlsGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unregister-bls-group [group_id]",
+		Short: "Unregister a group as a BLS group",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			groupID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			msg := &blsgroup.MsgUnregisterBlsGroup{
+				Admin:   clientCtx.GetFromAddress().String(),
+				GroupId: groupID,
+			}
+
+			if err = msg.ValidateBasic(); err != nil {
+				return fmt.Errorf("message validation failed: %w", err)
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
+}
+
 func MsgVoteAggCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vote-agg [proposal_id] [group-members-json-file] [[vote-json-file]...]",

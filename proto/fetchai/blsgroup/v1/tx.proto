@@ -16,9 +16,36 @@ import "cosmos/msg/v1/msg.proto";
 
 // Msg is the fetchai.blsgroup.v1 Msg service.
 service Msg {
+    // RegisterBlsGroup checks that all group members have a bls key, and they proven possession of the corresponding private key.
+    // It then register the groupID as a bls group to enable the other BLS feature (such as VoteAgg).
+    rpc RegisterBlsGroup(MsgRegisterBlsGroup) returns (MsgRegisterBlsGroupResponse);
+    // UnregisterBlsGroup delete a BLS group registration
+    rpc UnregisterBlsGroup(MsgUnregisterBlsGroup) returns (MsgUnregisterBlsGroupResponse);
+    
     // VoteAgg allows a sender to submit a set of votes
     rpc VoteAgg(MsgVoteAgg) returns (MsgVoteAggResponse);
+    
 }
+
+message MsgRegisterBlsGroup {
+    option (cosmos.msg.v1.signer) = "admin";
+    // admin is the current account address of the group admin.
+    string admin = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+    // group_id is the group ID to register as a BLS group
+    uint64 group_id = 2;
+}
+
+message MsgRegisterBlsGroupResponse {}
+
+message MsgUnregisterBlsGroup {
+    option (cosmos.msg.v1.signer) = "admin";
+    // admin is the current account address of the group admin.
+    string admin = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+    // group_id is the group ID to unregister
+    uint64 group_id = 2;
+}
+
+message MsgUnregisterBlsGroupResponse {}
 
 message MsgVoteResponse {
     option (cosmos.msg.v1.signer) = "voter";

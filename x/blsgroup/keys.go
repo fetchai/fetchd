@@ -10,3 +10,8 @@ const (
 	// RouterKey defines the module's message routing key
 	RouterKey = ModuleName
 )
+
+// KVStore keys
+var (
+	GroupPrefixKey = []byte{0x00}
+)

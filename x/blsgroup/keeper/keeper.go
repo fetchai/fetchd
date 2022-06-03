@@ -11,17 +11,18 @@ import (
 type Keeper struct {
 	key storetypes.StoreKey
 
+	cdc codec.Codec
+
 	groupKeeper blsgroup.GroupKeeper
 	accKeeper   blsgroup.AccountKeeper
 
 	router *authmiddleware.MsgServiceRouter
 }
 
-var _ blsgroup.MsgServer = Keeper{}
-
 func NewKeeper(storeKey storetypes.StoreKey, cdc codec.Codec, router *authmiddleware.MsgServiceRouter, groupKeeper blsgroup.GroupKeeper, accKeeper blsgroup.AccountKeeper) Keeper {
 	return Keeper{
 		key:         storeKey,
+		cdc:         cdc,
 		router:      router,
 		groupKeeper: groupKeeper,
 		accKeeper:   accKeeper,

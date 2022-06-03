@@ -150,6 +150,14 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	s.group = &group.GroupInfo{Id: 1, Admin: s.accountBls1.String(), Metadata: validMetadata, TotalWeight: "9", Version: 1}
 
+	_, err = cli.ExecTestCLICmd(val.ClientCtx, blsclient.MsgRegisterBlsGroupCmd(),
+		append(
+			[]string{"1", "--from", s.group.Admin},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+
 	// create group policy
 	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateGroupPolicyCmd(),
 		append(

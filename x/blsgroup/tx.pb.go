@@ -34,6 +34,186 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type MsgRegisterBlsGroup struct {
+	// admin is the current account address of the group admin.
+	Admin string `protobuf:"bytes,1,opt,name=admin,proto3" json:"admin,omitempty"`
+	// group_id is the group ID to register as a BLS group
+	GroupId uint64 `protobuf:"varint,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+}
+
+func (m *MsgRegisterBlsGroup) Reset()         { *m = MsgRegisterBlsGroup{} }
+func (m *MsgRegisterBlsGroup) String() string { return proto.CompactTextString(m) }
+func (*MsgRegisterBlsGroup) ProtoMessage()    {}
+func (*MsgRegisterBlsGroup) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4e5efa1b539f0d6e, []int{0}
+}
+func (m *MsgRegisterBlsGroup) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgRegisterBlsGroup) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgRegisterBlsGroup.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgRegisterBlsGroup) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgRegisterBlsGroup.Merge(m, src)
+}
+func (m *MsgRegisterBlsGroup) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgRegisterBlsGroup) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgRegisterBlsGroup.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgRegisterBlsGroup proto.InternalMessageInfo
+
+func (m *MsgRegisterBlsGroup) GetAdmin() string {
+	if m != nil {
+		return m.Admin
+	}
+	return ""
+}
+
+func (m *MsgRegisterBlsGroup) GetGroupId() uint64 {
+	if m != nil {
+		return m.GroupId
+	}
+	return 0
+}
+
+type MsgRegisterBlsGroupResponse struct {
+}
+
+func (m *MsgRegisterBlsGroupResponse) Reset()         { *m = MsgRegisterBlsGroupResponse{} }
+func (m *MsgRegisterBlsGroupResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgRegisterBlsGroupResponse) ProtoMessage()    {}
+func (*MsgRegisterBlsGroupResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4e5efa1b539f0d6e, []int{1}
+}
+func (m *MsgRegisterBlsGroupResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgRegisterBlsGroupResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgRegisterBlsGroupResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgRegisterBlsGroupResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgRegisterBlsGroupResponse.Merge(m, src)
+}
+func (m *MsgRegisterBlsGroupResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgRegisterBlsGroupResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgRegisterBlsGroupResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgRegisterBlsGroupResponse proto.InternalMessageInfo
+
+type MsgUnregisterBlsGroup struct {
+	// admin is the current account address of the group admin.
+	Admin string `protobuf:"bytes,1,opt,name=admin,proto3" json:"admin,omitempty"`
+	// group_id is the group ID to unregister
+	GroupId uint64 `protobuf:"varint,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+}
+
+func (m *MsgUnregisterBlsGroup) Reset()         { *m = MsgUnregisterBlsGroup{} }
+func (m *MsgUnregisterBlsGroup) String() string { return proto.CompactTextString(m) }
+func (*MsgUnregisterBlsGroup) ProtoMessage()    {}
+func (*MsgUnregisterBlsGroup) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4e5efa1b539f0d6e, []int{2}
+}
+func (m *MsgUnregisterBlsGroup) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgUnregisterBlsGroup) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgUnregisterBlsGroup.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgUnregisterBlsGroup) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgUnregisterBlsGroup.Merge(m, src)
+}
+func (m *MsgUnregisterBlsGroup) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgUnregisterBlsGroup) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgUnregisterBlsGroup.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgUnregisterBlsGroup proto.InternalMessageInfo
+
+func (m *MsgUnregisterBlsGroup) GetAdmin() string {
+	if m != nil {
+		return m.Admin
+	}
+	return ""
+}
+
+func (m *MsgUnregisterBlsGroup) GetGroupId() uint64 {
+	if m != nil {
+		return m.GroupId
+	}
+	return 0
+}
+
+type MsgUnregisterBlsGroupResponse struct {
+}
+
+func (m *MsgUnregisterBlsGroupResponse) Reset()         { *m = MsgUnregisterBlsGroupResponse{} }
+func (m *MsgUnregisterBlsGroupResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgUnregisterBlsGroupResponse) ProtoMessage()    {}
+func (*MsgUnregisterBlsGroupResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_4e5efa1b539f0d6e, []int{3}
+}
+func (m *MsgUnregisterBlsGroupResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgUnregisterBlsGroupResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgUnregisterBlsGroupResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgUnregisterBlsGroupResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgUnregisterBlsGroupResponse.Merge(m, src)
+}
+func (m *MsgUnregisterBlsGroupResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgUnregisterBlsGroupResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgUnregisterBlsGroupResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgUnregisterBlsGroupResponse proto.InternalMessageInfo
+
 type MsgVoteResponse struct {
 	// proposal is the unique ID of the proposal.
 	ProposalId uint64 `protobuf:"varint,1,opt,name=proposal_id,json=proposalId,proto3" json:"proposal_id,omitempty"`
@@ -51,7 +231,7 @@ func (m *MsgVoteResponse) Reset()         { *m = MsgVoteResponse{} }
 func (m *MsgVoteResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgVoteResponse) ProtoMessage()    {}
 func (*MsgVoteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4e5efa1b539f0d6e, []int{0}
+	return fileDescriptor_4e5efa1b539f0d6e, []int{4}
 }
 func (m *MsgVoteResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -134,7 +314,7 @@ func (m *MsgVoteAgg) Reset()         { *m = MsgVoteAgg{} }
 func (m *MsgVoteAgg) String() string { return proto.CompactTextString(m) }
 func (*MsgVoteAgg) ProtoMessage()    {}
 func (*MsgVoteAgg) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4e5efa1b539f0d6e, []int{1}
+	return fileDescriptor_4e5efa1b539f0d6e, []int{5}
 }
 func (m *MsgVoteAgg) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -206,7 +386,7 @@ func (m *MsgVoteAggResponse) Reset()         { *m = MsgVoteAggResponse{} }
 func (m *MsgVoteAggResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgVoteAggResponse) ProtoMessage()    {}
 func (*MsgVoteAggResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_4e5efa1b539f0d6e, []int{2}
+	return fileDescriptor_4e5efa1b539f0d6e, []int{6}
 }
 func (m *MsgVoteAggResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -236,6 +416,10 @@ func (m *MsgVoteAggResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgVoteAggResponse proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterType((*MsgRegisterBlsGroup)(nil), "fetchai.blsgroup.v1.MsgRegisterBlsGroup")
+	proto.RegisterType((*MsgRegisterBlsGroupResponse)(nil), "fetchai.blsgroup.v1.MsgRegisterBlsGroupResponse")
+	proto.RegisterType((*MsgUnregisterBlsGroup)(nil), "fetchai.blsgroup.v1.MsgUnregisterBlsGroup")
+	proto.RegisterType((*MsgUnregisterBlsGroupResponse)(nil), "fetchai.blsgroup.v1.MsgUnregisterBlsGroupResponse")
 	proto.RegisterType((*MsgVoteResponse)(nil), "fetchai.blsgroup.v1.MsgVoteResponse")
 	proto.RegisterType((*MsgVoteAgg)(nil), "fetchai.blsgroup.v1.MsgVoteAgg")
 	proto.RegisterType((*MsgVoteAggResponse)(nil), "fetchai.blsgroup.v1.MsgVoteAggResponse")
@@ -244,40 +428,47 @@ func init() {
 func init() { proto.RegisterFile("fetchai/blsgroup/v1/tx.proto", fileDescriptor_4e5efa1b539f0d6e) }
 
 var fileDescriptor_4e5efa1b539f0d6e = []byte{
-	// 518 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x93, 0x4f, 0x8b, 0xd3, 0x40,
-	0x18, 0xc6, 0x77, 0xb6, 0xdd, 0x94, 0x9d, 0x15, 0x95, 0xb1, 0xba, 0xb1, 0x2b, 0x69, 0x28, 0x82,
-	0x51, 0x74, 0x42, 0xbb, 0x37, 0x0f, 0x42, 0x0b, 0x22, 0x22, 0x8b, 0x90, 0x82, 0x87, 0xbd, 0x94,
-	0xfc, 0x99, 0x9d, 0x0d, 0x36, 0x99, 0x21, 0x33, 0x29, 0xcd, 0xd5, 0x4f, 0xe0, 0x47, 0xf1, 0xe0,
-	0xd1, 0x0f, 0xe0, 0x71, 0xf1, 0xe4, 0x49, 0xa4, 0x3d, 0x08, 0x7e, 0x08, 0x91, 0x64, 0x66, 0x2c,
-	0xb4, 0xc2, 0x9e, 0x32, 0xef, 0x3c, 0xbf, 0xf7, 0xcd, 0xfb, 0x3e, 0x33, 0x03, 0x1f, 0x5c, 0x10,
-	0x19, 0x5f, 0x86, 0xa9, 0x1f, 0xcd, 0x05, 0x2d, 0x58, 0xc9, 0xfd, 0xc5, 0xd0, 0x97, 0x4b, 0xcc,
-	0x0b, 0x26, 0x19, 0xba, 0xa3, 0x55, 0x6c, 0x54, 0xbc, 0x18, 0xf6, 0xba, 0x94, 0x51, 0xd6, 0xe8,
-	0x7e, 0xbd, 0x52, 0x68, 0xcf, 0xa1, 0x8c, 0xd1, 0x39, 0xf1, 0x9b, 0x28, 0x2a, 0x2f, 0xfc, 0xa4,
-	0x2c, 0x42, 0x99, 0xb2, 0x5c, 0xeb, 0xfd, 0x6d, 0x5d, 0xa6, 0x19, 0x11, 0x32, 0xcc, 0xb8, 0x06,
-	0xee, 0xc7, 0x4c, 0x64, 0x4c, 0xcc, 0x54, 0x65, 0x15, 0x18, 0x69, 0x3b, 0x37, 0xcc, 0x2b, 0x2d,
-	0x9d, 0x28, 0xd0, 0xdf, 0xf4, 0x5e, 0x71, 0x62, 0xf2, 0xec, 0x1d, 0x51, 0x0f, 0xd6, 0x3b, 0xd6,
-	0x4a, 0x26, 0x68, 0xbd, 0x9f, 0x09, 0xaa, 0x84, 0xc1, 0x1f, 0x00, 0x6f, 0x9d, 0x09, 0xfa, 0x8e,
-	0x49, 0x12, 0x10, 0xc1, 0x59, 0x2e, 0x08, 0xea, 0xc3, 0x23, 0x5e, 0x30, 0xce, 0x44, 0x38, 0x9f,
-	0xa5, 0x89, 0x0d, 0x5c, 0xe0, 0xb5, 0x03, 0x68, 0xb6, 0x5e, 0x27, 0x08, 0xc3, 0x83, 0x05, 0x93,
-	0xa4, 0xb0, 0xf7, 0x5d, 0xe0, 0x1d, 0x4e, 0xec, 0x6f, 0x9f, 0x9f, 0x75, 0xf5, 0x00, 0xe3, 0x24,
-	0x29, 0x88, 0x10, 0x53, 0x59, 0xa4, 0x39, 0x0d, 0x14, 0x86, 0x4e, 0xa1, 0xc5, 0x78, 0xed, 0x8d,
-	0xdd, 0x72, 0x81, 0x77, 0x73, 0x74, 0x82, 0x35, 0x6d, 0x3c, 0xc6, 0xf5, 0xff, 0xdf, 0x36, 0x48,
-	0xa0, 0x51, 0xf4, 0x0a, 0x76, 0x78, 0x19, 0xcd, 0xde, 0x93, 0xca, 0x6e, 0xbb, 0xc0, 0x3b, 0x1a,
-	0x75, 0xb1, 0xb2, 0x05, 0x1b, 0x5b, 0xf0, 0x38, 0xaf, 0x26, 0xf6, 0xef, 0x1f, 0xfd, 0x2e, 0x2f,
-	0xa3, 0x79, 0x1a, 0xd7, 0xec, 0x53, 0x96, 0xa5, 0x92, 0x64, 0x5c, 0x56, 0x81, 0xc5, 0xcb, 0xe8,
-	0x0d, 0xa9, 0xd0, 0x6d, 0xd8, 0x12, 0x29, 0xb5, 0x0f, 0x5c, 0xe0, 0xdd, 0x08, 0xea, 0xe5, 0x73,
-	0xf8, 0xe1, 0xd7, 0xa7, 0x27, 0xaa, 0xb7, 0xc1, 0x17, 0x00, 0xa1, 0x36, 0x60, 0x4c, 0x29, 0xba,
-	0x07, 0x2d, 0x41, 0xf2, 0x84, 0x14, 0xcd, 0xd8, 0x87, 0x81, 0x8e, 0xb6, 0x3d, 0xd9, 0xdf, 0xf1,
-	0x64, 0xa8, 0x3c, 0x11, 0x76, 0xcb, 0x6d, 0x5d, 0x37, 0xa2, 0x22, 0xd1, 0x31, 0xec, 0x84, 0x94,
-	0xce, 0x36, 0xcd, 0x59, 0x21, 0xa5, 0xd3, 0x94, 0xa2, 0xc7, 0xb0, 0x4d, 0x96, 0x24, 0xb6, 0xad,
-	0xc6, 0xad, 0xbb, 0x3b, 0xa5, 0x5e, 0x2e, 0x49, 0x1c, 0x34, 0xc8, 0xa0, 0x0b, 0xd1, 0xa6, 0x7b,
-	0x73, 0x82, 0xa3, 0x73, 0xd8, 0x3a, 0x13, 0x14, 0x4d, 0x61, 0xc7, 0xcc, 0xd5, 0xc7, 0xff, 0xb9,
-	0xda, 0x78, 0x93, 0xda, 0x7b, 0x74, 0x0d, 0x60, 0x6a, 0x4f, 0x5e, 0x7c, 0x5d, 0x39, 0xe0, 0x6a,
-	0xe5, 0x80, 0x9f, 0x2b, 0x07, 0x7c, 0x5c, 0x3b, 0x7b, 0x57, 0x6b, 0x67, 0xef, 0xfb, 0xda, 0xd9,
-	0x3b, 0x7f, 0x48, 0x53, 0x79, 0x59, 0x46, 0x38, 0x66, 0x99, 0x6f, 0x9e, 0x59, 0xf3, 0x4d, 0xfc,
-	0xe5, 0xbf, 0xf7, 0x16, 0x59, 0xcd, 0xf1, 0x9d, 0xfe, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xeb, 0x88,
-	0x8d, 0x14, 0x8a, 0x03, 0x00, 0x00,
+	// 629 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x94, 0x41, 0x6b, 0x13, 0x4f,
+	0x18, 0xc6, 0xbb, 0x4d, 0x9b, 0xfc, 0xff, 0x6f, 0x45, 0xcb, 0x34, 0xb5, 0xdb, 0xd4, 0x6e, 0x42,
+	0x10, 0x8c, 0x45, 0x67, 0x6d, 0x7a, 0xf3, 0x20, 0x34, 0x20, 0xa5, 0x48, 0x10, 0xb6, 0xe8, 0xc1,
+	0x4b, 0xd8, 0xcd, 0x4e, 0xa7, 0x83, 0xd9, 0x9d, 0x61, 0x67, 0xb6, 0x64, 0xaf, 0x7e, 0x02, 0x3f,
+	0x8a, 0x07, 0x8f, 0x1e, 0x3c, 0x7a, 0x2c, 0x9e, 0x3c, 0x89, 0xb4, 0x07, 0xc1, 0x0f, 0x21, 0xb2,
+	0xb3, 0xb3, 0x29, 0x24, 0xa9, 0xed, 0xc9, 0x53, 0x32, 0xf3, 0xfc, 0xe6, 0x7d, 0x9f, 0x7d, 0xe7,
+	0x61, 0xe0, 0xde, 0x31, 0x51, 0xc3, 0x13, 0x9f, 0xb9, 0xc1, 0x48, 0xd2, 0x84, 0xa7, 0xc2, 0x3d,
+	0xdd, 0x75, 0xd5, 0x18, 0x8b, 0x84, 0x2b, 0x8e, 0xd6, 0x8c, 0x8a, 0x4b, 0x15, 0x9f, 0xee, 0x36,
+	0xea, 0x94, 0x53, 0xae, 0x75, 0x37, 0xff, 0x57, 0xa0, 0x0d, 0x87, 0x72, 0x4e, 0x47, 0xc4, 0xd5,
+	0xab, 0x20, 0x3d, 0x76, 0xc3, 0x34, 0xf1, 0x15, 0xe3, 0xb1, 0xd1, 0x9b, 0xd3, 0xba, 0x62, 0x11,
+	0x91, 0xca, 0x8f, 0x84, 0x01, 0x36, 0x87, 0x5c, 0x46, 0x5c, 0x0e, 0x8a, 0xca, 0xc5, 0xa2, 0x94,
+	0xa6, 0xcf, 0xfa, 0x71, 0x66, 0xa4, 0xad, 0x02, 0x74, 0x2f, 0xbd, 0x67, 0x82, 0x94, 0xe7, 0xec,
+	0x19, 0xd1, 0x7c, 0x58, 0x63, 0xc3, 0x28, 0x91, 0xa4, 0xf9, 0x7e, 0x24, 0x69, 0x21, 0xb4, 0x47,
+	0xb0, 0xd6, 0x97, 0xd4, 0x23, 0x94, 0x49, 0x45, 0x92, 0xde, 0x48, 0x1e, 0xe4, 0x67, 0x11, 0x86,
+	0x65, 0x3f, 0x8c, 0x58, 0x6c, 0x5b, 0x2d, 0xab, 0xf3, 0x7f, 0xcf, 0xfe, 0xfa, 0xf1, 0x71, 0xdd,
+	0x58, 0xdc, 0x0f, 0xc3, 0x84, 0x48, 0x79, 0xa4, 0x12, 0x16, 0x53, 0xaf, 0xc0, 0xd0, 0x26, 0xfc,
+	0xa7, 0x9b, 0x0e, 0x58, 0x68, 0x2f, 0xb6, 0xac, 0xce, 0x92, 0x57, 0xd3, 0xeb, 0xc3, 0xf0, 0x29,
+	0xbc, 0xfb, 0xf9, 0x61, 0xa7, 0xc0, 0xda, 0xdb, 0xb0, 0x35, 0xa7, 0x9b, 0x47, 0xa4, 0xe0, 0xb1,
+	0x24, 0xed, 0x18, 0xd6, 0xfb, 0x92, 0xbe, 0x8a, 0x93, 0x7f, 0x64, 0xa7, 0x09, 0xdb, 0x73, 0xfb,
+	0x4d, 0x0c, 0xfd, 0xb6, 0xe0, 0x4e, 0x5f, 0xd2, 0xd7, 0x5c, 0x91, 0x72, 0x0f, 0x35, 0x61, 0x45,
+	0x24, 0x5c, 0x70, 0xe9, 0x8f, 0xf2, 0xf2, 0x96, 0x2e, 0x0f, 0xe5, 0xd6, 0x61, 0x98, 0x9b, 0x3d,
+	0xe5, 0x8a, 0x24, 0xba, 0xf3, 0x5f, 0xcd, 0x6a, 0x0c, 0xed, 0x41, 0x95, 0x8b, 0x3c, 0x39, 0x76,
+	0xa5, 0x65, 0x75, 0x6e, 0x77, 0xb7, 0xb0, 0xa1, 0xcb, 0x04, 0xe2, 0xbc, 0xff, 0x4b, 0x8d, 0x78,
+	0x06, 0x45, 0x07, 0x50, 0x13, 0x69, 0x30, 0x78, 0x4b, 0x32, 0x7b, 0xa9, 0x65, 0x75, 0x56, 0xba,
+	0x75, 0x5c, 0x84, 0x06, 0x97, 0xa1, 0xc1, 0xfb, 0x71, 0xd6, 0xb3, 0x7f, 0x7d, 0x6f, 0xd6, 0x45,
+	0x1a, 0x8c, 0xd8, 0x30, 0x67, 0x1f, 0xf1, 0x88, 0x29, 0x12, 0x09, 0x95, 0x79, 0x55, 0x91, 0x06,
+	0x2f, 0x48, 0x86, 0x56, 0xa1, 0x22, 0x19, 0xb5, 0x97, 0x5b, 0x56, 0xe7, 0x96, 0x97, 0xff, 0x35,
+	0x13, 0xd2, 0xde, 0xda, 0x9f, 0x2c, 0x00, 0x33, 0x80, 0x7d, 0x4a, 0xd1, 0x5d, 0xa8, 0x4a, 0x12,
+	0x87, 0x24, 0x29, 0x2e, 0xc2, 0x33, 0xab, 0xe9, 0x99, 0x2c, 0xce, 0xcc, 0x64, 0xb7, 0x98, 0x89,
+	0xb4, 0x2b, 0xad, 0xca, 0x75, 0x9f, 0x58, 0x90, 0x68, 0x03, 0x6a, 0x3e, 0xa5, 0x83, 0x4b, 0x73,
+	0x55, 0x9f, 0xd2, 0x23, 0x46, 0xd1, 0x43, 0x58, 0x22, 0x63, 0x32, 0xb4, 0xab, 0x7a, 0x5a, 0xeb,
+	0x33, 0xa5, 0x9e, 0x8f, 0xc9, 0xd0, 0xd3, 0x48, 0xbb, 0x0e, 0xe8, 0xd2, 0x7d, 0x79, 0x83, 0xdd,
+	0xcf, 0x8b, 0x50, 0xe9, 0x4b, 0x8a, 0x62, 0x58, 0x9d, 0x09, 0x7e, 0x07, 0xcf, 0x79, 0x02, 0xf0,
+	0x9c, 0xd0, 0x36, 0x9e, 0xdc, 0x94, 0x9c, 0x24, 0x47, 0x01, 0x9a, 0x93, 0xed, 0x9d, 0xab, 0xea,
+	0xcc, 0xb2, 0x8d, 0xee, 0xcd, 0xd9, 0x49, 0xd7, 0x23, 0xa8, 0x95, 0xd7, 0xd7, 0xbc, 0xea, 0xb8,
+	0x01, 0x1a, 0x0f, 0xae, 0x01, 0xca, 0xa2, 0xbd, 0x67, 0x5f, 0xce, 0x1d, 0xeb, 0xec, 0xdc, 0xb1,
+	0x7e, 0x9c, 0x3b, 0xd6, 0xfb, 0x0b, 0x67, 0xe1, 0xec, 0xc2, 0x59, 0xf8, 0x76, 0xe1, 0x2c, 0xbc,
+	0xb9, 0x4f, 0x99, 0x3a, 0x49, 0x03, 0x3c, 0xe4, 0x91, 0x5b, 0xbe, 0xb5, 0xfa, 0x37, 0x74, 0xc7,
+	0x93, 0x47, 0x37, 0xa8, 0xea, 0x94, 0xee, 0xfd, 0x09, 0x00, 0x00, 0xff, 0xff, 0x7c, 0x54, 0xab,
+	0x34, 0x8f, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -292,6 +483,11 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
+	// RegisterBlsGroup checks that all group members have a bls key, and they proven possession of the corresponding private key.
+	// It then register the groupID as a bls group to enable the other BLS feature (such as VoteAgg).
+	RegisterBlsGroup(ctx context.Context, in *MsgRegisterBlsGroup, opts ...grpc.CallOption) (*MsgRegisterBlsGroupResponse, error)
+	// UnregisterBlsGroup delete a BLS group registration
+	UnregisterBlsGroup(ctx context.Context, in *MsgUnregisterBlsGroup, opts ...grpc.CallOption) (*MsgUnregisterBlsGroupResponse, error)
 	// VoteAgg allows a sender to submit a set of votes
 	VoteAgg(ctx context.Context, in *MsgVoteAgg, opts ...grpc.CallOption) (*MsgVoteAggResponse, error)
 }
@@ -302,6 +498,24 @@ type msgClient struct {
 
 func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 	return &msgClient{cc}
+}
+
+func (c *msgClient) RegisterBlsGroup(ctx context.Context, in *MsgRegisterBlsGroup, opts ...grpc.CallOption) (*MsgRegisterBlsGroupResponse, error) {
+	out := new(MsgRegisterBlsGroupResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.blsgroup.v1.Msg/RegisterBlsGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *msgClient) UnregisterBlsGroup(ctx context.Context, in *MsgUnregisterBlsGroup, opts ...grpc.CallOption) (*MsgUnregisterBlsGroupResponse, error) {
+	out := new(MsgUnregisterBlsGroupResponse)
+	err := c.cc.Invoke(ctx, "/fetchai.blsgroup.v1.Msg/UnregisterBlsGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *msgClient) VoteAgg(ctx context.Context, in *MsgVoteAgg, opts ...grpc.CallOption) (*MsgVoteAggResponse, error) {
@@ -315,6 +529,11 @@ func (c *msgClient) VoteAgg(ctx context.Context, in *MsgVoteAgg, opts ...grpc.Ca
 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
+	// RegisterBlsGroup checks that all group members have a bls key, and they proven possession of the corresponding private key.
+	// It then register the groupID as a bls group to enable the other BLS feature (such as VoteAgg).
+	RegisterBlsGroup(context.Context, *MsgRegisterBlsGroup) (*MsgRegisterBlsGroupResponse, error)
+	// UnregisterBlsGroup delete a BLS group registration
+	UnregisterBlsGroup(context.Context, *MsgUnregisterBlsGroup) (*MsgUnregisterBlsGroupResponse, error)
 	// VoteAgg allows a sender to submit a set of votes
 	VoteAgg(context.Context, *MsgVoteAgg) (*MsgVoteAggResponse, error)
 }
@@ -323,12 +542,54 @@ type MsgServer interface {
 type UnimplementedMsgServer struct {
 }
 
+func (*UnimplementedMsgServer) RegisterBlsGroup(ctx context.Context, req *MsgRegisterBlsGroup) (*MsgRegisterBlsGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterBlsGroup not implemented")
+}
+func (*UnimplementedMsgServer) UnregisterBlsGroup(ctx context.Context, req *MsgUnregisterBlsGroup) (*MsgUnregisterBlsGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnregisterBlsGroup not implemented")
+}
 func (*UnimplementedMsgServer) VoteAgg(ctx context.Context, req *MsgVoteAgg) (*MsgVoteAggResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VoteAgg not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
 	s.RegisterService(&_Msg_serviceDesc, srv)
+}
+
+func _Msg_RegisterBlsGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgRegisterBlsGroup)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).RegisterBlsGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.blsgroup.v1.Msg/RegisterBlsGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).RegisterBlsGroup(ctx, req.(*MsgRegisterBlsGroup))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Msg_UnregisterBlsGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgUnregisterBlsGroup)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).UnregisterBlsGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fetchai.blsgroup.v1.Msg/UnregisterBlsGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).UnregisterBlsGroup(ctx, req.(*MsgUnregisterBlsGroup))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Msg_VoteAgg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -354,12 +615,136 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "RegisterBlsGroup",
+			Handler:    _Msg_RegisterBlsGroup_Handler,
+		},
+		{
+			MethodName: "UnregisterBlsGroup",
+			Handler:    _Msg_UnregisterBlsGroup_Handler,
+		},
+		{
 			MethodName: "VoteAgg",
 			Handler:    _Msg_VoteAgg_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "fetchai/blsgroup/v1/tx.proto",
+}
+
+func (m *MsgRegisterBlsGroup) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgRegisterBlsGroup) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgRegisterBlsGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.GroupId != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.GroupId))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Admin) > 0 {
+		i -= len(m.Admin)
+		copy(dAtA[i:], m.Admin)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Admin)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgRegisterBlsGroupResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgRegisterBlsGroupResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgRegisterBlsGroupResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgUnregisterBlsGroup) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgUnregisterBlsGroup) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgUnregisterBlsGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.GroupId != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.GroupId))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Admin) > 0 {
+		i -= len(m.Admin)
+		copy(dAtA[i:], m.Admin)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Admin)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgUnregisterBlsGroupResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgUnregisterBlsGroupResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgUnregisterBlsGroupResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
 }
 
 func (m *MsgVoteResponse) Marshal() (dAtA []byte, err error) {
@@ -520,6 +905,56 @@ func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
+func (m *MsgRegisterBlsGroup) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Admin)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.GroupId != 0 {
+		n += 1 + sovTx(uint64(m.GroupId))
+	}
+	return n
+}
+
+func (m *MsgRegisterBlsGroupResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgUnregisterBlsGroup) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Admin)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.GroupId != 0 {
+		n += 1 + sovTx(uint64(m.GroupId))
+	}
+	return n
+}
+
+func (m *MsgUnregisterBlsGroupResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
 func (m *MsgVoteResponse) Size() (n int) {
 	if m == nil {
 		return 0
@@ -591,6 +1026,308 @@ func sovTx(x uint64) (n int) {
 }
 func sozTx(x uint64) (n int) {
 	return sovTx(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *MsgRegisterBlsGroup) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgRegisterBlsGroup: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgRegisterBlsGroup: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Admin", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Admin = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GroupId", wireType)
+			}
+			m.GroupId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GroupId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgRegisterBlsGroupResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgRegisterBlsGroupResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgRegisterBlsGroupResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgUnregisterBlsGroup) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgUnregisterBlsGroup: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgUnregisterBlsGroup: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Admin", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Admin = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GroupId", wireType)
+			}
+			m.GroupId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GroupId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgUnregisterBlsGroupResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgUnregisterBlsGroupResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgUnregisterBlsGroupResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *MsgVoteResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)

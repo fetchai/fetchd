@@ -96,6 +96,13 @@ func (s *TestSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.groupID = groupRes.GroupId
 
+	// register group as a BLS group
+	_, err = s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, &blsgroup.MsgRegisterBlsGroup{
+		Admin:   s.groupAdmin.String(),
+		GroupId: s.groupID,
+	})
+	s.Require().NoError(err)
+
 	policy := group.NewPercentageDecisionPolicy(
 		"0.5",
 		time.Second,
