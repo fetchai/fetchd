@@ -38,7 +38,7 @@ func (k Keeper) RegisterBlsGroup(goCtx context.Context, req *blsgroup.MsgRegiste
 		return nil, sdkerrors.Wrap(err, "request admin")
 	}
 	if !groupAdmin.Equals(reqAdmin) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "not group admin")
+		return nil, sdkerrors.Wrap(grouperrors.ErrUnauthorized, "not group admin")
 	}
 
 	if k.isRegisteredBlsGroup(ctx, groupInfoResp.Info) {
@@ -97,7 +97,7 @@ func (k Keeper) UnregisterBlsGroup(goCtx context.Context, req *blsgroup.MsgUnreg
 		return nil, sdkerrors.Wrap(err, "request admin")
 	}
 	if !groupAdmin.Equals(reqAdmin) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "not group admin")
+		return nil, sdkerrors.Wrap(grouperrors.ErrUnauthorized, "not group admin")
 	}
 
 	if !k.isRegisteredBlsGroup(ctx, groupInfoResp.Info) {

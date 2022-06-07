@@ -8,10 +8,12 @@ import (
 	"time"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	sdktestdata "github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
+	grouperrors "github.com/cosmos/cosmos-sdk/x/group/errors"
 	"github.com/stretchr/testify/suite"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -126,6 +128,152 @@ func (s *TestSuite) SetupTest() {
 
 func TestKeeperTestSuite(t *testing.T) {
 	suite.Run(t, new(TestSuite))
+}
+
+func (s *TestSuite) TestRegisterBlsGroup() {
+	unregisteredGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: s.accounts[1].Addr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, nonBlsPubkey, nonBlsButExistingAddr := sdktestdata.KeyTestPubAddr()
+	testutil.AddTestAddrsFromPubKeys(s.app, s.sdkCtx, []cryptotypes.PubKey{nonBlsPubkey}, sdk.NewInt(30000000))
+	acc := s.app.AccountKeeper.GetAccount(s.sdkCtx, nonBlsButExistingAddr)
+	s.Require().NoError(acc.SetPubKey(nonBlsPubkey))
+	s.app.AccountKeeper.SetAccount(s.sdkCtx, acc)
+	nonBlsMemberGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: nonBlsButExistingAddr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, _, blsButNonExistingAddr := testdata.KeyTestPubAddrBls12381()
+	nonExistingMemberGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: blsButNonExistingAddr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, blsButPubkeyNotSetPubkey, blsButPubkeyNotSetAddr := testdata.KeyTestPubAddrBls12381()
+	testutil.AddTestAddrsFromPubKeys(s.app, s.sdkCtx, []cryptotypes.PubKey{blsButPubkeyNotSetPubkey}, sdk.NewInt(30000000))
+	memberPubkeyNotSetGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: blsButPubkeyNotSetAddr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, blsMissingPOPPubkey, blsMissingPOPAddr := testdata.KeyTestPubAddrBls12381()
+	testutil.AddTestAddrsFromPubKeys(s.app, s.sdkCtx, []cryptotypes.PubKey{blsMissingPOPPubkey}, sdk.NewInt(30000000))
+	acc = s.app.AccountKeeper.GetAccount(s.sdkCtx, blsMissingPOPAddr)
+	s.Require().NoError(acc.SetPubKey(blsMissingPOPPubkey))
+	s.app.AccountKeeper.SetAccount(s.sdkCtx, acc)
+	memberMissingPOPGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: blsMissingPOPAddr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	testcases := []struct {
+		Description string
+		Request     *blsgroup.MsgRegisterBlsGroup
+		ExpectError bool
+		Err         error
+	}{
+		{
+			Description: "valid registration",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: unregisteredGroup.GroupId,
+			},
+			ExpectError: false,
+		},
+		{
+			Description: "already registrered",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: unregisteredGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrDuplicate,
+		},
+		{
+			Description: "non-bls key member",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: nonBlsMemberGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrInvalid,
+		},
+		{
+			Description: "member account does not exists",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: nonExistingMemberGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrInvalid,
+		},
+		{
+			Description: "member account pubkey not set",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: memberPubkeyNotSetGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrInvalid,
+		},
+		{
+			Description: "member account missing POP",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: memberMissingPOPGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrInvalid,
+		},
+		{
+			Description: "not admin",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.accounts[2].Addr.String(),
+				GroupId: s.groupID,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrUnauthorized,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		s.Run(tc.Description, func() {
+			_, err := s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, tc.Request)
+			if tc.ExpectError {
+				if tc.Err != nil {
+					s.Require().ErrorIs(err, tc.Err)
+				} else {
+					s.Require().Error(err)
+				}
+			} else {
+				s.Require().NoError(err)
+			}
+		})
+	}
 }
 
 func (s *TestSuite) TestVoteAgg() {
