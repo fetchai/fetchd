@@ -276,6 +276,46 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 	}
 }
 
+func (s *TestSuite) TestRegisterModifiedBlsGroup() {
+	blsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: s.accounts[1].Addr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, err = s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, &blsgroup.MsgRegisterBlsGroup{
+		Admin:   s.groupAdmin.String(),
+		GroupId: blsGroup.GroupId,
+	})
+	s.Require().NoError(err, "unexpected error on initial group registration")
+
+	_, err = s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, &blsgroup.MsgRegisterBlsGroup{
+		Admin:   s.groupAdmin.String(),
+		GroupId: blsGroup.GroupId,
+	})
+	s.Require().ErrorIs(grouperrors.ErrDuplicate, err, "expected duplicate registration")
+
+	_, err = s.app.GroupKeeper.UpdateGroupMembers(s.sdkCtx, &group.MsgUpdateGroupMembers{
+		Admin:   s.groupAdmin.String(),
+		GroupId: blsGroup.GroupId,
+		MemberUpdates: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "3"},
+			{Address: s.accounts[1].Addr.String(), Weight: "3"},
+			{Address: s.accounts[2].Addr.String(), Weight: "3"},
+		},
+	})
+	s.Require().NoError(err, "unexpected error on updating group members")
+
+	_, err = s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, &blsgroup.MsgRegisterBlsGroup{
+		Admin:   s.groupAdmin.String(),
+		GroupId: blsGroup.GroupId,
+	})
+	s.Require().NoError(err, "unexpected error on group registration after modification")
+}
+
 func (s *TestSuite) TestVoteAgg() {
 	proposalReq := &group.MsgSubmitProposal{
 		Address:   s.groupPolicyAddr.String(),
