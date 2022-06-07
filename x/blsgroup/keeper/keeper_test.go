@@ -10,6 +10,7 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdktestdata "github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	bankutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
@@ -213,6 +214,15 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 			Err:         grouperrors.ErrDuplicate,
 		},
 		{
+			Description: "unknown group",
+			Request: &blsgroup.MsgRegisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: 65535,
+			},
+			ExpectError: true,
+			Err:         sdkerrors.ErrNotFound,
+		},
+		{
 			Description: "non-bls key member",
 			Request: &blsgroup.MsgRegisterBlsGroup{
 				Admin:   s.groupAdmin.String(),
@@ -314,6 +324,90 @@ func (s *TestSuite) TestRegisterModifiedBlsGroup() {
 		GroupId: blsGroup.GroupId,
 	})
 	s.Require().NoError(err, "unexpected error on group registration after modification")
+}
+
+func (s *TestSuite) TestUnregisterBlsGroup() {
+	nonRegisteredBlsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: s.accounts[1].Addr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+
+	registeredBlsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
+		Admin: s.groupAdmin.String(),
+		Members: []group.Member{
+			{Address: s.accounts[0].Addr.String(), Weight: "1"},
+			{Address: s.accounts[1].Addr.String(), Weight: "2"},
+		},
+	})
+	s.Require().NoError(err)
+	_, err = s.app.BlsGroupKeeper.RegisterBlsGroup(s.ctx, &blsgroup.MsgRegisterBlsGroup{
+		Admin:   s.groupAdmin.String(),
+		GroupId: registeredBlsGroup.GroupId,
+	})
+	s.Require().NoError(err)
+
+	testcases := []struct {
+		Description string
+		Request     *blsgroup.MsgUnregisterBlsGroup
+		ExpectError bool
+		Err         error
+	}{
+		{
+			Description: "not registered yet",
+			Request: &blsgroup.MsgUnregisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: nonRegisteredBlsGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrInvalid,
+		},
+		{
+			Description: "unknown group",
+			Request: &blsgroup.MsgUnregisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: 65535,
+			},
+			ExpectError: true,
+			Err:         sdkerrors.ErrNotFound,
+		},
+		{
+			Description: "not admin",
+			Request: &blsgroup.MsgUnregisterBlsGroup{
+				Admin:   s.accounts[1].Addr.String(),
+				GroupId: registeredBlsGroup.GroupId,
+			},
+			ExpectError: true,
+			Err:         grouperrors.ErrUnauthorized,
+		},
+		{
+			Description: "valid",
+			Request: &blsgroup.MsgUnregisterBlsGroup{
+				Admin:   s.groupAdmin.String(),
+				GroupId: registeredBlsGroup.GroupId,
+			},
+			ExpectError: false,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		s.Run(tc.Description, func() {
+			_, err := s.app.BlsGroupKeeper.UnregisterBlsGroup(s.ctx, tc.Request)
+			if tc.ExpectError {
+				if tc.Err != nil {
+					s.Require().ErrorIs(err, tc.Err)
+				} else {
+					s.Require().Error(err)
+				}
+			} else {
+				s.Require().NoError(err)
+			}
+		})
+	}
 }
 
 func (s *TestSuite) TestVoteAgg() {
