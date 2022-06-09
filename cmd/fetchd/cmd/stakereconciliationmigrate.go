@@ -226,7 +226,7 @@ Eligible accounts:
 				}
 
 				// Zero out old account balance
-				bankGenesis.Balances[oldBalanceIndex].Coins = oldAcctBalance.Sub(migrateCoins)
+				bankGenesis.Balances[oldBalanceIndex].Coins = oldAcctBalance.Sub(migrateCoins...)
 
 				// Add migrated coins to new account balance
 				bankGenesis.Balances[newBalanceIndex].Coins = newAcctBalance.Add(migrateCoins...)
