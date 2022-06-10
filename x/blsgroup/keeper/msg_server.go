@@ -141,7 +141,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 		return nil, sdkerrors.Wrap(grouperrors.ErrExpired, "voting period has ended already")
 	}
 
-	policyInfo, err := k.groupKeeper.GroupPolicyInfo(goCtx, &group.QueryGroupPolicyInfoRequest{Address: proposal.Address})
+	policyInfo, err := k.groupKeeper.GroupPolicyInfo(goCtx, &group.QueryGroupPolicyInfoRequest{Address: proposal.GroupPolicyAddress})
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "load group policy")
 	}

@@ -86,7 +86,7 @@ func (s *TestSuite) SetupTest() {
 	s.groupAdmin = s.accounts[0].Addr
 
 	// Initial group, group policy and balance setup
-	members := []group.Member{
+	members := []group.MemberRequest{
 		{Address: s.accounts[0].Addr.String(), Weight: "1"},
 		{Address: s.accounts[1].Addr.String(), Weight: "2"},
 		{Address: s.accounts[2].Addr.String(), Weight: "2"},
@@ -134,7 +134,7 @@ func TestKeeperTestSuite(t *testing.T) {
 func (s *TestSuite) TestRegisterBlsGroup() {
 	unregisteredGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: s.accounts[1].Addr.String(), Weight: "2"},
 		},
@@ -148,7 +148,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 	s.app.AccountKeeper.SetAccount(s.sdkCtx, acc)
 	nonBlsMemberGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: nonBlsButExistingAddr.String(), Weight: "2"},
 		},
@@ -158,7 +158,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 	_, _, blsButNonExistingAddr := testdata.KeyTestPubAddrBls12381()
 	nonExistingMemberGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: blsButNonExistingAddr.String(), Weight: "2"},
 		},
@@ -169,7 +169,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 	testutil.AddTestAddrsFromPubKeys(s.app, s.sdkCtx, []cryptotypes.PubKey{blsButPubkeyNotSetPubkey}, sdk.NewInt(30000000))
 	memberPubkeyNotSetGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: blsButPubkeyNotSetAddr.String(), Weight: "2"},
 		},
@@ -183,7 +183,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 	s.app.AccountKeeper.SetAccount(s.sdkCtx, acc)
 	memberMissingPOPGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: blsMissingPOPAddr.String(), Weight: "2"},
 		},
@@ -289,7 +289,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 func (s *TestSuite) TestRegisterModifiedBlsGroup() {
 	blsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: s.accounts[1].Addr.String(), Weight: "2"},
 		},
@@ -311,7 +311,7 @@ func (s *TestSuite) TestRegisterModifiedBlsGroup() {
 	_, err = s.app.GroupKeeper.UpdateGroupMembers(s.sdkCtx, &group.MsgUpdateGroupMembers{
 		Admin:   s.groupAdmin.String(),
 		GroupId: blsGroup.GroupId,
-		MemberUpdates: []group.Member{
+		MemberUpdates: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "3"},
 			{Address: s.accounts[1].Addr.String(), Weight: "3"},
 			{Address: s.accounts[2].Addr.String(), Weight: "3"},
@@ -329,7 +329,7 @@ func (s *TestSuite) TestRegisterModifiedBlsGroup() {
 func (s *TestSuite) TestUnregisterBlsGroup() {
 	nonRegisteredBlsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: s.accounts[1].Addr.String(), Weight: "2"},
 		},
@@ -338,7 +338,7 @@ func (s *TestSuite) TestUnregisterBlsGroup() {
 
 	registeredBlsGroup, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
 		Admin: s.groupAdmin.String(),
-		Members: []group.Member{
+		Members: []group.MemberRequest{
 			{Address: s.accounts[0].Addr.String(), Weight: "1"},
 			{Address: s.accounts[1].Addr.String(), Weight: "2"},
 		},
@@ -412,9 +412,9 @@ func (s *TestSuite) TestUnregisterBlsGroup() {
 
 func (s *TestSuite) TestVoteAgg() {
 	proposalReq := &group.MsgSubmitProposal{
-		Address:   s.groupPolicyAddr.String(),
-		Proposers: []string{s.accounts[0].Addr.String()},
-		Metadata:  "valid-metadata",
+		GroupPolicyAddress: s.groupPolicyAddr.String(),
+		Proposers:          []string{s.accounts[0].Addr.String()},
+		Metadata:           "valid-metadata",
 	}
 	s.Require().NoError(proposalReq.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
 		FromAddress: s.groupPolicyAddr.String(),
