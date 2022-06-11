@@ -22,11 +22,9 @@ Once the dependencies are setup you must activate the environment with the follo
 
 This step should update your terminal prompt and you will be able to see that the command `mkdocs` is installed in your path
 
-
     which mkdocs
 
 Finally, to start the development server run the following command
-
 
     mkdocs serve
 

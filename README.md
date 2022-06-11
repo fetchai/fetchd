@@ -52,7 +52,7 @@ This should return a path such as `~/go/bin/fetchd` (might be different dependin
 >source ~/.bashrc
 >```
 
-You can also verify that you are running the correct version 
+You can also verify that you are running the correct version
 
 ```bash
 fetchd version
