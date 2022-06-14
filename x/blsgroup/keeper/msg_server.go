@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -218,6 +219,10 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	for _, msg := range allVoteMsgs {
 		msg.Exec = req.Exec
 		if _, err := k.groupKeeper.Vote(goCtx, msg); err != nil {
+			// Duplicate votes are simply skipped rather than failing the whole process
+			if errors.Is(err, grouperrors.ErrORMUniqueConstraint) {
+				continue
+			}
 			return nil, err
 		}
 	}

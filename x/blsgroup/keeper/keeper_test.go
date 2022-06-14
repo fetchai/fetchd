@@ -578,3 +578,74 @@ func (s *TestSuite) TestVoteAggNoExecute() {
 		NoWithVetoCount: "0",
 	}, proposalResp.Proposal.FinalTallyResult)
 }
+
+func (s *TestSuite) TestVoteAggDuplicateVote() {
+	proposalReq := &group.MsgSubmitProposal{
+		GroupPolicyAddress: s.groupPolicyAddr.String(),
+		Proposers:          []string{s.accounts[0].Addr.String()},
+		Metadata:           "valid-metadata",
+	}
+
+	amountTransfered := sdk.NewInt64Coin("token", 100)
+	s.Require().NoError(proposalReq.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
+		FromAddress: s.groupPolicyAddr.String(),
+		ToAddress:   s.accounts[2].Addr.String(),
+		Amount:      sdk.Coins{amountTransfered},
+	}}))
+	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
+	s.Require().NoError(err)
+
+	vote1 := &group.MsgVote{
+		ProposalId: proposal.ProposalId,
+		Voter:      s.accounts[0].Addr.String(),
+		Option:     group.VOTE_OPTION_YES,
+	}
+	vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
+	s.Require().NoError(err)
+
+	aggSig, err := bls12381.AggregateSignature([][]byte{vote1Sig})
+	s.Require().NoError(err)
+
+	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
+		Sender:     s.accounts[0].Addr.String(),
+		ProposalId: proposal.ProposalId,
+		Votes: []group.VoteOption{
+			group.VOTE_OPTION_YES,
+			group.VOTE_OPTION_UNSPECIFIED,
+			group.VOTE_OPTION_UNSPECIFIED,
+		},
+		AggSig: aggSig,
+		Exec:   group.Exec_EXEC_UNSPECIFIED,
+	})
+	s.Require().NoError(err)
+
+	newVote1 := &group.MsgVote{
+		ProposalId: proposal.ProposalId,
+		Voter:      s.accounts[0].Addr.String(),
+		Option:     group.VOTE_OPTION_NO,
+	}
+	newVote1Sig, err := s.accounts[0].PrivKey.Sign(newVote1.GetSignBytes())
+	s.Require().NoError(err)
+
+	aggSig, err = bls12381.AggregateSignature([][]byte{newVote1Sig})
+	s.Require().NoError(err)
+
+	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
+		Sender:     s.accounts[0].Addr.String(),
+		ProposalId: proposal.ProposalId,
+		Votes: []group.VoteOption{
+			group.VOTE_OPTION_NO,
+			group.VOTE_OPTION_UNSPECIFIED,
+			group.VOTE_OPTION_UNSPECIFIED,
+		},
+		AggSig: aggSig,
+		Exec:   group.Exec_EXEC_UNSPECIFIED,
+	})
+	s.Require().NoError(err)
+
+	// No error, but original vote have not been modified
+	votesResp, err := s.app.GroupKeeper.VotesByProposal(s.ctx, &group.QueryVotesByProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(1, len(votesResp.Votes))
+	s.Require().Equal(group.VOTE_OPTION_YES, votesResp.Votes[0].Option)
+}
