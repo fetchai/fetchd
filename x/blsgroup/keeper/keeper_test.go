@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -30,6 +31,7 @@ type testAccount struct {
 	Pubkey  cryptotypes.PubKey
 	PrivKey cryptotypes.PrivKey
 	Addr    sdk.AccAddress
+	Weight  uint64
 }
 
 type TestSuite struct {
@@ -65,6 +67,7 @@ func (s *TestSuite) SetupTest() {
 			Pubkey:  pub,
 			PrivKey: priv,
 			Addr:    addr,
+			Weight:  2,
 		}
 		pubkeys[i] = pub
 	}
@@ -87,9 +90,9 @@ func (s *TestSuite) SetupTest() {
 
 	// Initial group, group policy and balance setup
 	members := []group.MemberRequest{
-		{Address: s.accounts[0].Addr.String(), Weight: "1"},
-		{Address: s.accounts[1].Addr.String(), Weight: "2"},
-		{Address: s.accounts[2].Addr.String(), Weight: "2"},
+		{Address: s.accounts[0].Addr.String(), Weight: fmt.Sprintf("%d", s.accounts[0].Weight)},
+		{Address: s.accounts[1].Addr.String(), Weight: fmt.Sprintf("%d", s.accounts[1].Weight)},
+		{Address: s.accounts[2].Addr.String(), Weight: fmt.Sprintf("%d", s.accounts[2].Weight)},
 	}
 
 	groupRes, err := s.app.GroupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
@@ -410,17 +413,17 @@ func (s *TestSuite) TestUnregisterBlsGroup() {
 	}
 }
 
-func (s *TestSuite) TestVoteAgg() {
+func (s *TestSuite) TestVoteAggExecute() {
 	proposalReq := &group.MsgSubmitProposal{
 		GroupPolicyAddress: s.groupPolicyAddr.String(),
 		Proposers:          []string{s.accounts[0].Addr.String()},
 		Metadata:           "valid-metadata",
 	}
+	amountTransfered := sdk.NewInt64Coin("token", 100)
 	s.Require().NoError(proposalReq.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
 		FromAddress: s.groupPolicyAddr.String(),
 		ToAddress:   s.accounts[2].Addr.String(),
-
-		Amount: sdk.Coins{sdk.NewInt64Coin("token", 100)},
+		Amount:      sdk.Coins{amountTransfered},
 	}}))
 	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
 	s.Require().NoError(err)
@@ -450,12 +453,128 @@ func (s *TestSuite) TestVoteAgg() {
 	aggSig, err := bls12381.AggregateSignature([][]byte{vote1Sig, vote2Sig})
 	s.Require().NoError(err)
 
+	beforeBalance := s.app.BankKeeper.GetBalance(s.sdkCtx, s.accounts[2].Addr, "token")
+
 	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
 		Sender:     s.accounts[0].Addr.String(),
 		ProposalId: proposal.ProposalId,
 		Votes:      allVotes,
 		AggSig:     aggSig,
-		Exec:       group.Exec_EXEC_UNSPECIFIED,
+		Exec:       group.Exec_EXEC_TRY,
 	})
 	s.Require().NoError(err)
+
+	// Match the Msg defined in the proposal (transfer 100token to account2)
+	afterBalance := s.app.BankKeeper.GetBalance(s.sdkCtx, s.accounts[2].Addr, "token")
+	s.Require().Equal(
+		beforeBalance.Add(amountTransfered).Amount.Int64(),
+		afterBalance.Amount.Int64(),
+		"proposal execution must have transferred tokens",
+	)
+
+	// Successfully executed proposals are auto prunned right after execution
+	_, err = s.app.GroupKeeper.Proposal(s.ctx, &group.QueryProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().ErrorIs(err, sdkerrors.ErrNotFound)
+}
+
+func (s *TestSuite) TestVoteAggNoExecute() {
+	proposalReq := &group.MsgSubmitProposal{
+		GroupPolicyAddress: s.groupPolicyAddr.String(),
+		Proposers:          []string{s.accounts[0].Addr.String()},
+		Metadata:           "valid-metadata",
+	}
+
+	amountTransfered := sdk.NewInt64Coin("token", 100)
+	s.Require().NoError(proposalReq.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
+		FromAddress: s.groupPolicyAddr.String(),
+		ToAddress:   s.accounts[2].Addr.String(),
+		Amount:      sdk.Coins{amountTransfered},
+	}}))
+	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
+	s.Require().NoError(err)
+
+	vote1 := &group.MsgVote{
+		ProposalId: proposal.ProposalId,
+		Voter:      s.accounts[0].Addr.String(),
+		Option:     group.VOTE_OPTION_YES,
+	}
+	vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
+	s.Require().NoError(err)
+
+	vote2 := &group.MsgVote{
+		ProposalId: proposal.ProposalId,
+		Voter:      s.accounts[1].Addr.String(),
+		Option:     group.VOTE_OPTION_YES,
+	}
+	vote2Sig, err := s.accounts[1].PrivKey.Sign(vote2.GetSignBytes())
+	s.Require().NoError(err)
+
+	aggSig, err := bls12381.AggregateSignature([][]byte{vote1Sig})
+	s.Require().NoError(err)
+
+	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
+		Sender:     s.accounts[0].Addr.String(),
+		ProposalId: proposal.ProposalId,
+		Votes: []group.VoteOption{
+			group.VOTE_OPTION_YES,
+			group.VOTE_OPTION_UNSPECIFIED,
+			group.VOTE_OPTION_UNSPECIFIED,
+		},
+		AggSig: aggSig,
+		Exec:   group.Exec_EXEC_UNSPECIFIED,
+	})
+	s.Require().NoError(err)
+
+	propopsalResp, err := s.app.GroupKeeper.Proposal(s.ctx, &group.QueryProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(group.PROPOSAL_STATUS_SUBMITTED, propopsalResp.Proposal.Status)
+	s.Require().Equal(group.PROPOSAL_EXECUTOR_RESULT_NOT_RUN, propopsalResp.Proposal.ExecutorResult)
+
+	votesResp, err := s.app.GroupKeeper.VotesByProposal(s.ctx, &group.QueryVotesByProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(1, len(votesResp.Votes))
+	s.Require().Equal(group.VOTE_OPTION_YES, votesResp.Votes[0].Option)
+	s.Require().Equal(vote1.Voter, votesResp.Votes[0].Voter)
+
+	aggSig, err = bls12381.AggregateSignature([][]byte{vote2Sig})
+	s.Require().NoError(err)
+
+	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
+		Sender:     s.accounts[0].Addr.String(),
+		ProposalId: proposal.ProposalId,
+		Votes: []group.VoteOption{
+			group.VOTE_OPTION_UNSPECIFIED,
+			group.VOTE_OPTION_YES,
+			group.VOTE_OPTION_UNSPECIFIED,
+		},
+		AggSig: aggSig,
+		Exec:   group.Exec_EXEC_UNSPECIFIED,
+	})
+	s.Require().NoError(err)
+
+	propopsalResp, err = s.app.GroupKeeper.Proposal(s.ctx, &group.QueryProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(group.PROPOSAL_STATUS_SUBMITTED, propopsalResp.Proposal.Status)
+	s.Require().Equal(group.PROPOSAL_EXECUTOR_RESULT_NOT_RUN, propopsalResp.Proposal.ExecutorResult)
+
+	votesResp, err = s.app.GroupKeeper.VotesByProposal(s.ctx, &group.QueryVotesByProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(2, len(votesResp.Votes))
+	s.Require().Equal(group.VOTE_OPTION_YES, votesResp.Votes[0].Option)
+	s.Require().Equal(group.VOTE_OPTION_YES, votesResp.Votes[1].Option)
+	s.Require().Equal(vote1.Voter, votesResp.Votes[0].Voter)
+	s.Require().Equal(vote2.Voter, votesResp.Votes[1].Voter)
+
+	s.Require().NoError(s.app.GroupKeeper.TallyProposalsAtVPEnd(s.sdkCtx.WithBlockTime(s.sdkCtx.BlockTime().Add(s.policy.GetVotingPeriod() + 1))))
+
+	proposalResp, err := s.app.GroupKeeper.Proposal(s.ctx, &group.QueryProposalRequest{ProposalId: proposal.ProposalId})
+	s.Require().NoError(err)
+	s.Require().Equal(group.PROPOSAL_STATUS_ACCEPTED, proposalResp.Proposal.Status)
+	s.Require().Equal(group.PROPOSAL_EXECUTOR_RESULT_NOT_RUN, proposalResp.Proposal.ExecutorResult)
+	s.Require().Equal(group.TallyResult{
+		YesCount:        fmt.Sprintf("%d", s.accounts[0].Weight+s.accounts[1].Weight),
+		AbstainCount:    "0",
+		NoCount:         "0",
+		NoWithVetoCount: "0",
+	}, proposalResp.Proposal.FinalTallyResult)
 }
