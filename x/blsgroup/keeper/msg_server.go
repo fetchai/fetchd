@@ -128,6 +128,14 @@ func (k Keeper) isRegisteredBlsGroup(ctx sdk.Context, group *group.GroupInfo) bo
 func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgroup.MsgVoteAggResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
+	if req.TimeoutHeight == 0 {
+		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "timeout height is required")
+	}
+
+	if ctx.BlockHeight() > req.TimeoutHeight {
+		return nil, sdkerrors.Wrap(grouperrors.ErrExpired, "timeout height expired")
+	}
+
 	proposalResp, err := k.groupKeeper.Proposal(goCtx, &group.QueryProposalRequest{ProposalId: req.ProposalId})
 	if err != nil {
 		return nil, err
@@ -172,7 +180,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 
 	signedBytes := make([][]byte, 0, len(req.Votes))
-	allVoteMsgs := make([]*group.MsgVote, 0, len(req.Votes))
+	allVoteMsgs := make([]*blsgroup.MsgVote, 0, len(req.Votes))
 	pks := make([]cryptotypes.PubKey, 0, len(req.Votes))
 
 	for i, voteOption := range req.Votes {
@@ -195,10 +203,11 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 		}
 
 		if voteOption != group.VOTE_OPTION_UNSPECIFIED {
-			msg := &group.MsgVote{
-				ProposalId: req.ProposalId,
-				Voter:      memAddr.String(),
-				Option:     voteOption,
+			msg := &blsgroup.MsgVote{
+				ProposalId:    req.ProposalId,
+				Voter:         memAddr.String(),
+				Option:        voteOption,
+				TimeoutHeight: req.TimeoutHeight,
 			}
 			signedBytes = append(signedBytes, msg.GetSignBytes())
 			allVoteMsgs = append(allVoteMsgs, msg)
@@ -217,8 +226,12 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 
 	for _, msg := range allVoteMsgs {
-		msg.Exec = req.Exec
-		if _, err := k.groupKeeper.Vote(goCtx, msg); err != nil {
+		if _, err := k.groupKeeper.Vote(goCtx, &group.MsgVote{
+			ProposalId: msg.ProposalId,
+			Voter:      msg.Voter,
+			Option:     msg.Option,
+			Exec:       req.Exec,
+		}); err != nil {
 			// Duplicate votes are simply skipped rather than failing the whole process
 			if errors.Is(err, grouperrors.ErrORMUniqueConstraint) {
 				continue

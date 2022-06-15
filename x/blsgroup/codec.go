@@ -8,6 +8,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
 )
 
+var (
+	amino     = codec.NewLegacyAmino()
+	ModuleCdc = codec.NewAminoCodec(amino)
+)
+
 // RegisterLegacyAminoCodec registers all the necessary group module concrete
 // types and interfaces with the provided codec reference.
 // These types are used for Amino JSON serialization.

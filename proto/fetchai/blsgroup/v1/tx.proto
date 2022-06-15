@@ -31,7 +31,7 @@ message MsgRegisterBlsGroup {
     option (cosmos.msg.v1.signer) = "admin";
     // admin is the current account address of the group admin.
     string admin = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
-    // group_id is the group ID to register as a BLS group
+    // group_id is the group ID to register as a BLS group.
     uint64 group_id = 2;
 }
 
@@ -41,11 +41,30 @@ message MsgUnregisterBlsGroup {
     option (cosmos.msg.v1.signer) = "admin";
     // admin is the current account address of the group admin.
     string admin = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
-    // group_id is the group ID to unregister
+    // group_id is the group ID to unregister.
     uint64 group_id = 2;
 }
 
 message MsgUnregisterBlsGroupResponse {}
+
+
+// MsgVote is the Msg/Vote request type.
+message MsgVote {
+    option (cosmos.msg.v1.signer) = "voter";
+  
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 1;
+    // voter is the voter account address.
+    string voter = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  
+    // option is the voter's choice on the proposal.
+    cosmos.group.v1.VoteOption option = 3;
+    
+    // timeout_height set a block timeout height to prevent the vote from being used past a certain height.
+    // Voters must not issue new votes until their previous vote has expired to prevent
+    // swapping them when aggregating.
+    int64 timeout_height = 4;
+}
 
 message MsgVoteResponse {
     option (cosmos.msg.v1.signer) = "voter";
@@ -55,25 +74,30 @@ message MsgVoteResponse {
     string voter = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
     // option is the voter's choice on the proposal.
     cosmos.group.v1.VoteOption option = 3;
-    // pub_key is the voter's public key
+    // pub_key is the voter's public key.
     google.protobuf.Any pub_key = 4 [(gogoproto.jsontag) = "public_key,omitempty"];
-    // sig is the individual signature which will be aggregated with other signatures
+    // sig is the individual signature which will be aggregated with other signatures.
     bytes sig = 5;
+    // timeout_height is a block timeout height to prevent the vote from being used past a certain height.
+    int64 timeout_height = 6;
 }
 
 // MsgVoteAgg is the Msg/VoteAgg request type.
 message MsgVoteAgg {
-    // sender is the account address who submits the votes
+    // sender is the account address who submits the votes.
     string sender = 1;
     // proposal is the unique ID of the proposal.
     uint64 proposal_id = 2;
     // votes are the list of voters' choices on the proposal.
     repeated cosmos.group.v1.VoteOption votes = 3;
-    // agg_sig is the bls aggregated signature for all the votes
-    bytes agg_sig = 5;
-    // exec defines whether the proposal should be executed
+    // agg_sig is the bls aggregated signature for all the votes.
+    bytes agg_sig = 4;
+    // exec defines whether the proposal should be executed.
     // immediately after voting or not.
-    cosmos.group.v1.Exec exec = 6;
+    cosmos.group.v1.Exec exec = 5;
+    // timeout_height is a block timeout height to prevent the votes from being used past a certain height
+    // all aggregated votes must share the same timeout_height in order to verify the aggregated signature.
+    int64 timeout_height = 6;
 }
 
 // MsgVoteResponse is the Msg/Vote response type.

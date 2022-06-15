@@ -428,18 +428,22 @@ func (s *TestSuite) TestVoteAggExecute() {
 	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
 	s.Require().NoError(err)
 
-	vote1 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[0].Addr.String(),
-		Option:     group.VOTE_OPTION_YES,
+	timeoutHeight := s.sdkCtx.BlockHeight() + 10
+
+	vote1 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[0].Addr.String(),
+		Option:        group.VOTE_OPTION_YES,
+		TimeoutHeight: timeoutHeight,
 	}
 	vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
 	s.Require().NoError(err)
 
-	vote2 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[1].Addr.String(),
-		Option:     group.VOTE_OPTION_YES,
+	vote2 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[1].Addr.String(),
+		Option:        group.VOTE_OPTION_YES,
+		TimeoutHeight: timeoutHeight,
 	}
 	vote2Sig, err := s.accounts[1].PrivKey.Sign(vote2.GetSignBytes())
 	s.Require().NoError(err)
@@ -456,11 +460,12 @@ func (s *TestSuite) TestVoteAggExecute() {
 	beforeBalance := s.app.BankKeeper.GetBalance(s.sdkCtx, s.accounts[2].Addr, "token")
 
 	_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
-		Sender:     s.accounts[0].Addr.String(),
-		ProposalId: proposal.ProposalId,
-		Votes:      allVotes,
-		AggSig:     aggSig,
-		Exec:       group.Exec_EXEC_TRY,
+		Sender:        s.accounts[0].Addr.String(),
+		ProposalId:    proposal.ProposalId,
+		Votes:         allVotes,
+		AggSig:        aggSig,
+		TimeoutHeight: timeoutHeight,
+		Exec:          group.Exec_EXEC_TRY,
 	})
 	s.Require().NoError(err)
 
@@ -493,18 +498,22 @@ func (s *TestSuite) TestVoteAggNoExecute() {
 	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
 	s.Require().NoError(err)
 
-	vote1 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[0].Addr.String(),
-		Option:     group.VOTE_OPTION_YES,
+	timeoutHeight := s.sdkCtx.BlockHeight() + 10
+
+	vote1 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[0].Addr.String(),
+		Option:        group.VOTE_OPTION_YES,
+		TimeoutHeight: timeoutHeight,
 	}
 	vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
 	s.Require().NoError(err)
 
-	vote2 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[1].Addr.String(),
-		Option:     group.VOTE_OPTION_YES,
+	vote2 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[1].Addr.String(),
+		Option:        group.VOTE_OPTION_YES,
+		TimeoutHeight: timeoutHeight,
 	}
 	vote2Sig, err := s.accounts[1].PrivKey.Sign(vote2.GetSignBytes())
 	s.Require().NoError(err)
@@ -520,8 +529,9 @@ func (s *TestSuite) TestVoteAggNoExecute() {
 			group.VOTE_OPTION_UNSPECIFIED,
 			group.VOTE_OPTION_UNSPECIFIED,
 		},
-		AggSig: aggSig,
-		Exec:   group.Exec_EXEC_UNSPECIFIED,
+		AggSig:        aggSig,
+		TimeoutHeight: timeoutHeight,
+		Exec:          group.Exec_EXEC_UNSPECIFIED,
 	})
 	s.Require().NoError(err)
 
@@ -547,8 +557,9 @@ func (s *TestSuite) TestVoteAggNoExecute() {
 			group.VOTE_OPTION_YES,
 			group.VOTE_OPTION_UNSPECIFIED,
 		},
-		AggSig: aggSig,
-		Exec:   group.Exec_EXEC_UNSPECIFIED,
+		AggSig:        aggSig,
+		TimeoutHeight: timeoutHeight,
+		Exec:          group.Exec_EXEC_UNSPECIFIED,
 	})
 	s.Require().NoError(err)
 
@@ -595,10 +606,13 @@ func (s *TestSuite) TestVoteAggDuplicateVote() {
 	proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
 	s.Require().NoError(err)
 
-	vote1 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[0].Addr.String(),
-		Option:     group.VOTE_OPTION_YES,
+	timeoutHeight := s.sdkCtx.BlockHeight() + 10
+
+	vote1 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[0].Addr.String(),
+		Option:        group.VOTE_OPTION_YES,
+		TimeoutHeight: timeoutHeight,
 	}
 	vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
 	s.Require().NoError(err)
@@ -614,15 +628,17 @@ func (s *TestSuite) TestVoteAggDuplicateVote() {
 			group.VOTE_OPTION_UNSPECIFIED,
 			group.VOTE_OPTION_UNSPECIFIED,
 		},
-		AggSig: aggSig,
-		Exec:   group.Exec_EXEC_UNSPECIFIED,
+		AggSig:        aggSig,
+		Exec:          group.Exec_EXEC_UNSPECIFIED,
+		TimeoutHeight: timeoutHeight,
 	})
 	s.Require().NoError(err)
 
-	newVote1 := &group.MsgVote{
-		ProposalId: proposal.ProposalId,
-		Voter:      s.accounts[0].Addr.String(),
-		Option:     group.VOTE_OPTION_NO,
+	newVote1 := &blsgroup.MsgVote{
+		ProposalId:    proposal.ProposalId,
+		Voter:         s.accounts[0].Addr.String(),
+		Option:        group.VOTE_OPTION_NO,
+		TimeoutHeight: timeoutHeight,
 	}
 	newVote1Sig, err := s.accounts[0].PrivKey.Sign(newVote1.GetSignBytes())
 	s.Require().NoError(err)
@@ -638,8 +654,9 @@ func (s *TestSuite) TestVoteAggDuplicateVote() {
 			group.VOTE_OPTION_UNSPECIFIED,
 			group.VOTE_OPTION_UNSPECIFIED,
 		},
-		AggSig: aggSig,
-		Exec:   group.Exec_EXEC_UNSPECIFIED,
+		AggSig:        aggSig,
+		TimeoutHeight: timeoutHeight,
+		Exec:          group.Exec_EXEC_UNSPECIFIED,
 	})
 	s.Require().NoError(err)
 
