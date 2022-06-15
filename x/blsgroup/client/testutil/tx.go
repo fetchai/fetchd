@@ -216,9 +216,13 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
 	}
 
+	curHeight, err := s.network.LatestHeight()
+	s.Require().NoError(err)
+	timeoutHeight := fmt.Sprintf("%d", curHeight+5)
+
 	// ensure non bls keys are rejected
-	_, err := cli.ExecTestCLICmd(clientCtx, blsclient.MsgVoteCmd(),
-		[]string{"1", val.Address.String(), "VOTE_OPTION_YES"},
+	_, err = cli.ExecTestCLICmd(clientCtx, blsclient.MsgVoteCmd(),
+		[]string{"1", val.Address.String(), "VOTE_OPTION_YES", timeoutHeight},
 	)
 	s.Require().Error(err)
 
@@ -227,14 +231,14 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 	vote2Path := filepath.Join(s.T().TempDir(), "bls2.vote")
 
 	out, err := cli.ExecTestCLICmd(clientCtx, blsclient.MsgVoteCmd(),
-		[]string{"1", s.accountBls1.String(), "VOTE_OPTION_YES"},
+		[]string{"1", s.accountBls1.String(), "VOTE_OPTION_YES", timeoutHeight},
 	)
 	s.Require().NoError(err, out.String())
 	// s.T().Logf("vote bls1: %s", out.String())
 	s.Require().NoError(ioutil.WriteFile(vote1Path, out.Bytes(), 0600))
 
 	out, err = cli.ExecTestCLICmd(clientCtx, blsclient.MsgVoteCmd(),
-		[]string{"1", s.accountBls2.String(), "VOTE_OPTION_YES"},
+		[]string{"1", s.accountBls2.String(), "VOTE_OPTION_YES", timeoutHeight},
 	)
 	s.Require().NoError(err, out.String())
 	// s.T().Logf("vote bls2: %s", out.String())
