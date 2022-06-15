@@ -15,7 +15,6 @@ import (
 	bankutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
-	grouperrors "github.com/cosmos/cosmos-sdk/x/group/errors"
 	"github.com/stretchr/testify/suite"
 	tmtime "github.com/tendermint/tendermint/libs/time"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -214,7 +213,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: unregisteredGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrDuplicate,
+			Err:         blsgroup.ErrDuplicate,
 		},
 		{
 			Description: "unknown group",
@@ -232,7 +231,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: nonBlsMemberGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrInvalid,
+			Err:         blsgroup.ErrInvalid,
 		},
 		{
 			Description: "member account does not exists",
@@ -241,7 +240,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: nonExistingMemberGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrInvalid,
+			Err:         blsgroup.ErrInvalid,
 		},
 		{
 			Description: "member account pubkey not set",
@@ -250,7 +249,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: memberPubkeyNotSetGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrInvalid,
+			Err:         blsgroup.ErrInvalid,
 		},
 		{
 			Description: "member account missing POP",
@@ -259,7 +258,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: memberMissingPOPGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrInvalid,
+			Err:         blsgroup.ErrInvalid,
 		},
 		{
 			Description: "not admin",
@@ -268,7 +267,7 @@ func (s *TestSuite) TestRegisterBlsGroup() {
 				GroupId: s.groupID,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrUnauthorized,
+			Err:         blsgroup.ErrUnauthorized,
 		},
 	}
 
@@ -309,7 +308,7 @@ func (s *TestSuite) TestRegisterModifiedBlsGroup() {
 		Admin:   s.groupAdmin.String(),
 		GroupId: blsGroup.GroupId,
 	})
-	s.Require().ErrorIs(grouperrors.ErrDuplicate, err, "expected duplicate registration")
+	s.Require().ErrorIs(blsgroup.ErrDuplicate, err, "expected duplicate registration")
 
 	_, err = s.app.GroupKeeper.UpdateGroupMembers(s.sdkCtx, &group.MsgUpdateGroupMembers{
 		Admin:   s.groupAdmin.String(),
@@ -366,7 +365,7 @@ func (s *TestSuite) TestUnregisterBlsGroup() {
 				GroupId: nonRegisteredBlsGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrInvalid,
+			Err:         blsgroup.ErrInvalid,
 		},
 		{
 			Description: "unknown group",
@@ -384,7 +383,7 @@ func (s *TestSuite) TestUnregisterBlsGroup() {
 				GroupId: registeredBlsGroup.GroupId,
 			},
 			ExpectError: true,
-			Err:         grouperrors.ErrUnauthorized,
+			Err:         blsgroup.ErrUnauthorized,
 		},
 		{
 			Description: "valid",
@@ -665,4 +664,105 @@ func (s *TestSuite) TestVoteAggDuplicateVote() {
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(votesResp.Votes))
 	s.Require().Equal(group.VOTE_OPTION_YES, votesResp.Votes[0].Option)
+}
+
+func (s *TestSuite) TestVoteAggTimeout() {
+	testCases := []struct {
+		Description string
+		VoteTimeout int64
+		AggTimeout  int64
+		ExpectErr   bool
+		Err         error
+	}{
+		{
+			Description: "timeout ok",
+			VoteTimeout: s.sdkCtx.BlockHeight() + 1,
+			AggTimeout:  s.sdkCtx.BlockHeight() + 1,
+			ExpectErr:   false,
+		},
+		{
+			Description: "expired vote",
+			VoteTimeout: s.sdkCtx.BlockHeight() - 1,
+			AggTimeout:  s.sdkCtx.BlockHeight() - 1,
+			ExpectErr:   true,
+			Err:         blsgroup.ErrExpired,
+		},
+		{
+			Description: "invalid vote timeout",
+			VoteTimeout: 0,
+			AggTimeout:  s.sdkCtx.BlockHeight() + 1,
+			ExpectErr:   true,
+			Err:         blsgroup.ErrSignatureVerification,
+		},
+		{
+			Description: "invalid aggregated vote timeout",
+			VoteTimeout: s.sdkCtx.BlockHeight() + 1,
+			AggTimeout:  0,
+			ExpectErr:   true,
+			Err:         blsgroup.ErrInvalid,
+		},
+		{
+			Description: "timeout valid but mismatches",
+			VoteTimeout: s.sdkCtx.BlockHeight() + 1,
+			AggTimeout:  s.sdkCtx.BlockHeight() + 2,
+			ExpectErr:   true,
+			Err:         blsgroup.ErrSignatureVerification,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		s.Run(tc.Description, func() {
+			proposalReq := &group.MsgSubmitProposal{
+				GroupPolicyAddress: s.groupPolicyAddr.String(),
+				Proposers:          []string{s.accounts[0].Addr.String()},
+				Metadata:           "valid-metadata",
+			}
+
+			amountTransfered := sdk.NewInt64Coin("token", 100)
+			s.Require().NoError(proposalReq.SetMsgs([]sdk.Msg{&banktypes.MsgSend{
+				FromAddress: s.groupPolicyAddr.String(),
+				ToAddress:   s.accounts[2].Addr.String(),
+				Amount:      sdk.Coins{amountTransfered},
+			}}))
+			proposal, err := s.app.GroupKeeper.SubmitProposal(s.ctx, proposalReq)
+			s.Require().NoError(err)
+
+			vote1 := &blsgroup.MsgVote{
+				ProposalId:    proposal.ProposalId,
+				Voter:         s.accounts[0].Addr.String(),
+				Option:        group.VOTE_OPTION_YES,
+				TimeoutHeight: tc.VoteTimeout,
+			}
+			vote1Sig, err := s.accounts[0].PrivKey.Sign(vote1.GetSignBytes())
+			s.Require().NoError(err)
+
+			aggSig, err := bls12381.AggregateSignature([][]byte{vote1Sig})
+			s.Require().NoError(err)
+
+			_, err = s.app.BlsGroupKeeper.VoteAgg(s.ctx, &blsgroup.MsgVoteAgg{
+				Sender:     s.accounts[0].Addr.String(),
+				ProposalId: proposal.ProposalId,
+				Votes: []group.VoteOption{
+					group.VOTE_OPTION_YES,
+					group.VOTE_OPTION_UNSPECIFIED,
+					group.VOTE_OPTION_UNSPECIFIED,
+				},
+				AggSig:        aggSig,
+				Exec:          group.Exec_EXEC_UNSPECIFIED,
+				TimeoutHeight: tc.AggTimeout,
+			})
+
+			if tc.ExpectErr {
+				if tc.Err != nil {
+					s.Require().ErrorIs(err, tc.Err)
+				} else {
+					s.Require().Error(err)
+				}
+			} else {
+				s.Require().NoError(err)
+			}
+		})
+	}
+
 }

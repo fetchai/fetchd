@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -39,11 +40,11 @@ func (k Keeper) RegisterBlsGroup(goCtx context.Context, req *blsgroup.MsgRegiste
 		return nil, sdkerrors.Wrap(err, "request admin")
 	}
 	if !groupAdmin.Equals(reqAdmin) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrUnauthorized, "not group admin")
+		return nil, sdkerrors.Wrap(blsgroup.ErrUnauthorized, "not group admin")
 	}
 
 	if k.isRegisteredBlsGroup(ctx, groupInfoResp.Info) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrDuplicate, "already registered")
+		return nil, sdkerrors.Wrap(blsgroup.ErrDuplicate, "already registered")
 	}
 
 	groupMemberResp, err := k.groupKeeper.GroupMembers(goCtx, &group.QueryGroupMembersRequest{GroupId: req.GroupId})
@@ -58,18 +59,18 @@ func (k Keeper) RegisterBlsGroup(goCtx context.Context, req *blsgroup.MsgRegiste
 		}
 		acc := k.accKeeper.GetAccount(ctx, memAddr)
 		if acc == nil {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s does not exist", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "account %s does not exist", memAddr.String())
 		}
 		pk := acc.GetPubKey()
 		if pk == nil {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "public key for account %s not set yet", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "public key for account %s not set yet", memAddr.String())
 		}
 
 		if _, ok := pk.(*bls12381.PubKey); !ok {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "public key for account %s is not a BLS key", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "public key for account %s is not a BLS key", memAddr.String())
 		}
 		if !bls12381.IsPopValid(acc) {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s have not proven possession of private key yet, make this account sign a transaction first", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "account %s have not proven possession of private key yet, make this account sign a transaction first", memAddr.String())
 		}
 	}
 
@@ -98,11 +99,11 @@ func (k Keeper) UnregisterBlsGroup(goCtx context.Context, req *blsgroup.MsgUnreg
 		return nil, sdkerrors.Wrap(err, "request admin")
 	}
 	if !groupAdmin.Equals(reqAdmin) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrUnauthorized, "not group admin")
+		return nil, sdkerrors.Wrap(blsgroup.ErrUnauthorized, "not group admin")
 	}
 
 	if !k.isRegisteredBlsGroup(ctx, groupInfoResp.Info) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "bls group not registered")
+		return nil, sdkerrors.Wrap(blsgroup.ErrInvalid, "bls group not registered")
 	}
 
 	groupStore := prefix.NewStore(ctx.KVStore(k.key), blsgroup.GroupPrefixKey)
@@ -129,11 +130,11 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	if req.TimeoutHeight == 0 {
-		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "timeout height is required")
+		return nil, sdkerrors.Wrap(blsgroup.ErrInvalid, "timeout height is required")
 	}
 
 	if ctx.BlockHeight() > req.TimeoutHeight {
-		return nil, sdkerrors.Wrap(grouperrors.ErrExpired, "timeout height expired")
+		return nil, sdkerrors.Wrap(blsgroup.ErrExpired, "timeout height expired")
 	}
 
 	proposalResp, err := k.groupKeeper.Proposal(goCtx, &group.QueryProposalRequest{ProposalId: req.ProposalId})
@@ -144,10 +145,10 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 
 	// Ensure that we can still accept votes for this proposal.
 	if proposal.Status != group.PROPOSAL_STATUS_SUBMITTED {
-		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "proposal not open for voting")
+		return nil, sdkerrors.Wrap(blsgroup.ErrInvalid, "proposal not open for voting")
 	}
 	if proposal.VotingPeriodEnd.Before(ctx.BlockTime()) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrExpired, "voting period has ended already")
+		return nil, sdkerrors.Wrap(blsgroup.ErrExpired, "voting period has ended already")
 	}
 
 	policyInfo, err := k.groupKeeper.GroupPolicyInfo(goCtx, &group.QueryGroupPolicyInfoRequest{Address: proposal.GroupPolicyAddress})
@@ -160,7 +161,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 		return nil, sdkerrors.Wrap(err, "load group")
 	}
 	if !k.isRegisteredBlsGroup(ctx, groupInfo.Info) {
-		return nil, sdkerrors.Wrap(grouperrors.ErrInvalid, "bls group not registered")
+		return nil, sdkerrors.Wrap(blsgroup.ErrInvalid, "bls group not registered")
 	}
 
 	electorate, err := k.groupKeeper.GroupInfo(goCtx, &group.QueryGroupInfoRequest{GroupId: policyInfo.Info.GroupId})
@@ -176,7 +177,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 
 	// need the same number of votes than the group have members
 	if g, w := len(req.Votes), len(members); g != w {
-		return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "got %d votes, want %d", g, w)
+		return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "got %d votes, want %d", g, w)
 	}
 
 	signedBytes := make([][]byte, 0, len(req.Votes))
@@ -192,14 +193,14 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 
 		acc := k.accKeeper.GetAccount(ctx, memAddr)
 		if acc == nil {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s does not exist", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "account %s does not exist", memAddr.String())
 		}
 		if !bls12381.IsPopValid(acc) {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "account %s have not proven possession of private key yet, make this account sign a transaction first", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "account %s have not proven possession of private key yet, make this account sign a transaction first", memAddr.String())
 		}
 		pk := acc.GetPubKey()
 		if pk == nil {
-			return nil, sdkerrors.Wrapf(grouperrors.ErrInvalid, "public key for account %s not set yet", memAddr.String())
+			return nil, sdkerrors.Wrapf(blsgroup.ErrInvalid, "public key for account %s not set yet", memAddr.String())
 		}
 
 		if voteOption != group.VOTE_OPTION_UNSPECIFIED {
@@ -222,7 +223,7 @@ func (k Keeper) VoteAgg(goCtx context.Context, req *blsgroup.MsgVoteAgg) (*blsgr
 	}
 
 	if err = blsgroup.VerifyAggregateSignature(signedBytes, false, req.AggSig, pks); err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(blsgroup.ErrSignatureVerification, fmt.Sprintf("%s", err))
 	}
 
 	for _, msg := range allVoteMsgs {
