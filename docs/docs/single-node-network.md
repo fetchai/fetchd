@@ -71,15 +71,14 @@ for the network.
 
 To run the network use the following command.
 
-    `fetchd start`
+   `fetchd start`
 
 ## Resetting the network
 
 Often you will want to clear out all the data from the network and start again. To do that in a local network simply
 run the following command:
 
-    `fetchd tendermint unsafe-reset-all`
+   `fetchd tendermint unsafe-reset-all`
 
 This resets the chain back to genesis, you **DO NOT** need to perform the network setup steps again. After running this
 command you can simply run the `fetchd start` command again.
-
