@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Go 1.17+ (installation instructions available [here](https://golang.org/dl/))
+- Go 1.18+ (installation instructions available [here](https://golang.org/dl/))
 - Packages: `make`, `gcc` (on Ubuntu, install them with `sudo apt-get update && sudo apt-get install -y make gcc`)
 
 ## Building the code
