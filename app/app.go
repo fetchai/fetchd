@@ -709,7 +709,7 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.105", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.5", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		// IBC migration sourced from: https://github.com/cosmos/ibc-go/blob/main/docs/migrations/support-denoms-with-slashes.md
 
 		equalTraces := func(dtA, dtB ibctransfertypes.DenomTrace) bool {
