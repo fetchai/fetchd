@@ -849,7 +849,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			if ok {
 				app.BankKeeper.SetDenomMetaData(ctx, metas)
 			}
-			return true
+			return false // iterate stop when callback return true
 		})
 
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
