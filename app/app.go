@@ -785,6 +785,73 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 		icamodule.InitModule(ctx, controllerParams, hostParams)
 
+		validDenoms := map[string]banktypes.Metadata{
+			"atestfet": {
+				Base:        "atestfet",
+				Description: "Fetch-ai Network testnet token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "TESTFET", Exponent: 18},
+				},
+				Display: "TESTFET",
+				Name:    "TESTFET",
+				Symbol:  "TESTFET",
+			},
+			"afet": {
+				Base:        "afet",
+				Description: "Fetch-ai Network token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "FET", Exponent: 18},
+					{Denom: "mfet", Exponent: 15},
+					{Denom: "ufet", Exponent: 12},
+					{Denom: "nfet", Exponent: 9},
+					{Denom: "pfet", Exponent: 6},
+					{Denom: "ffet", Exponent: 3},
+					{Denom: "afet", Exponent: 0},
+				},
+				Display: "FET",
+				Name:    "FET",
+				Symbol:  "FET",
+			},
+			"nanomobx": {
+				Base:        "nanomobx",
+				Description: "",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "mobx", Exponent: 9},
+				},
+				Display: "mobx",
+				Name:    "mobx",
+				Symbol:  "MOBX",
+			},
+			"nanonomx": {
+				Base:        "nanonomx",
+				Description: "",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "nomx", Exponent: 9},
+				},
+				Display: "nomx",
+				Name:    "nomx",
+				Symbol:  "NOMX",
+			},
+			"ulrn": {
+				Base:        "ulrn",
+				Description: "",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "lrn", Exponent: 6},
+				},
+				Display: "lrn",
+				Name:    "lrn",
+				Symbol:  "LRN",
+			},
+		}
+
+		app.BankKeeper.IterateTotalSupply(ctx, func(c sdk.Coin) bool {
+			metas, ok := validDenoms[c.Denom]
+			if ok {
+				app.BankKeeper.SetDenomMetaData(ctx, metas)
+			}
+			return true
+		})
+
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 }
