@@ -24,6 +24,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -80,16 +81,22 @@ import (
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	transfer "github.com/cosmos/ibc-go/v2/modules/apps/transfer"
-	ibctransferkeeper "github.com/cosmos/ibc-go/v2/modules/apps/transfer/keeper"
-	ibctransfertypes "github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	ibc "github.com/cosmos/ibc-go/v2/modules/core"
-	ibcclient "github.com/cosmos/ibc-go/v2/modules/core/02-client"
-	ibcclientclient "github.com/cosmos/ibc-go/v2/modules/core/02-client/client"
-	ibcclienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	ibchost "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibckeeper "github.com/cosmos/ibc-go/v2/modules/core/keeper"
+	ica "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts"
+	icacontrollertypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host"
+	icahostkeeper "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/keeper"
+	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
+	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+	transfer "github.com/cosmos/ibc-go/v3/modules/apps/transfer"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibc "github.com/cosmos/ibc-go/v3/modules/core"
+	ibcclient "github.com/cosmos/ibc-go/v3/modules/core/02-client"
+	ibcclientclient "github.com/cosmos/ibc-go/v3/modules/core/02-client/client"
+	ibcclienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	porttypes "github.com/cosmos/ibc-go/v3/modules/core/05-port/types"
+	ibchost "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	ibckeeper "github.com/cosmos/ibc-go/v3/modules/core/keeper"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
@@ -175,6 +182,7 @@ var (
 	maccPerms = map[string][]string{
 		authtypes.FeeCollectorName:     nil,
 		distrtypes.ModuleName:          nil,
+		icatypes.ModuleName:            nil,
 		minttypes.ModuleName:           {authtypes.Minter},
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
@@ -231,11 +239,13 @@ type App struct {
 	EvidenceKeeper   evidencekeeper.Keeper
 	FeeGrantKeeper   feegrantkeeper.Keeper
 	IBCKeeper        *ibckeeper.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
-	TransferKeeper   ibctransferkeeper.Keeper
+	ICAHostKeeper    *icahostkeeper.Keeper
+	TransferKeeper   *ibctransferkeeper.Keeper
 	WasmKeeper       wasm.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
+	ScopedICAHostKeeper  capabilitykeeper.ScopedKeeper
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 	ScopedWasmKeeper     capabilitykeeper.ScopedKeeper
 
@@ -263,7 +273,7 @@ func New(
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
-		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
+		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, icahosttypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		feegrant.StoreKey, wasm.StoreKey, authzkeeper.StoreKey,
 	)
@@ -291,6 +301,7 @@ func New(
 
 	// grant capabilities for the ibc and ibc-transfer modules
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
+	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasm.ModuleName)
 
@@ -364,12 +375,33 @@ func New(
 	)
 
 	// Create Transfer Keepers
-	app.TransferKeeper = ibctransferkeeper.NewKeeper(
-		appCodec, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
-		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
-		app.AccountKeeper, app.BankKeeper, scopedTransferKeeper,
+	transferKeeper := ibctransferkeeper.NewKeeper(
+		appCodec,
+		keys[ibctransfertypes.StoreKey],
+		app.GetSubspace(ibctransfertypes.ModuleName),
+		app.IBCKeeper.ChannelKeeper,
+		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper,
+		app.AccountKeeper,
+		app.BankKeeper,
+		scopedTransferKeeper,
 	)
-	transferModule := transfer.NewAppModule(app.TransferKeeper)
+	app.TransferKeeper = &transferKeeper
+	transferModule := transfer.NewAppModule(*app.TransferKeeper)
+	transferIBCModule := transfer.NewIBCModule(*app.TransferKeeper)
+
+	icaHostKeeper := icahostkeeper.NewKeeper(
+		appCodec, keys[icahosttypes.StoreKey],
+		app.GetSubspace(icahosttypes.SubModuleName),
+		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper,
+		app.AccountKeeper,
+		scopedICAHostKeeper,
+		bApp.MsgServiceRouter(),
+	)
+	app.ICAHostKeeper = &icaHostKeeper
+
+	icaHostIBCModule := icahost.NewIBCModule(*app.ICAHostKeeper)
 
 	// Create evidence Keeper for to register the IBC light client misbehaviour evidence route
 	evidenceKeeper := evidencekeeper.NewKeeper(
@@ -410,7 +442,8 @@ func New(
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
+	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostIBCModule).
+		AddRoute(ibctransfertypes.ModuleName, transferIBCModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
 
 	/****  Module Options ****/
@@ -441,9 +474,10 @@ func New(
 		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		ibc.NewAppModule(app.IBCKeeper),
+		ica.NewAppModule(nil, app.ICAHostKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
-		wasm.NewAppModule(appCodec, &app.WasmKeeper, app.StakingKeeper),
+		wasm.NewAppModule(appCodec, &app.WasmKeeper, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 	)
 
 	// During begin block slashing happens after distribution.BeginBlocker so that
@@ -469,6 +503,7 @@ func New(
 		vestingtypes.ModuleName,
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
+		icatypes.ModuleName,
 		wasm.ModuleName,
 	)
 
@@ -491,6 +526,7 @@ func New(
 		vestingtypes.ModuleName,
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
+		icatypes.ModuleName,
 		wasm.ModuleName,
 	)
 
@@ -518,6 +554,7 @@ func New(
 		vestingtypes.ModuleName,
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
+		icatypes.ModuleName,
 		wasm.ModuleName,
 	)
 
@@ -543,7 +580,7 @@ func New(
 				SignModeHandler: encodingConfig.TxConfig.SignModeHandler(),
 				SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
 			},
-			IBCChannelkeeper:  app.IBCKeeper.ChannelKeeper,
+			IBCKeeper:         app.IBCKeeper,
 			WasmConfig:        &wasmConfig,
 			TXCounterStoreKey: keys[wasm.StoreKey],
 		},
@@ -576,6 +613,7 @@ func New(
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
+	app.ScopedICAHostKeeper = scopedICAHostKeeper
 	app.ScopedTransferKeeper = scopedTransferKeeper
 	app.ScopedWasmKeeper = scopedWasmKeeper
 
@@ -671,27 +709,149 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// manually add every existing modules to prevent the migration calling InitGenesis on them
-		fromVM[authz.ModuleName] = authzmodule.AppModule{}.ConsensusVersion()
-		fromVM[banktypes.ModuleName] = bank.AppModule{}.ConsensusVersion()
-		fromVM[capabilitytypes.ModuleName] = capability.AppModule{}.ConsensusVersion()
-		fromVM[crisistypes.ModuleName] = crisis.AppModule{}.ConsensusVersion()
-		fromVM[distrtypes.ModuleName] = distribution.AppModule{}.ConsensusVersion()
-		fromVM[stakingtypes.ModuleName] = staking.AppModule{}.ConsensusVersion()
-		fromVM[evidencetypes.ModuleName] = evidence.AppModule{}.ConsensusVersion()
-		fromVM[feegrant.ModuleName] = feegrantmodule.AppModule{}.ConsensusVersion()
-		fromVM[genutiltypes.ModuleName] = genutil.AppModule{}.ConsensusVersion()
-		fromVM[govtypes.ModuleName] = gov.AppModule{}.ConsensusVersion()
-		fromVM[ibchost.ModuleName] = ibc.AppModule{}.ConsensusVersion()
-		fromVM[minttypes.ModuleName] = mint.AppModule{}.ConsensusVersion()
-		fromVM[paramstypes.ModuleName] = params.AppModule{}.ConsensusVersion()
-		fromVM[slashingtypes.ModuleName] = slashing.AppModule{}.ConsensusVersion()
-		fromVM[ibctransfertypes.ModuleName] = transfer.AppModule{}.ConsensusVersion()
-		fromVM[authtypes.ModuleName] = auth.AppModule{}.ConsensusVersion()
-		fromVM[upgradetypes.ModuleName] = upgrade.AppModule{}.ConsensusVersion()
-		fromVM[vestingtypes.ModuleName] = vesting.AppModule{}.ConsensusVersion()
-		fromVM[wasm.ModuleName] = wasm.AppModule{}.ConsensusVersion()
+	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	if err != nil {
+		panic(err)
+	}
+
+	if upgradeInfo.Name == "fetchd-v0.10.5" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		storeUpgrades := storetypes.StoreUpgrades{
+			Added: []string{icacontrollertypes.StoreKey, icahosttypes.StoreKey},
+		}
+
+		// configure store loader that checks if version == upgradeHeight and applies store upgrades
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
+
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.5", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// IBC migration sourced from: https://github.com/cosmos/ibc-go/blob/main/docs/migrations/support-denoms-with-slashes.md
+
+		equalTraces := func(dtA, dtB ibctransfertypes.DenomTrace) bool {
+			return dtA.BaseDenom == dtB.BaseDenom && dtA.Path == dtB.Path
+		}
+
+		// list of traces that must replace the old traces in store
+		var newTraces []ibctransfertypes.DenomTrace
+		app.TransferKeeper.IterateDenomTraces(ctx,
+			func(dt ibctransfertypes.DenomTrace) bool {
+				// check if the new way of splitting FullDenom
+				// into Trace and BaseDenom passes validation and
+				// is the same as the current DenomTrace.
+				// If it isn't then store the new DenomTrace in the list of new traces.
+				newTrace := ibctransfertypes.ParseDenomTrace(dt.GetFullDenomPath())
+				if err := newTrace.Validate(); err == nil && !equalTraces(newTrace, dt) {
+					newTraces = append(newTraces, newTrace)
+				}
+
+				return false
+			})
+
+		// replace the outdated traces with the new trace information
+		for _, nt := range newTraces {
+			app.TransferKeeper.SetDenomTrace(ctx, nt)
+		}
+
+		// Add Interchain Accounts host module
+		// set the ICS27 consensus version so InitGenesis is not run
+		fromVM[icatypes.ModuleName] = app.mm.Modules[icatypes.ModuleName].ConsensusVersion()
+
+		// create ICS27 Controller submodule params, controller module not enabled.
+		controllerParams := icacontrollertypes.Params{}
+
+		// create ICS27 Host submodule params
+		hostParams := icahosttypes.Params{
+			HostEnabled: true,
+			AllowMessages: []string{
+				sdk.MsgTypeURL(&banktypes.MsgSend{}),
+				sdk.MsgTypeURL(&stakingtypes.MsgDelegate{}),
+				sdk.MsgTypeURL(&stakingtypes.MsgBeginRedelegate{}),
+				sdk.MsgTypeURL(&stakingtypes.MsgCreateValidator{}),
+				sdk.MsgTypeURL(&stakingtypes.MsgEditValidator{}),
+				sdk.MsgTypeURL(&distrtypes.MsgWithdrawDelegatorReward{}),
+				sdk.MsgTypeURL(&distrtypes.MsgSetWithdrawAddress{}),
+				sdk.MsgTypeURL(&distrtypes.MsgWithdrawValidatorCommission{}),
+				sdk.MsgTypeURL(&distrtypes.MsgFundCommunityPool{}),
+				sdk.MsgTypeURL(&govtypes.MsgVote{}),
+				sdk.MsgTypeURL(&authz.MsgExec{}),
+				sdk.MsgTypeURL(&authz.MsgGrant{}),
+				sdk.MsgTypeURL(&authz.MsgRevoke{}),
+			},
+		}
+
+		// initialize ICS27 module
+		icamodule, correctTypecast := app.mm.Modules[icatypes.ModuleName].(ica.AppModule)
+		if !correctTypecast {
+			panic("mm.Modules[icatypes.ModuleName] is not of type ica.AppModule")
+		}
+		icamodule.InitModule(ctx, controllerParams, hostParams)
+
+		validDenoms := map[string]banktypes.Metadata{
+			"atestfet": {
+				Base:        "atestfet",
+				Description: "Fetch-ai Network testnet token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "TESTFET", Exponent: 18},
+				},
+				Display: "TESTFET",
+				Name:    "TESTFET",
+				Symbol:  "TESTFET",
+			},
+			"afet": {
+				Base:        "afet",
+				Description: "Fetch-ai Network token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "FET", Exponent: 18},
+					{Denom: "mfet", Exponent: 15},
+					{Denom: "ufet", Exponent: 12},
+					{Denom: "nfet", Exponent: 9},
+					{Denom: "pfet", Exponent: 6},
+					{Denom: "ffet", Exponent: 3},
+					{Denom: "afet", Exponent: 0},
+				},
+				Display: "FET",
+				Name:    "FET",
+				Symbol:  "FET",
+			},
+			"nanomobx": {
+				Base:        "nanomobx",
+				Description: "Mobix Token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "mobx", Exponent: 9},
+				},
+				Display: "mobx",
+				Name:    "mobx",
+				Symbol:  "MOBX",
+			},
+			"nanonomx": {
+				Base:        "nanonomx",
+				Description: "Nomix Token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "nomx", Exponent: 9},
+				},
+				Display: "nomx",
+				Name:    "nomx",
+				Symbol:  "NOMX",
+			},
+			"ulrn": {
+				Base:        "ulrn",
+				Description: "CoLearn Token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: "lrn", Exponent: 6},
+				},
+				Display: "lrn",
+				Name:    "lrn",
+				Symbol:  "LRN",
+			},
+		}
+
+		app.BankKeeper.IterateTotalSupply(ctx, func(c sdk.Coin) bool {
+			metas, ok := validDenoms[c.Denom]
+			if ok {
+				app.BankKeeper.SetDenomMetaData(ctx, metas)
+			}
+			return false // iterate stop when callback return true
+		})
+
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 }
@@ -761,6 +921,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
+	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(wasm.ModuleName)
 
 	return paramsKeeper

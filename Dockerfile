@@ -1,4 +1,4 @@
-FROM golang:1.17-buster as builder
+FROM golang:1.18-buster as builder
 
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
@@ -22,7 +22,7 @@ ENV PACKAGES jq curl
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
-COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.so /usr/lib/libwasmvm.so
+COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.x86_64.so /usr/lib/
 COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
