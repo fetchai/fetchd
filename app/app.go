@@ -814,7 +814,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			},
 			"nanomobx": {
 				Base:        "nanomobx",
-				Description: "",
+				Description: "Mobix Token",
 				DenomUnits: []*banktypes.DenomUnit{
 					{Denom: "mobx", Exponent: 9},
 				},
@@ -824,7 +824,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			},
 			"nanonomx": {
 				Base:        "nanonomx",
-				Description: "",
+				Description: "Nomix Token",
 				DenomUnits: []*banktypes.DenomUnit{
 					{Denom: "nomx", Exponent: 9},
 				},
@@ -834,7 +834,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			},
 			"ulrn": {
 				Base:        "ulrn",
-				Description: "",
+				Description: "CoLearn Token",
 				DenomUnits: []*banktypes.DenomUnit{
 					{Denom: "lrn", Exponent: 6},
 				},
