@@ -35,7 +35,7 @@ It is stable for deploying smart contracts and testing IBC.
 | Denomination    | atestfet |
 | Decimals        | 18 (1testfet = 1000000000000000000atestfet) |
 | Min Gas Prices  | 1000000000atestfet |
-| Version         | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 947800 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) for blocks > 947800 |
+| Version         | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 947800 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) for blocks > 947800 and < 2198000 <br/> [v0.10.5-rc1](https://github.com/fetchai/fetchd/releases/tag/v0.10.5-rc1) for blocks > 2198000 |
 | RPC Endpoint    | <https://rpc-dorado.fetch.ai:443> |
 | GRPC Endpoint   | <https://grpc-dorado.fetch.ai:443> |
 | REST Endpoint   | <https://rest-dorado.fetch.ai:443> |
