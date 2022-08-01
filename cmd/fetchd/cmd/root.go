@@ -37,13 +37,12 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/fetchai/fetchd/app"
-	"github.com/fetchai/fetchd/app/params"
 	"github.com/fetchai/fetchd/crypto/hd"
 )
 
 // NewRootCmd creates a new root command for simd. It is called once in the
 // main function.
-func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
+func NewRootCmd() (*cobra.Command, app.EncodingConfig) {
 	// Set config for prefixes
 	app.SetConfig()
 	// Set custom power reduction
@@ -139,7 +138,7 @@ func initAppConfig() (string, interface{}) {
 	return serverconfig.DefaultConfigTemplate, customAppConfig
 }
 
-func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
+func initRootCmd(rootCmd *cobra.Command, encodingConfig app.EncodingConfig) {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
@@ -220,7 +219,7 @@ func txCommand() *cobra.Command {
 }
 
 type appCreator struct {
-	encCfg params.EncodingConfig
+	encCfg app.EncodingConfig
 }
 
 // newApp is an AppCreator
