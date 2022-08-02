@@ -767,10 +767,10 @@ func (s *TestSuite) TestVoteAggTimeout() {
 }
 
 func (s *TestSuite) TestGetAllGroupMembers() {
-	members := make([]group.Member, 67)
+	members := make([]group.MemberRequest, 67)
 	for i := 0; i < len(members); i++ {
 		_, _, addr := testdata.KeyTestPubAddrBls12381()
-		members[i] = group.Member{
+		members[i] = group.MemberRequest{
 			Address: addr.String(),
 			Weight:  "2",
 		}
