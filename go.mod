@@ -15,9 +15,6 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/supranational/blst v0.3.7
 	github.com/tendermint/tendermint v0.35.4
-	github.com/stretchr/testify v1.7.1
-	github.com/supranational/blst v0.3.7
-	github.com/tendermint/tendermint v0.35.4
 	github.com/tendermint/tm-db v0.6.7
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0

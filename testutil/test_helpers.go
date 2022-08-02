@@ -36,7 +36,6 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/fetchai/fetchd/app"
-	"github.com/fetchai/fetchd/app/params"
 )
 
 // DefaultConsensusParams defines the default Tendermint consensus params used in
@@ -65,7 +64,7 @@ type SetupOptions struct {
 	InvCheckPeriod     uint
 	HomePath           string
 	SkipUpgradeHeights map[int64]bool
-	EncConfig          params.EncodingConfig
+	EncConfig          app.EncodingConfig
 	AppOpts            types.AppOptions
 }
 
