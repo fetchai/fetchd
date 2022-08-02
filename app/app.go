@@ -88,6 +88,10 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
+
+	blsgrouptypes "github.com/fetchai/fetchd/x/blsgroup"
+	blsgroupkeeper "github.com/fetchai/fetchd/x/blsgroup/keeper"
+	blsgroup "github.com/fetchai/fetchd/x/blsgroup/module"
 )
 
 const Name = "fetchd"
@@ -119,6 +123,7 @@ var (
 		authzmodule.AppModuleBasic{},
 		groupmodule.AppModuleBasic{},
 		vesting.AppModuleBasic{},
+		blsgroup.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -179,6 +184,7 @@ type App struct {
 	EvidenceKeeper   evidencekeeper.Keeper
 	FeeGrantKeeper   feegrantkeeper.Keeper
 	GroupKeeper      groupkeeper.Keeper
+	BlsGroupKeeper   blsgroupkeeper.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
@@ -222,6 +228,7 @@ func New(
 		govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, capabilitytypes.StoreKey,
 		feegrant.StoreKey, authzkeeper.StoreKey, group.StoreKey,
+		blsgrouptypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -294,6 +301,7 @@ func New(
 		groupConfig.MaxMetadataLen = 1000
 	*/
 	app.GroupKeeper = groupkeeper.NewKeeper(keys[group.StoreKey], appCodec, app.MsgServiceRouter(), app.AccountKeeper, groupConfig)
+	app.BlsGroupKeeper = blsgroupkeeper.NewKeeper(keys[blsgrouptypes.StoreKey], appCodec, app.MsgServiceRouter(), app.GroupKeeper, app.AccountKeeper)
 
 	// register the proposal types
 	govRouter := govv1beta1.NewRouter()
@@ -351,6 +359,7 @@ func New(
 		params.NewAppModule(app.ParamsKeeper),
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		groupmodule.NewAppModule(appCodec, app.GroupKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
+		blsgroup.NewAppModule(appCodec, app.BlsGroupKeeper, app.interfaceRegistry),
 	)
 
 	app.mm.SetOrderBeginBlockers(
@@ -359,6 +368,7 @@ func New(
 		authtypes.ModuleName, banktypes.ModuleName, govtypes.ModuleName, crisistypes.ModuleName, genutiltypes.ModuleName,
 		authz.ModuleName, feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, vestingtypes.ModuleName,
+		blsgrouptypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
@@ -367,6 +377,7 @@ func New(
 		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
+		blsgrouptypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -381,6 +392,7 @@ func New(
 		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
+		blsgrouptypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
