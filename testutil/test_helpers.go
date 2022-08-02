@@ -2,10 +2,10 @@ package testutil
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"testing"
 	"time"
@@ -40,8 +40,8 @@ import (
 
 // DefaultConsensusParams defines the default Tendermint consensus params used in
 // App testing.
-var DefaultConsensusParams = &tmproto.ConsensusParams{
-	Block: &tmproto.BlockParams{
+var DefaultConsensusParams = &abci.ConsensusParams{
+	Block: &abci.BlockParams{
 		MaxBytes: 200000,
 		MaxGas:   2000000,
 	},
@@ -83,7 +83,7 @@ func NewSimappWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptio
 	t.Helper()
 
 	privVal := mock.NewPV()
-	pubKey, err := privVal.GetPubKey(context.TODO())
+	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 	// create validator set with single validator
 	validator := tmtypes.NewValidator(pubKey, 1)
@@ -124,7 +124,7 @@ func Setup(t *testing.T, isCheckTx bool) *app.App {
 	t.Helper()
 
 	privVal := mock.NewPV()
-	pubKey, err := privVal.GetPubKey(context.TODO())
+	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 
 	// create validator set with single validator
@@ -247,7 +247,7 @@ func SetupWithGenesisAccounts(t *testing.T, genAccs []authtypes.GenesisAccount, 
 	t.Helper()
 
 	privVal := mock.NewPV()
-	pubKey, err := privVal.GetPubKey(context.TODO())
+	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 
 	// create validator set with single validator
@@ -263,7 +263,7 @@ func GenesisStateWithSingleValidator(t *testing.T, a *app.App) app.GenesisState 
 	t.Helper()
 
 	privVal := mock.NewPV()
-	pubKey, err := privVal.GetPubKey(context.TODO())
+	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 
 	// create validator set with single validator
@@ -414,6 +414,7 @@ func SignCheckDeliver(
 ) (sdk.GasInfo, *sdk.Result, error) {
 
 	tx, err := helpers.GenSignedMockTx(
+		rand.New(rand.NewSource(time.Now().UnixNano())),
 		txCfg,
 		msgs,
 		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
@@ -464,6 +465,7 @@ func GenSequenceOfTxs(txGen client.TxConfig, msgs []sdk.Msg, accNums []uint64, i
 	var err error
 	for i := 0; i < numToGenerate; i++ {
 		txs[i], err = helpers.GenSignedMockTx(
+			rand.New(rand.NewSource(time.Now().UnixNano())),
 			txGen,
 			msgs,
 			sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
