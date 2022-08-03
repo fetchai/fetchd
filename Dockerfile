@@ -22,7 +22,8 @@ ENV PACKAGES jq curl
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
-COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.x86_64.so /usr/lib/
+# TODO: Re-enable once wasmd have released support for cosmos-sdk v0.46x.
+# COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.x86_64.so /usr/lib/
 COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
