@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/fetchai/fetchd/crypto/hd"
@@ -159,13 +160,19 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.Require().NoError(err, out.String())
 
 	// create group policy
+	policyStr := "{\"@type\":\"/cosmos.group.v1.PercentageDecisionPolicy\", \"percentage\":\"0.5\", \"windows\":{\"voting_period\":\"300s\"}}"
+	policyFile := testutil.TempFile(s.T())
+	defer os.Remove(policyFile.Name())
+	_, err = policyFile.WriteString(policyStr)
+	s.Require().NoError(err)
+
 	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateGroupPolicyCmd(),
 		append(
 			[]string{
 				s.accountBls1.String(),
 				"1",
 				validMetadata,
-				"{\"@type\":\"/cosmos.group.v1.PercentageDecisionPolicy\", \"percentage\":\"0.5\", \"windows\":{\"voting_period\":\"300s\"}}",
+				policyFile.Name(),
 			},
 			commonFlags...,
 		),

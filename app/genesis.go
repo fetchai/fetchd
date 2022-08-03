@@ -40,9 +40,9 @@ var (
 	DefaultGovStartingProposalID uint64 = 1
 	DefaultGovDepositParams             = govv1.NewDepositParams(
 		sdk.NewCoins(sdk.NewCoin(DefaultStakingBondDenom, sdk.NewInt(2048).Mul(sdk.DefaultPowerReduction))),
-		14*24*time.Hour,
+		5*24*time.Hour,
 	)
-	DefaultGovVotingParams = govv1.NewVotingParams(14 * 24 * time.Hour)
+	DefaultGovVotingParams = govv1.NewVotingParams(5 * 24 * time.Hour)
 
 	DefaultCrisisConstantFee = sdk.NewCoin(DefaultStakingBondDenom, sdk.NewInt(1000))
 

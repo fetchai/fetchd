@@ -16,7 +16,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/stretchr/testify/suite"
-	tmtime "github.com/tendermint/tendermint/libs/time"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/fetchai/fetchd/app"
@@ -51,7 +50,7 @@ func (s *TestSuite) SetupTest() {
 	app := testutil.Setup(s.T(), false)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
-	s.blockTime = tmtime.Now()
+	s.blockTime = time.Now()
 	ctx = ctx.WithBlockHeader(tmproto.Header{Time: s.blockTime})
 
 	s.app = app
