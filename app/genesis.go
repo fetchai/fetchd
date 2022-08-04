@@ -79,7 +79,9 @@ func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
 			BondDenom:         DefaultStakingBondDenom,
 			MinCommissionRate: staking.DefaultMinCommissionRate,
 		}, nil, nil)),
-		mint.ModuleName:         cdc.MustMarshalJSON(mint.NewGenesisState(mint.DefaultInitialMinter(), DefaultMintParams)),
+		mint.ModuleName: cdc.MustMarshalJSON(mint.NewGenesisState(mint.InitialMinter(
+			DefaultMintParams.InflationMax,
+		), DefaultMintParams)),
 		distribution.ModuleName: cdc.MustMarshalJSON(distribution.DefaultGenesisState()),
 		gov.ModuleName: cdc.MustMarshalJSON(govv1.NewGenesisState(
 			DefaultGovStartingProposalID,
