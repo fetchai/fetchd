@@ -15,7 +15,9 @@ nav:
   - Introduction: 'index.md'
   - Installation: 'building.md'
   - Versions: 'versions.md'
-  - Networks: 'networks.md'
+  - Networks: 
+    - Active Networks: 'live-networks.md'
+    - Mainnet Archive: 'archived-networks.md'
   - Snapshots: 'snapshots.md'
   - Commandline Client:
     - Introduction: 'cli-introduction.md'

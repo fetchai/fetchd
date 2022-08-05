@@ -1,6 +1,6 @@
 # Block Explorer
 
-Each of the [networks](./networks/) has a dedicated block explorer web site associated with it. This is a useful tool for monitoring network activity.
+Each of the [networks](./live-networks.md) has a dedicated block explorer web site associated with it. This is a useful tool for monitoring network activity.
 
 ## Logging in with the Ledger Nano
 

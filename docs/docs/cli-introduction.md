@@ -11,7 +11,7 @@ While some users will want to connect a node to the network and sync the entire 
 To connect to the mainnet run the following configuration steps:
 
 ```bash
-fetchd config chain-id fetchhub-3
+fetchd config chain-id fetchhub-4
 fetchd config node https://rpc-fetchhub.fetch.ai:443
 ```
 
