@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"math/big"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -23,10 +24,13 @@ import (
 	slashing "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgrade "github.com/cosmos/cosmos-sdk/x/upgrade/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 var (
-	DefaultStakingBondDenom = "afet"
+	DefaultStakingBondDenom     string = "afet"
+	DefaultStakingMaxValidators uint32 = 60
 
 	DefaultMintParams = mint.Params{
 		MintDenom:           DefaultStakingBondDenom,
@@ -39,10 +43,15 @@ var (
 
 	DefaultGovStartingProposalID uint64 = 1
 	DefaultGovDepositParams             = govv1.NewDepositParams(
-		sdk.NewCoins(sdk.NewCoin(DefaultStakingBondDenom, sdk.NewInt(2048).Mul(sdk.DefaultPowerReduction))),
+		sdk.NewCoins(sdk.NewCoin(DefaultStakingBondDenom, sdk.NewInt(2048).Mul(sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))))),
 		5*24*time.Hour,
 	)
 	DefaultGovVotingParams = govv1.NewVotingParams(5 * 24 * time.Hour)
+	DefaultGovTallyParams  = govv1.NewTallyParams(
+		sdk.NewDecWithPrec(4, 1),   // quorum
+		sdk.NewDecWithPrec(5, 1),   // threshold
+		sdk.NewDecWithPrec(334, 3), // veto threshold
+	)
 
 	DefaultCrisisConstantFee = sdk.NewCoin(DefaultStakingBondDenom, sdk.NewInt(1000))
 
@@ -50,9 +59,23 @@ var (
 		SignedBlocksWindow:      10000,
 		MinSignedPerWindow:      sdk.NewDecWithPrec(5, 2),
 		DowntimeJailDuration:    10 * time.Minute,
-		SlashFractionDoubleSign: sdk.NewDecWithPrec(5, 3),
+		SlashFractionDoubleSign: sdk.NewDecWithPrec(1, 1),
 		SlashFractionDowntime:   sdk.NewDecWithPrec(1, 4),
 	}
+
+	DefaultConsensusBlockParams = tmproto.BlockParams{
+		MaxBytes:   300000,
+		MaxGas:     3000000,
+		TimeIotaMs: 1000,
+	}
+
+	DefaultEvidenceParams = tmproto.EvidenceParams{
+		MaxAgeNumBlocks: 100000,
+		MaxAgeDuration:  48 * time.Hour,
+		MaxBytes:        200000,
+	}
+
+	DefaultDistributionWithdrawAddrEnabled = false
 )
 
 // The genesis state of the blockchain is represented here as a map of raw json
@@ -66,6 +89,9 @@ type GenesisState map[string]json.RawMessage
 
 // NewDefaultGenesisState generates the default state for the application.
 func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
+	distributionState := distribution.DefaultGenesisState()
+	distributionState.Params.WithdrawAddrEnabled = DefaultDistributionWithdrawAddrEnabled
+
 	genState := map[string]json.RawMessage{
 		auth.ModuleName:       cdc.MustMarshalJSON(auth.DefaultGenesisState()),
 		genutil.ModuleName:    cdc.MustMarshalJSON(genutil.DefaultGenesisState()),
@@ -73,7 +99,7 @@ func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
 		capability.ModuleName: cdc.MustMarshalJSON(capability.DefaultGenesis()),
 		staking.ModuleName: cdc.MustMarshalJSON(staking.NewGenesisState(staking.Params{
 			UnbondingTime:     staking.DefaultUnbondingTime,
-			MaxValidators:     staking.DefaultMaxValidators,
+			MaxValidators:     DefaultStakingMaxValidators,
 			MaxEntries:        staking.DefaultMaxEntries,
 			HistoricalEntries: staking.DefaultHistoricalEntries,
 			BondDenom:         DefaultStakingBondDenom,
@@ -82,12 +108,12 @@ func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
 		mint.ModuleName: cdc.MustMarshalJSON(mint.NewGenesisState(mint.InitialMinter(
 			DefaultMintParams.InflationMax,
 		), DefaultMintParams)),
-		distribution.ModuleName: cdc.MustMarshalJSON(distribution.DefaultGenesisState()),
+		distribution.ModuleName: cdc.MustMarshalJSON(distributionState),
 		gov.ModuleName: cdc.MustMarshalJSON(govv1.NewGenesisState(
 			DefaultGovStartingProposalID,
 			DefaultGovDepositParams,
 			DefaultGovVotingParams,
-			govv1.DefaultTallyParams(),
+			DefaultGovTallyParams,
 		)),
 		crisis.ModuleName: cdc.MustMarshalJSON(crisis.NewGenesisState(
 			DefaultCrisisConstantFee,
@@ -106,4 +132,11 @@ func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
 	}
 
 	return genState
+}
+
+func NewDefaultConsensusParams() *tmproto.ConsensusParams {
+	consensusParams := tmtypes.DefaultConsensusParams()
+	consensusParams.Block = DefaultConsensusBlockParams
+	consensusParams.Evidence = DefaultEvidenceParams
+	return consensusParams
 }
