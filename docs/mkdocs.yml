@@ -19,6 +19,7 @@ nav:
     - Active Networks: 'live-networks.md'
     - Mainnet Archive: 'archived-networks.md'
   - Snapshots: 'snapshots.md'
+  - State Sync: 'state-sync.md'
   - Commandline Client:
     - Introduction: 'cli-introduction.md'
     - Keys: 'cli-keys.md'
