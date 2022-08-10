@@ -65,6 +65,6 @@ It is UNSTABLE, and may be missing functionality included in dorado/mainnet vers
 | Block Explorer  | [https://explore-eridanus.fetch.ai/](https://explore-eridanus.fetch.ai/) |
 | Ledger Explorer | [https://browse-eridanus.fetch.ai/](https://browse-eridanus.fetch.ai/) |
 | Token Faucet    | Use block explorer for atestfet, or <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-eridanus.fetch.ai/api/v3/claims` <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-lrn-eridanus.fetch.ai/api/v3/claims` <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-mobx-eridanus.fetch.ai/api/v3/claims` |
-| Genesis         | curl https://rpc-eridanus.fetch.ai/genesis | jq '.result.genesis' > ~/.fetchd/config/genesis.json |
+| Genesis         | `curl https://rpc-eridanus.fetch.ai/genesis \| jq '.result.genesis' > ~/.fetchd/config/genesis.json` |
 | Seed Node(s)    | b129b5a93e9bb32ec7a300735569abd278725046@connect-eridanus.fetch.ai:36656,ed866a34fc47c088163b539ce8c89e0334f90468@connect-eridanus.fetch.ai:36657,25d9a60cdb9c05169ab9665793d0031d5864fd02@connect-eridanus.fetch.ai:36658 |
 | Snapshots       | <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-pruned.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-full.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-archive.tgz> |
