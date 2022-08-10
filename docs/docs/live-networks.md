@@ -45,3 +45,26 @@ It is stable for deploying smart contracts and testing IBC.
 | Genesis         | `curl https://storage.googleapis.com/fetch-ai-testnet-genesis/genesis-dorado-827201.json --output ~/.fetchd/config/genesis.json` |
 | Seed Node(s)    | eb9b9717975b49a57e62ea93aa4480e091ae0660@connect-dorado.fetch.ai:36556,46d2f86a255ece3daf244e2ca11d5be0f16cb633@connect-dorado.fetch.ai:36557,066fc564979b1f3173615f101b62448ac7e00eb1@connect-dorado.fetch.ai:36558 |
 | Snapshots       | <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-pruned.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-full.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-archive.tgz> |
+
+### Eridanus
+
+This network is running the next major version of fetchd that is currently being developed.
+
+It is UNSTABLE, and may be missing functionality included in dorado/mainnet versions.
+
+| Parameter       | Value  |
+| --------------- | ------ |
+| Chain ID        | eridanus-1 |
+| Denomination    | atestfet |
+| Decimals        | 18 (1testfet = 1000000000000000000atestfet) |
+| Min Gas Prices  | 1000000000atestfet |
+| Version         | [v0.11.x](https://github.com/fetchai/fetchd/tree/release/v0.11.x) |
+| RPC Endpoint    | <https://rpc-eridanus.fetch.ai:443> |
+| GRPC Endpoint   | <https://grpc-eridanus.fetch.ai:443> |
+| REST Endpoint   | [https://rest-eridanus.fetch.ai:443](https://rest-eridanus.fetch.ai/cosmos/base/tendermint/v1beta1/node_info) |
+| Block Explorer  | [https://explore-eridanus.fetch.ai/](https://explore-eridanus.fetch.ai/) |
+| Ledger Explorer | [https://browse-eridanus.fetch.ai/](https://browse-eridanus.fetch.ai/) |
+| Token Faucet    | Use block explorer for atestfet, or <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-eridanus.fetch.ai/api/v3/claims` <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-lrn-eridanus.fetch.ai/api/v3/claims` <br /> `curl -X POST -H 'Content-Type: application/json' -d '{"address":"fetch1myaddress"}' https://faucet-mobx-eridanus.fetch.ai/api/v3/claims` |
+| Genesis         | `curl https://rpc-eridanus.fetch.ai/genesis | jq '.result.genesis' > ~/.fetchd/config/genesis.json `|
+| Seed Node(s)    | b129b5a93e9bb32ec7a300735569abd278725046@connect-eridanus.fetch.ai:36656,ed866a34fc47c088163b539ce8c89e0334f90468@connect-eridanus.fetch.ai:36657,25d9a60cdb9c05169ab9665793d0031d5864fd02@connect-eridanus.fetch.ai:36658 |
+| Snapshots       | <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-pruned.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-full.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/eridanus-archive.tgz> |
