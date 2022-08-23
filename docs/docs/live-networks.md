@@ -11,7 +11,7 @@ The chain identifier of our production network is fetchhub-4.
 | Date range     | 05/04/2022 --> |
 | Denomination   | afet |
 | Decimals       | 18 (1fet = 1000000000000000000afet) |
-| Version        | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 6295500 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) for blocks > 6295500 |
+| Version        | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 6295500 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) up to block 7305500 <br/> [v0.10.5](https://github.com/fetchai/fetchd/releases/tag/v0.10.5) for blocks > 7305500 |
 | RPC Endpoint   | <https://rpc-fetchhub.fetch.ai:443> |
 | GRPC Endpoint  | <https://grpc-fetchhub.fetch.ai:443> |
 | REST Endpoint  | <https://rest-fetchhub.fetch.ai:443> |
@@ -35,7 +35,7 @@ It is stable for deploying smart contracts and testing IBC.
 | Denomination    | atestfet |
 | Decimals        | 18 (1testfet = 1000000000000000000atestfet) |
 | Min Gas Prices  | 1000000000atestfet |
-| Version         | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 947800 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) for blocks > 947800 and < 2198000 <br/> [v0.10.5-rc1](https://github.com/fetchai/fetchd/releases/tag/v0.10.5-rc1) for blocks > 2198000 |
+| Version         | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 947800 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) for blocks > 947800 and < 2198000 <br/> [v0.10.5](https://github.com/fetchai/fetchd/releases/tag/v0.10.5) for blocks > 2198000 |
 | RPC Endpoint    | <https://rpc-dorado.fetch.ai:443> |
 | GRPC Endpoint   | <https://grpc-dorado.fetch.ai:443> |
 | REST Endpoint   | <https://rest-dorado.fetch.ai:443> |
