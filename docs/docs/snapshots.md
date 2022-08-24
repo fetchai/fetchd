@@ -3,7 +3,7 @@
 As blockchains get longer, the process of syncing from the genesis block begins to take many hours, or even days to complete.
 In circumstances where a faster sync is required, various snapshots of the fetchd chain state data are available for download, to more quickly bootstrap a node.
 
-Snapshots are available for both mainnet and the most recent testnet.  The URLs can be obtained from the [network page](../networks/).  
+Snapshots are available for both mainnet and the most recent testnet.  The URLs can be obtained from the [network page](../live-networks/).  
 We aim to update snapshots on a daily basis.
 
 The example below uses the pruned mainnet snapshot, but can be adapted as required for full or archive nodes.

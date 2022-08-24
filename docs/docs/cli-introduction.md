@@ -24,4 +24,4 @@ fetchd config chain-id dorado-1
 fetchd config node https://rpc-dorado.fetch.ai:443
 ```
 
-Checkout the [Network Information](../networks/) page for more detailed information on the available networks.
+Checkout the [Network Information](../live-networks/) page for more detailed information on the available networks.

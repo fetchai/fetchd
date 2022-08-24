@@ -7,15 +7,6 @@ This repository contains the source code for validators on the Fetch network. Th
 ## Supported Systems
 
 The supported systems are limited by the dlls created in [`go-cosmwasm`](https://github.com/CosmWasm/go-cosmwasm). In particular, **we only support MacOS and Linux**.
-For linux, the default is to build for glibc, and we cross-compile with CentOS 7 to provide
-backwards compatibility for `glibc 2.12+`. This includes all known supported distributions
-using glibc (CentOS 7 uses 2.12, obsolete Debian Jessy uses 2.19).
-
-As of `0.5.x` we support `muslc` Linux systems, in particular **Alpine linux**,
-which is popular in docker distributions. Note that we do **not** store the
-static `muslc` build in the repo, so you must compile this yourself, and pass `-tags muslc`.
-Please look at the [`Dockerfile`](./Dockerfile) for an example of how we build a static Go
-binary for `muslc`. (Or just use this Dockerfile for your production setup).
 
 ## Quick Start
 
@@ -59,13 +50,7 @@ You can also verify that you are running the correct version
 fetchd version
 ```
 
-This should print a version number that must be compatible with the network you're connecting to (see the [network page](../networks/) for the list of supported versions per network).
-
-If instead you have an error: `Error: failed to parse log level (main:info,state:info,:error): Unknown Level String: 'main:info,state:info,:error', defaulting to NoLevel`, this means you had a pre-stargate version of fetchd (<= v0.7.x), and just installed a stargate version (>= v0.8.x), you'll need to remove the previous configuration files with:
-
-```bash
-rm ~/.fetchd/config/app.toml ~/.fetchd/config/config.toml
-```
+This should print a version number that must be compatible with the network you're connecting to (see the [network page](https://docs.fetch.ai/ledger_v2/live-networks/) for the list of supported versions per network).
 
 Alternatively, you can also build without installing the binary with:
 
