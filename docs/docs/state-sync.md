@@ -66,8 +66,7 @@ and set these values in the config file.
 Once this is set, make sure you have the correct genesis by downloading it from the RPC node:
 
 ```bash
-wget https://storage.googleapis.com/fetch-ai-mainnet-v2-genesis/genesis-fetchhub4.json
-mv genesis-fetchhub4.json ~/.fetchd/config/genesis.json
+curl https://raw.githubusercontent.com/fetchai/genesis-fetchhub/fetchhub-4/fetchhub-4/data/genesis_migrated_5300200.json --output ~/.fetchd/config/genesis.json
 ```
 
 and start the node using the seeds from the chain-registry:
@@ -85,8 +84,8 @@ After the node initialized, it will start searching for available snapshots, and
 
 ## Configure an existing node to provide snapshots
 
-In order to provide new nodes snapshots they can start from, existing nodes need to be configure to create these snapshots.
-This can be configured from the `~/.fetchd/config/app.toml` file, in the `state-sync` section.
+In order to provide new nodes snapshots they can start from, existing nodes need to be configured to create these snapshots.
+This requires changes in the `~/.fetchd/config/app.toml` file, in the `state-sync` section.
 
 ```
 ###############################################################################
