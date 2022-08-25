@@ -2,7 +2,7 @@
 
 For our test networks, we have a simple token faucet implemented to allow users of the network to get started quickly. You can send it an account address, and it will transfer some test token on it.
 
-Token Faucets are network specific, depending on the network type they may or may not be deployed. Please check the [networks](../networks/) page for specific details.
+Token Faucets are network specific, depending on the network type they may or may not be deployed. Please check the [networks](../live-networks/) page for specific details.
 
 The Token Faucet itself is available from the network block explorer (`GET FUNDS` button on the homepage).
 

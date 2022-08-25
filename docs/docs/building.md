@@ -55,7 +55,7 @@ You can also verify that you are running the correct version
 fetchd version
 ```
 
-This should print a version number that must be compatible with the network you're connecting to (see the [network page](../networks/) for the list of supported versions per network).
+This should print a version number that must be compatible with the network you're connecting to (see the [network page](../live-networks/) for the list of supported versions per network).
 
 ## FAQ
 

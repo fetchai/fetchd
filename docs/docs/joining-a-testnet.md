@@ -10,7 +10,7 @@ Assuming that you have followed the [installation guide](../building/). You shou
 fetchd version
 ```
 
-This should print a version number that must be compatible with the network you're connecting to (see the [network page](../networks/) for the list of supported versions per network).
+This should print a version number that must be compatible with the network you're connecting to (see the [network page](../live-networks/) for the list of supported versions per network).
 
 ### Configuring the client fetchd
 
