@@ -3,11 +3,14 @@
 
 State sync is a feature which allows you to quickly bootstrap a new node by allowing it to pull a *state snapshot* taken by other nodes.
 
+The state sync feature is only available from `fetchd  v0.10.6` and later. Prior versions needed to either sync from scratch or restore a [chain snapshot](../snapshots), which both could take hours before having the node fully synced.
+
+With state sync, it now takes only a few minutes before having an operational node.
 
 ## Configuring the new node
 
-In order to instruct the node to sync itself using state sync, it need some configuration in the `~/.fetchd/config/config.toml` file.
-Open this file in an editor and lookup the `statesync` section. By default, it should looks like this:
+In order to instruct the node to sync itself using a state sync snapshot, it need some configuration in the `~/.fetchd/config/config.toml` file.
+Open this file in an editor and lookup for the `statesync` section. By default, it should looks like this:
 
 ```yaml
 #######################################################
@@ -50,8 +53,10 @@ chunk_fetchers = "4"
 A few changes are needed:
 
 - First, set `enable = true` to activate the state sync engine.
-- Then, **at least 2** rpc servers must be provided. A good place to find some is the [cosmos chain registry](https://github.com/cosmos/chain-registry/blob/master/fetchhub/chain.json#L62). Servers must be comma separated without space (ie: `rpc_servers = "https://rpc-fetchhub.fetch.ai:443,https://fetchapi.terminet.io"`)
-- And last, a *recent* `trust_height` and `trust_hash` to start from are needed. Recent means it must be contained in the `trust_period` (~1 week old by default). These can be obtained from a RPC server **you trust to provide you correct data** (and the 2nd RPC server from `rpc_servers` will be charged of confirming that the data are correct). To retrieve the correct value for a fetch.ai RPC server, and the current network height, use:
+- Then, **at least 2** rpc servers must be provided. A good place to find some is the [cosmos chain registry](https://github.com/cosmos/chain-registry/blob/master/fetchhub/chain.json#L62). Servers must be comma separated without space (ie: `rpc_servers = "https://rpc-fetchhub.fetch.ai:443,https://fetchapi.terminet.io"`). These servers will be used to verify the snapshots, so make sure you trust them enough for this. 
+- And last, a *recent* `trust_height` and `trust_hash` are needed. Recent means it must be contained in the `trust_period` (168 hours, or ~1 week old by default). These can be obtained from a RPC server **you trust to provide you correct data** (and the 2nd RPC server from `rpc_servers` will be charged of confirming that the data are correct). 
+
+To retrieve the correct value for a fetch.ai RPC server, and the current network height, use:
 
 ```bash
 curl https://rpc-fetchhub.fetch.ai:443/block | jq -r '{"trusted_hash": .result.block_id.hash, "trusted_height": .result.block.header.height}'
@@ -82,6 +87,10 @@ After the node initialized, it will start searching for available snapshots, and
 8:22AM INF Discovered new snapshot format=1 hash="F�=\x05�Gh�{�|�����,�Q'�=]\x1a�$�b�ֿQ" height=1900 module=statesync
 ```
 
+The node will select the one with the `height` value the closest to the tip of the chain, and it will then start restoring the state, and finish syncing the few blocks remaining. 
+
+If it fails to verify any blocks or hash when restoring, it will attempt to restore the next available snapshot, and, if no more are available, will fallback in discovery mode until an usable snapshot is available.
+
 ## Configure an existing node to provide snapshots
 
 In order to provide new nodes snapshots they can start from, existing nodes need to be configured to create these snapshots.
@@ -104,4 +113,4 @@ snapshot-interval = 0
 snapshot-keep-recent = 2
 ```
 
-Here `snapshot-interval` must be set to a number of blocks between each snapshot creation and it depends on your node prunning settings. The number of snapshots to keep can be set with `snapshot-keep-recent`.
+Here `snapshot-interval` must be set to a number of blocks between each snapshot creation and it must be a multiple of your node prunning settings (default is 100, so valid values are 100, 1000, 700...). The number of snapshots to keep can be set with `snapshot-keep-recent`.
