@@ -77,7 +77,7 @@ curl https://raw.githubusercontent.com/fetchai/genesis-fetchhub/fetchhub-4/fetch
 and start the node using the seeds from the chain-registry:
 
 ```bash
-fetchd start --p2p.seeds=$(curl -s https://raw.githubusercontent.com/cosmos/chain-registry/master/fetchhub/chain.json | jq -r '[foreach .peers.seeds[] as $item (""; "\($item.id)@\($item.address)")] | join(",")')
+fetchd start --p2p.seeds="17693da418c15c95d629994a320e2c4f51a8069b@connect-fetchhub.fetch.ai:36456,a575c681c2861fe945f77cb3aba0357da294f1f2@connect-fetchhub.fetch.ai:36457,d7cda986c9f59ab9e05058a803c3d0300d15d8da@connect-fetchhub.fetch.ai:36458"
 ```
 
 After the node initialized, it will start searching for available snapshots, and it should print log messages similar to:
