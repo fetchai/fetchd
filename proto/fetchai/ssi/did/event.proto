@@ -1,0 +1,32 @@
+syntax = "proto3";
+package fetchai.did;
+
+option go_package = "github.com/fetchai/fetchd/x/did/types";
+
+import "gogoproto/gogo.proto";
+
+// DidDocumentCreatedEvent is an event triggered on a DID document creation
+message DidDocumentCreatedEvent {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_getters)  = false;
+
+  // the did being created
+  string did  = 1;
+
+  // the signer account creating the did
+  string signer = 2;
+
+}
+
+// DidDocumentUpdatedEvent is an event triggered on a DID document update
+message DidDocumentUpdatedEvent {
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_getters)  = false;
+
+  // the did being updated
+  string did    = 1;
+
+  // the signer account of the change
+  string signer = 2;
+
+}

@@ -1,0 +1,42 @@
+@startjson QueryDidDocumentResponse_Key
+{
+  "didDocument": {
+    "context": [
+      "https://www.w3.org/ns/did/v1"
+    ],
+    "id": "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh",
+    "controller": [],
+    "verificationMethods": [
+      {
+        "id": "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh",
+        "type": "CosmosAccountAddress",
+        "controller": "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh",
+        "blockchainAccountID": "cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+      }
+    ],
+    "services": [],
+    "authentication": [
+      "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ],
+    "assertionMethod": [
+      "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ],
+    "keyAgreement": [
+      "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ],
+    "capabilityInvocation": [
+      "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ],
+    "capabilityDelegation": [
+      "did:cosmos:key:cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ]
+  },
+  "didMetadata": {
+    "versionId": "29bff1f0488f56db53fcf8a886b41ba441fd7c54096685bd6c7c1eb85c343214",
+    "created": "2021-08-12T21:16:06.175990696Z",
+    "updated": "2021-08-12T21:16:06.175990696Z",
+    "deactivated": false
+  }
+}
+
+@endjson
