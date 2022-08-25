@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -235,13 +234,6 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
 	if err != nil {
 		panic(err)
-	}
-
-	// Ensure node don't have snapshot feature enabled until cosmwasm properly support it.
-	// Snapshots would be taken properly but impossible to restore
-	// due to missing cosmwasm chunks.
-	if cast.ToUint64(appOpts.Get(server.FlagStateSyncSnapshotInterval)) > 0 {
-		panic(fmt.Errorf("state-sync snapshots feature is currently not supported, please set %s = 0 in command flags or ~/.fetchd/config/app.toml", server.FlagStateSyncSnapshotInterval))
 	}
 
 	var wasmOpts []wasm.Option
