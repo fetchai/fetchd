@@ -16,6 +16,7 @@ fetchd tx staking create-validator \
   --commission-max-rate="0.20" \
   --commission-max-change-rate="0.01" \
   --min-self-delegation="<the min self delegation>" \
+  --gas auto --gas-adjustment 1.5 --gas-prices "<network gas prices>" \
   --from=<key_name>
 ```
 
@@ -35,6 +36,7 @@ fetchd tx staking create-validator \
   --commission-max-rate="0.20" \
   --commission-max-change-rate="0.01" \
   --min-self-delegation="1000000000000000000" \
+  --gas auto --gas-adjustment 1.5 --gas-prices 1000000000atestfet \
   --from=test-key
 ```
 
@@ -50,7 +52,7 @@ fetchd tx staking edit-validator
   --website="https://fetch.ai" \
   --details="To infinity and beyond!" \
   --chain-id=<chain_id> \
-  --commission-rate="0.10"
+  --commission-rate="0.10" \
   --from=<key_name>
 ```
 
@@ -72,9 +74,6 @@ An example of the command is given in the following example:
 fetchd tx staking unbond \
   fetchvaloper1jqqwdch3jmzlmj4tjfn67s3sqm9elkd3wrpspf \
   1000000000000000000000atestfet \
+  --gas auto --gas-adjustment 1.5 --gas-prices 1000000000atestfet \
   --from test-key
 ```
-
-** Note **
-
-Validators' obligations continue until the end of the aeon (which is typically 100 blocks or ~8 minutes depending on the configuration). It is therefore important that after a validator unbonds their stake they must leave their node up and running for 2 complete aeons before switching off. Failure to do so is treated as malicious behaviour and will result in stake being slashed.
