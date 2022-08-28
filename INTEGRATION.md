@@ -102,7 +102,7 @@ with a properly formatted message to move funds, or `wasm.Keeper.SmartQuery`
 to check balances.
 
 If you look at the unit tests in [`x/wasm/internal/keeper`](https://github.com/fetchai/fetchd/tree/master/x/wasm/internal/keeper),
-it should be pretty straight forward.
+it should be pretty straightforward.
 
 ### Extending the Contract Interface
 
@@ -124,7 +124,7 @@ the contracts (provide static data for exchange rates when your contracts
 query it). You can see an example of [mocks for Terra contracts](https://github.com/CosmWasm/terra-contracts/tree/master/packages/mocks).
 
 What these three steps provide is basically a chain-specific extension to the CosmWasm contract SDK.
-Any CosmWasm contract can import you library (bindings and mocks) and easily get started using
+Any CosmWasm contract can import your library (bindings and mocks) and easily get started using
 your custom, chain-specific extensions just as easily as using the standard CosmWasm interfaces.
 What is left is actually wiring them up in your chain so they work as desired.
 
@@ -167,7 +167,7 @@ should properly name the JSON fields and use the `omitempty` keyword if Rust exp
 
 ### Wiring it all together
 
-Once you have writen and tested these custom callbacks for your module, you need to enable it in your application.
+Once you have written and tested these custom callbacks for your module, you need to enable it in your application.
 The first step is to write an integration test with a contract compiled with your custom SDK to ensure it works properly,
 then you need to configure this in `app.go`.
 
