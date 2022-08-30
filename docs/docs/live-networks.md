@@ -18,7 +18,7 @@ The chain identifier of our production network is fetchhub-4.
 | Block Explorer | [https://explore-fetchhub.fetch.ai](https://explore-fetchhub.fetch.ai) |
 | Token Faucet   | N/A |
 | Genesis        | `curl https://raw.githubusercontent.com/fetchai/genesis-fetchhub/fetchhub-4/fetchhub-4/data/genesis_migrated_5300200.json --output ~/.fetchd/config/genesis.json` |
-| Seed Node(s)   | 17693da418c15c95d629994a320e2c4f51a8069b@connect-fetchhub.fetch.ai:36456,a575c681c2861fe945f77cb3aba0357da294f1f2@connect-fetchhub.fetch.ai:36457,d7cda986c9f59ab9e05058a803c3d0300d15d8da@connect-fetchhub.fetch.ai:36458 |
+| Seed Node(s)   | <!--email_off-->17693da418c15c95d629994a320e2c4f51a8069b@connect-fetchhub.fetch.ai:36456,a575c681c2861fe945f77cb3aba0357da294f1f2@connect-fetchhub.fetch.ai:36457,d7cda986c9f59ab9e05058a803c3d0300d15d8da@connect-fetchhub.fetch.ai:36458<!--/email_off--> |
 | Snapshots      | <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-4-pruned.tgz> <br /> <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-4-full.tgz> <br /> <https://storage.googleapis.com/fetch-ai-mainnet-snapshots/fetchhub-4-archive.tgz> |
 
 ## Test Nets
@@ -43,5 +43,5 @@ It is stable for deploying smart contracts and testing IBC.
 | Ledger Explorer | [https://browse-dorado.fetch.ai/](https://browse-dorado.fetch.ai/) |
 | Token Faucet    | Use block explorer |
 | Genesis         | `curl https://storage.googleapis.com/fetch-ai-testnet-genesis/genesis-dorado-827201.json --output ~/.fetchd/config/genesis.json` |
-| Seed Node(s)    | eb9b9717975b49a57e62ea93aa4480e091ae0660@connect-dorado.fetch.ai:36556,46d2f86a255ece3daf244e2ca11d5be0f16cb633@connect-dorado.fetch.ai:36557,066fc564979b1f3173615f101b62448ac7e00eb1@connect-dorado.fetch.ai:36558 |
+| Seed Node(s)    | <!--email_off-->eb9b9717975b49a57e62ea93aa4480e091ae0660@connect-dorado.fetch.ai:36556,46d2f86a255ece3daf244e2ca11d5be0f16cb633@connect-dorado.fetch.ai:36557,066fc564979b1f3173615f101b62448ac7e00eb1@connect-dorado.fetch.ai:36558<!--/email_off--> |
 | Snapshots       | <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-pruned.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-full.tgz> <br /> <https://storage.googleapis.com/fetch-ai-testnet-snapshots/dorado-archive.tgz> |
