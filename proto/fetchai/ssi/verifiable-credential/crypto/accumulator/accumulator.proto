@@ -1,0 +1,30 @@
+syntax = "proto3";
+package fetchai.verifiablecredential.crypto.accumulator;
+
+option go_package = "github.com/fetchai/fetchd/x/verifiable-credential/crypto/accumulator";
+
+message PrivateKey {
+  bytes value = 1;
+}
+
+message PublicParameters {
+  bytes public_key = 1;
+  repeated State states = 2;
+}
+
+message State {
+  bytes acc_value = 1;
+  BatchUpdate update = 2;
+}
+
+message BatchUpdate {
+  bytes additions = 1;
+  bytes deletions = 2;
+  bytes coefficients = 3;
+}
+
+message Proof {
+  bytes entropy = 1;
+  bytes challenge_okm = 2;
+  bytes proof = 3;
+}

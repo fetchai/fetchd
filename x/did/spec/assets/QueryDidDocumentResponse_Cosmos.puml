@@ -1,0 +1,38 @@
+@startjson QueryDidDocumentResponse_Cosmos
+#skinparam monochrome true
+#highlight "id"
+
+{
+  "didDocument": {
+    "context": [
+      "https://www.w3.org/ns/did/v1"
+    ],
+    "id": "did:cosmos:cash:123456789",
+    "controller": [],
+    "verificationMethods": [
+      {
+        "id": "did:cosmos:cash:123456789#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh",
+        "type": "EcdsaSecp256k1VerificationKey2019",
+        "controller": "did:cosmos:cash:123456789",
+        "publicKeyHex": "0381517311d6b3e6f849fc617b721f7d84ca8c28d006677bb7a5ea09423049368b"
+      }
+    ],
+    "services": [],
+    "authentication": [
+      "did:cosmos:cash:123456789#cosmos17km4mldepzm4xxc50wv24ygrumtmskrd8f4tfh"
+    ],
+    "assertionMethod": [],
+    "keyAgreement": [],
+    "capabilityInvocation": [],
+    "capabilityDelegation": []
+  },
+  "didMetadata": {
+    "versionId": "4e5a7629611f375eed28b769f015c214fc6fd3b28fe2252c2f579d18e2db3a19",
+    "created": "2021-08-12T20:56:26.867508903Z",
+    "updated": "2021-08-12T20:56:26.867508903Z",
+    "deactivated": false
+  }
+}
+@endjson
+
+

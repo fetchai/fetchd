@@ -1,0 +1,163 @@
+syntax = "proto3";
+package fetchai.did;
+
+import "gogoproto/gogo.proto";
+import "fetchai/ssi/did/did.proto";
+
+
+option go_package = "github.com/fetchai/fetchd/x/did/types";
+
+// Msg defines the identity Msg service.
+service Msg {
+  // CreateDidDocument defines a method for creating a new identity.
+  rpc CreateDidDocument(MsgCreateDidDocument) returns (MsgCreateDidDocumentResponse);
+  // UpdateDidDocument defines a method for updating an identity.
+  rpc UpdateDidDocument(MsgUpdateDidDocument) returns (MsgUpdateDidDocumentResponse);
+
+  // AddVerificationMethod adds a new verification method 
+  rpc AddVerification(MsgAddVerification) returns (MsgAddVerificationResponse);
+  // RevokeVerification remove the verification method and all associated verification Relations
+  rpc RevokeVerification(MsgRevokeVerification) returns (MsgRevokeVerificationResponse);
+  // SetVerificationRelationships overwrite current verification relationships
+  rpc SetVerificationRelationships(MsgSetVerificationRelationships) returns (MsgSetVerificationRelationshipsResponse);
+
+  // AddService add a new service
+  rpc AddService(MsgAddService) returns (MsgAddServiceResponse);
+  // DeleteService delete an existing service
+  rpc DeleteService(MsgDeleteService) returns (MsgDeleteServiceResponse);
+
+  // AddService add a new service
+  rpc AddController(MsgAddController) returns (MsgAddControllerResponse);
+  // DeleteService delete an existing service
+  rpc DeleteController(MsgDeleteController) returns (MsgDeleteControllerResponse);
+}
+
+// Verification is a message that allows to assign a verification method
+// to one or more verification relationships
+message Verification {
+  // verificationRelationships defines which relationships
+  // are allowed to use the verification method
+  repeated string    relationships = 1; // relationships that the method is allowed into.
+  VerificationMethod method        = 2; // public key associated with the did document.
+  repeated string    context       = 3; // additional contexts (json ld schemas)
+}
+
+// -------------------------------
+// DID
+// -------------------------------
+
+// MsgCreateDidDocument defines a SDK message for creating a new did.
+message MsgCreateDidDocument {
+  option (gogoproto.equal)            = false;
+  option (gogoproto.goproto_getters)  = false;
+
+  string                id            = 1; // the did 
+  repeated string       controllers   = 2; // the list of controller DIDs
+  repeated Verification verifications = 3; // the list of verification methods and relationships
+  repeated Service      services      = 4; // the list of services
+  string                signer        = 5; // address of the account signing the message 
+}
+
+message MsgCreateDidDocumentResponse {}
+
+// MsgUpdateDidDocument replace an existing did document with a new version
+message MsgUpdateDidDocument {
+  option (gogoproto.equal)            = false;
+  option (gogoproto.goproto_getters)  = false;
+
+  DidDocument     doc        = 1; // the did document to replace
+  string          signer     = 5; // address of the account signing the message
+}
+
+message MsgUpdateDidDocumentResponse {}
+
+// -------------------------------
+// Verification methods / relations
+// -------------------------------
+
+message MsgAddVerification {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string       id           = 1; // the did
+  Verification verification = 2; // the verification to add
+  string       signer       = 3; // address of the account signing the message
+}
+
+message MsgAddVerificationResponse {}
+
+message MsgSetVerificationRelationships {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string          id            = 1; // the did
+  string          method_id     = 2; // the verification method id
+  repeated string relationships = 3; // the list of relationships to set
+  string          signer        = 4; // address of the account signing the message
+}
+
+message MsgSetVerificationRelationshipsResponse {}
+
+message MsgRevokeVerification {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string id        = 1; // the did
+  string method_id = 2; // the verification method id
+  string signer    = 3; // address of the account signing the message
+}
+
+message MsgRevokeVerificationResponse {}
+
+// -------------------------------
+// Services
+// -------------------------------
+
+message MsgAddService {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string  id           = 1; // the did
+  Service service_data = 2; // the service data to add
+  string  signer       = 3; // address of the account signing the message 
+}
+
+message MsgAddServiceResponse {}
+
+message MsgDeleteService {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string id         = 1; // the did
+  string service_id = 2; // the service id
+  string signer     = 3; // address of the account signing the message 
+}
+
+message MsgDeleteServiceResponse {}
+
+
+// -------------------------------
+// Controllers
+// -------------------------------
+
+message MsgAddController {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string id             = 1; // the did of the document
+  string controller_did = 2; // the did to add as a controller of the did document
+  string signer         = 3; // address of the account signing the message
+}
+
+message MsgAddControllerResponse {}
+
+message MsgDeleteController {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string id             = 1; // the did of the document
+  string controller_did = 2; // the did to remove from the list of controllers of the did document
+  string signer         = 3; // address of the account signing the message
+}
+
+message MsgDeleteControllerResponse {}

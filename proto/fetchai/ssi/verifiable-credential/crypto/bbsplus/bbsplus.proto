@@ -1,0 +1,13 @@
+syntax = "proto3";
+package fetchai.verifiablecredential.crypto.bbsplus;
+
+option go_package = "github.com/fetchai/fetchd/x/verifiable-credential/crypto/bbsplus";
+
+message PrivateKey {
+  bytes key = 1;
+}
+
+message PublicParameters {
+  int32 msg_length = 1;
+  bytes public_key = 2;
+}

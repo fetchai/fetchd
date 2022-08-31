@@ -1,0 +1,112 @@
+syntax = "proto3";
+package fetchai.verifiablecredential;
+
+// this line is used by starport scaffolding # proto/tx/import
+
+option go_package = "github.com/fetchai/fetchd/x/verifiable-credential/types";
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+import "fetchai/ssi/verifiable-credential/verifiable-credential.proto";
+import "fetchai/ssi/verifiable-credential/crypto/accumulator/accumulator.proto";
+
+
+// Msg defines the identity Msg service.
+service Msg {
+  // IssueRegistrationCredential issue a new registration credential for a public entity
+  rpc IssueRegistrationCredential(MsgIssueRegistrationCredential) returns (MsgIssueRegistrationCredentialResponse);
+  // IssueUserCredential issue user credential to allow an account to transact
+  rpc IssueUserCredential(MsgIssueUserCredential) returns (MsgIssueUserCredentialResponse);
+  // IssueParameterCredential issue public parameters for anonymous credentials
+  rpc IssueAnonymousCredentialSchema(MsgIssueAnonymousCredentialSchema) returns (MsgIssueAnonymousCredentialSchemaResponse);
+  // UpdateAccumulatorState updates membership or non-membership state after adding or deleting members
+  rpc UpdateAccumulatorState(MsgUpdateAccumulatorState) returns (MsgUpdateAccumulatorStateResponse);
+  // UpdateVerifiableCredential updates a verifiable credential
+  rpc UpdateVerifiableCredential(MsgUpdateVerifiableCredential) returns (MsgUpdateVerifiableCredentialResponse);
+  // RevokeCredential a credential
+  rpc RevokeCredential(MsgRevokeCredential) returns (MsgRevokeCredentialResponse);
+}
+
+// MsgIssueRegistrationCredential is used to issue new registration credential
+
+message MsgIssueRegistrationCredential {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  fetchai.verifiablecredential.VerifiableCredential credential = 1;
+  string owner = 2;
+}
+
+// MsgIssueRegistrationCredentialResponse reply for the IssueRegistartion call
+message MsgIssueRegistrationCredentialResponse {}
+
+// MsgIssueUserCredential defines sdk message to issue user credentials
+message MsgIssueUserCredential {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  fetchai.verifiablecredential.VerifiableCredential credential = 1;
+  string    owner = 2;
+}
+
+message MsgIssueUserCredentialResponse {}
+
+// MsgIssueParameterCredential message contains data for public parameters credential
+message MsgIssueAnonymousCredentialSchema {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  fetchai.verifiablecredential.VerifiableCredential credential = 1;
+  string owner = 2;
+}
+
+// MsgIssueLicenseCredentialResponse reply for the issue license call
+message MsgIssueAnonymousCredentialSchemaResponse {}
+
+// MsgUpdateSchemaAccumulatorState message contains data for adding/deleting members from the state
+message MsgUpdateVerifiableCredential {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  fetchai.verifiablecredential.VerifiableCredential credential = 1;
+  string owner = 2;
+}
+
+// MsgUpdateSchemaAccumulatorStateResponse reply for the issue license call
+message MsgUpdateVerifiableCredentialResponse {}
+
+// MsgUpdateAccumulatorState message contains data for adding/deleting members from the state
+message MsgUpdateAccumulatorState {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  string credential_id = 1;
+  google.protobuf.Timestamp issuance_date = 2 [(gogoproto.stdtime) = true];
+  fetchai.verifiablecredential.crypto.accumulator.State state = 3;
+  fetchai.verifiablecredential.Proof proof = 4;
+  string owner = 5;
+}
+
+// MsgUpdateSchemaAccumulatorStateResponse reply for the issue license call
+message MsgUpdateAccumulatorStateResponse {}
+
+// MsgRevokeCredential
+message MsgRevokeCredential {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  string credential_id = 1;
+  string owner = 2;
+}
+
+// MsgRevokeCredentialResponse
+message MsgRevokeCredentialResponse {}
+
+// MsgIssueCredential is used to issue new registration credential
+// this message is used by other modules
+message MsgIssueCredential {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  VerifiableCredential credential = 1;
+  string owner = 2;
+}
+
+// MsgIssueCredentialResponse reply for the issue credential call
+message MsgIssueCredentialResponse {}
+
+

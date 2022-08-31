@@ -1,0 +1,60 @@
+syntax = "proto3";
+package fetchai.verifiablecredential;
+
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "fetchai/ssi/verifiable-credential/verifiable-credential.proto";
+import "gogoproto/gogo.proto";
+// this line is used by starport scaffolding # 1
+
+option go_package = "github.com/fetchai/fetchd/x/verifiable-credential/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Identifers queries all validators that match the given status.
+  rpc VerifiableCredentials(QueryVerifiableCredentialsRequest) returns (QueryVerifiableCredentialsResponse) {
+    option (google.api.http).get = "/wasmd/verifiablecredentials/verifiablecredentials";
+  }
+  // VerifiableCredential queries validator info for given validator address.
+  rpc VerifiableCredential(QueryVerifiableCredentialRequest) returns (QueryVerifiableCredentialResponse) {
+    option (google.api.http).get = "/wasmd/verifiablecredentials/verifiablecredentials/{verifiable_credential_id}";
+  }
+}
+
+// QueryVerifiableCredentialsRequest is request type for Query/VerifiableCredentials RPC method.
+message QueryVerifiableCredentialsRequest {
+  // status enables to query for credentials matching a given status.
+  string status = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryVerifiableCredentialsResponse is response type for the Query/Identifers RPC method
+message QueryVerifiableCredentialsResponse {
+  // validators contains all the queried validators.
+  repeated VerifiableCredential vcs = 1  [(gogoproto.nullable) = false];
+
+  // pagination defines the pagination in the response.
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryVerifiableCredentialRequest is response type for the Query/VerifiableCredential RPC method
+message QueryVerifiableCredentialRequest {
+  // verifiable_credential_id defines the credential id to query for.
+  string verifiable_credential_id = 1;
+}
+
+// QueryVerifiableCredentialResponse is response type for the Query/VerifiableCredential RPC method
+message QueryVerifiableCredentialResponse {
+  // verifiable_credential defines the the credential info.
+  VerifiableCredential verifiable_credential = 1 [(gogoproto.nullable) = false];
+  VcMetadata vcMetadata = 2  [(gogoproto.nullable) = false];
+}
+
+// QueryVerifiableCredentialResponse is response type for the Query/VerifiableCredential RPC method
+message QueryValidateVerifiableCredentialResponse {
+  // is_valid defines if the credential is signed by the correct public key.
+  bool is_valid = 1;
+}
+// this line is used by starport scaffolding # 3

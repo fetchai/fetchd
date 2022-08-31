@@ -92,6 +92,13 @@ import (
 	blsgrouptypes "github.com/fetchai/fetchd/x/blsgroup"
 	blsgroupkeeper "github.com/fetchai/fetchd/x/blsgroup/keeper"
 	blsgroup "github.com/fetchai/fetchd/x/blsgroup/module"
+
+	"github.com/fetchai/fetchd/x/did"
+	didkeeper "github.com/fetchai/fetchd/x/did/keeper"
+	didtypes "github.com/fetchai/fetchd/x/did/types"
+	vc "github.com/fetchai/fetchd/x/verifiable-credential"
+	vckeeper "github.com/fetchai/fetchd/x/verifiable-credential/keeper"
+	vctypes "github.com/fetchai/fetchd/x/verifiable-credential/types"
 )
 
 const Name = "fetchd"
@@ -124,6 +131,9 @@ var (
 		groupmodule.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		blsgroup.AppModuleBasic{},
+
+		vc.AppModuleBasic{},
+		did.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -185,6 +195,8 @@ type App struct {
 	FeeGrantKeeper   feegrantkeeper.Keeper
 	GroupKeeper      groupkeeper.Keeper
 	BlsGroupKeeper   blsgroupkeeper.Keeper
+	DidKeeper        didkeeper.Keeper
+	VcKeeper         vckeeper.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
@@ -219,10 +231,10 @@ func New(
 		govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, capabilitytypes.StoreKey,
 		feegrant.StoreKey, authzkeeper.StoreKey, group.StoreKey,
-		blsgrouptypes.StoreKey,
+		blsgrouptypes.StoreKey, didtypes.StoreKey, vctypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
-	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey, didtypes.MemStoreKey, vctypes.MemStoreKey)
 
 	if _, _, err := streaming.LoadStreamingServices(bApp, appOpts, appCodec, keys); err != nil {
 		tmos.Exit(err.Error())
@@ -294,6 +306,9 @@ func New(
 	app.GroupKeeper = groupkeeper.NewKeeper(keys[group.StoreKey], appCodec, app.MsgServiceRouter(), app.AccountKeeper, groupConfig)
 	app.BlsGroupKeeper = blsgroupkeeper.NewKeeper(keys[blsgrouptypes.StoreKey], appCodec, app.MsgServiceRouter(), app.GroupKeeper, app.AccountKeeper)
 
+	app.DidKeeper = didkeeper.NewKeeper(appCodec, keys[didtypes.StoreKey], memKeys[didtypes.MemStoreKey])
+	app.VcKeeper = vckeeper.NewKeeper(appCodec, keys[vctypes.StoreKey], memKeys[vctypes.MemStoreKey], app.DidKeeper, app.AccountKeeper)
+
 	// register the proposal types
 	govRouter := govv1beta1.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govv1beta1.ProposalHandler).
@@ -351,6 +366,9 @@ func New(
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		groupmodule.NewAppModule(appCodec, app.GroupKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		blsgroup.NewAppModule(appCodec, app.BlsGroupKeeper, app.interfaceRegistry),
+
+		did.NewAppModule(appCodec, app.DidKeeper),
+		vc.NewAppModule(appCodec, app.VcKeeper),
 	)
 
 	app.mm.SetOrderBeginBlockers(
@@ -359,7 +377,7 @@ func New(
 		authtypes.ModuleName, banktypes.ModuleName, govtypes.ModuleName, crisistypes.ModuleName, genutiltypes.ModuleName,
 		authz.ModuleName, feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, vestingtypes.ModuleName,
-		blsgrouptypes.ModuleName,
+		blsgrouptypes.ModuleName, didtypes.ModuleName, vctypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
@@ -368,7 +386,7 @@ func New(
 		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
-		blsgrouptypes.ModuleName,
+		blsgrouptypes.ModuleName, didtypes.ModuleName, vctypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -383,7 +401,7 @@ func New(
 		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
-		blsgrouptypes.ModuleName,
+		blsgrouptypes.ModuleName, didtypes.ModuleName, vctypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
