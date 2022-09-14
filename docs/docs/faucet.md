@@ -8,7 +8,7 @@ The Token Faucet itself is available from the network block explorer (`GET FUNDS
 
 Enter your `fetch...` address in the popup and click *Add funds* button. Wait a few blocks for the transaction to be processed, and you should see it appear along with some funds on your account.
 
-## add funds to Wallet using faucet APIs:
+## Add funds to Wallet using faucet APIs:
 
 You can also request and get testnet tokens in your wallet using the APIs.
 
