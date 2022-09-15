@@ -62,12 +62,12 @@ To retrieve the correct value for a fetch.ai RPC server, and the current network
 ```bash
 curl https://rpc-fetchhub.fetch.ai:443/block | jq -r '{"trusted_hash": .result.block_id.hash, "trusted_height": .result.block.header.height}'
 {
-  "trusted_hash": "46868B76E6C814C35B2D109FCA177EBB70689AE3D46C65E4D75DE5363A86FF97",
-  "trusted_height": "7041920"
+  "trusted_hash": "...some hash...",
+  "trusted_height": "...some height..."
 }
 ```
 
-and set these values in the config file.
+and set the trusted_hash and trusted_height values in the config file.
 
 Once this is set, make sure you have the correct genesis by downloading it from the RPC node:
 
