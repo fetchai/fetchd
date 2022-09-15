@@ -55,7 +55,7 @@ A few changes are needed:
 - First, set `enable = true` to activate the state sync engine.
 - Then, **at least 2** rpc servers must be provided. A good place to find some is the [cosmos chain registry](https://github.com/cosmos/chain-registry/blob/master/fetchhub/chain.json#L62). Servers must be comma separated without space (ie: `rpc_servers = "https://rpc-fetchhub.fetch.ai:443,https://fetch-rpc.polkachu.com:443"`). These servers will be used to verify the snapshots, so make sure you trust them enough for this. 
 - a *recent* `trust_height` and `trust_hash` are needed. Recent means it must be contained in the `trust_period` (168 hours, or ~1 week old by default). These can be obtained from a RPC server **you trust to provide you correct data** (and the 2nd RPC server from `rpc_servers` will be charged of confirming that the data are correct). 
-- And last, set `chunk_request_timeout` to `60s` (the `10s` default value seems to short and can lead to "context deadline exceeded" timeout errors when verifying the hashes)
+- And last, set `chunk_request_timeout` to `60s` (the `10s` default value seems too short and can lead to "context deadline exceeded" timeout errors when verifying the hashes)
 
 To retrieve the correct value for a fetch.ai RPC server, and the current network height, use:
 
