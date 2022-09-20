@@ -54,7 +54,7 @@ fetchd tx bank send <business_key address> <vendor address> 1000atestfet --gas 9
 
 # you'll get "account <address of business_key> not found" error for missing funds
 # add funds to <address of business_key> using block explorer or by eg
-curl -XPOST -H 'Content-Type: application/json' -d '{"address":"<address of business_key>"}' https://faucet-dorado.t-v2-london-c.fetch-ai.com/api/v3/claims
+curl -X POST -H 'Content-Type: application/json' -d '{"address":"<address of business_key>"}' https://faucet-dorado.fetch.ai/api/v3/claims
 
 # This transaction file (transfer.json) is then made available for
 # the first keyholder to sign, 'fred'
