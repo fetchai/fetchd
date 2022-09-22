@@ -53,20 +53,21 @@ chunk_fetchers = "4"
 A few changes are needed:
 
 - First, set `enable = true` to activate the state sync engine.
-- Then, **at least 2** rpc servers must be provided. A good place to find some is the [cosmos chain registry](https://github.com/cosmos/chain-registry/blob/master/fetchhub/chain.json#L62). Servers must be comma separated without space (ie: `rpc_servers = "https://rpc-fetchhub.fetch.ai:443,https://fetchapi.terminet.io"`). These servers will be used to verify the snapshots, so make sure you trust them enough for this. 
-- And last, a *recent* `trust_height` and `trust_hash` are needed. Recent means it must be contained in the `trust_period` (168 hours, or ~1 week old by default). These can be obtained from a RPC server **you trust to provide you correct data** (and the 2nd RPC server from `rpc_servers` will be charged of confirming that the data are correct). 
+- Then, **at least 2** rpc servers must be provided. A good place to find some is the [cosmos chain registry](https://github.com/cosmos/chain-registry/blob/master/fetchhub/chain.json#L62). Servers must be comma separated without space (ie: `rpc_servers = "https://rpc-fetchhub.fetch.ai:443,https://fetch-rpc.polkachu.com:443"`). These servers will be used to verify the snapshots, so make sure you trust them enough for this. 
+- a *recent* `trust_height` and `trust_hash` are needed. Recent means it must be contained in the `trust_period` (168 hours, or ~1 week old by default). These can be obtained from a RPC server **you trust to provide you correct data** (and the 2nd RPC server from `rpc_servers` will be charged of confirming that the data are correct). 
+- And last, set `chunk_request_timeout` to `60s` (the `10s` default value seems too short and can lead to "context deadline exceeded" timeout errors when verifying the hashes)
 
 To retrieve the correct value for a fetch.ai RPC server, and the current network height, use:
 
 ```bash
 curl https://rpc-fetchhub.fetch.ai:443/block | jq -r '{"trusted_hash": .result.block_id.hash, "trusted_height": .result.block.header.height}'
 {
-  "trusted_hash": "46868B76E6C814C35B2D109FCA177EBB70689AE3D46C65E4D75DE5363A86FF97",
-  "trusted_height": "7041920"
+  "trusted_hash": "...some hash...",
+  "trusted_height": "...some height..."
 }
 ```
 
-and set these values in the config file.
+and set the trusted_hash and trusted_height values in the config file.
 
 Once this is set, make sure you have the correct genesis by downloading it from the RPC node:
 
