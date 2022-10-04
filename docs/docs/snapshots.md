@@ -23,7 +23,7 @@ If using fetchd <= 0.10.3
 `fetchd unsafe-reset-all`
 
 If using fetchd >= 0.10.4
-`fetchd tendermint reset-state`
+`fetchd tendermint unsafe-reset-all`
 
 ### Download and install the snapshot
 
