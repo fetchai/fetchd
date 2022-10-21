@@ -1,6 +1,6 @@
 module github.com/fetchai/fetchd
 
-go 1.18
+go 1.19
 
 require (
 	// wasmd v0.27 require ibc-go v3
@@ -131,3 +131,6 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
 replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.18.2
+
+// upgrade ledger go to support Ledger Nano S Plus
+replace github.com/cosmos/ledger-go => github.com/cosmos/ledger-go v0.9.3
