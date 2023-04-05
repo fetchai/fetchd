@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"errors"
-	"github.com/cosmos/cosmos-sdk/client/pruning"
 	"io"
 	"math/big"
 	"os"
@@ -146,7 +145,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		queryCommand(),
 		txCommand(),
 		keys.Commands(app.DefaultNodeHome),
-		pruning.PruningCmd(a.newApp),
+		AddPruningCmd(a.newApp, app.DefaultNodeHome),
 	)
 }
 
