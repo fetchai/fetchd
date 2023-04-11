@@ -5,6 +5,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	"github.com/cosmos/cosmos-sdk/store/iavl"
 	"github.com/cosmos/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,6 +16,49 @@ import (
 	"os"
 	"path/filepath"
 )
+
+const (
+	FlagApply = "apply"
+)
+
+// formatHeights formats a slice of int64 heights into a string representation of the versions to be pruned.
+// It returns a formatted string of the heights in the format "X..Y" or "X..Y, Z" for consecutive or non-consecutive heights, respectively.
+// If the slice is empty, it returns the string "nothing".
+func formatHeights(heights []int64) string {
+	if len(heights) == 0 {
+		return "nothing"
+	}
+
+	var result string
+	var previousHeight int64
+
+	for _, height := range heights {
+		if previousHeight == 0 {
+			result = fmt.Sprintf("%v..", height)
+		} else if height != previousHeight+1 {
+			result += fmt.Sprintf("%v, %v..", previousHeight, height)
+		}
+		previousHeight = height
+	}
+
+	result += fmt.Sprintf("%v", previousHeight)
+
+	return result
+}
+
+// filterPruningHeights filters a slice of int64 heights to only include the heights that exist in the given iavl.Store.
+// It returns a new slice of filtered heights.
+func filterPruningHeights(store *iavl.Store, heights []int64) []int64 {
+	var result []int64
+
+	for _, height := range heights {
+		if store.VersionExists(height) {
+			result = append(result, height)
+		}
+	}
+
+	return result
+}
 
 // AddPruningCmd prunes the sdk root multi store history versions based on the pruning options
 // specified by command flags.
@@ -35,6 +79,7 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 		'--home'.`,
 		Example: `prune --home './' --pruning 'custom' --pruning-keep-recent 100 --
 		pruning-keep-every 10, --pruning-interval 10`,
+
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			vp := viper.New()
 
@@ -46,9 +91,6 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 			if err != nil {
 				return err
 			}
-			fmt.Printf("get pruning options from command flags, keep-recent: %v\n",
-				pruningOptions.KeepRecent,
-			)
 
 			home := vp.GetString(flags.FlagHome)
 			db, err := openDB(home)
@@ -76,21 +118,36 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 					pruningHeights = append(pruningHeights, height)
 				}
 			}
-			if len(pruningHeights) == 0 {
+			if len(pruningHeights) == 0 || pruningOptions.KeepRecent == 0 {
 				fmt.Printf("no heights to prune\n")
 				return nil
 			}
-			fmt.Printf(
-				"pruning heights start from %v, end at %v\n",
-				pruningHeights[0],
-				pruningHeights[len(pruningHeights)-1],
-			)
 
-			rootMultiStore.PruneStores(false, pruningHeights)
-			if err != nil {
-				return err
+			// Print out versions to be pruned
+			fmt.Println("Versions to be pruned:")
+			for key, store := range rootMultiStore.GetStores() {
+				if store.GetStoreType() == storetypes.StoreTypeIAVL {
+					var kvStore = rootMultiStore.GetCommitKVStore(key)
+					pruningHeightsFiltered := filterPruningHeights(kvStore.(*iavl.Store), pruningHeights)
+					fmt.Printf("%v: %v\n", key.Name(), formatHeights(pruningHeightsFiltered))
+				}
 			}
-			fmt.Printf("successfully pruned the application root multi stores\n")
+
+			// Do the pruning if the apply flag is set.
+			if vp.GetBool(FlagApply) {
+				fmt.Printf(
+					"pruning heights start from %v, end at %v\n",
+					pruningHeights[0],
+					pruningHeights[len(pruningHeights)-1],
+				)
+
+				rootMultiStore.PruneStores(false, pruningHeights)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("successfully pruned the application root multi stores\n")
+			}
+
 			return nil
 		},
 	}
@@ -104,6 +161,7 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 	cmd.Flags().Uint64(server.FlagPruningInterval, 10,
 		`Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), 
 		this is not used by this command but kept for compatibility with the complete pruning options`)
+	cmd.Flags().Bool(FlagApply, false, "Do the pruning")
 
 	return cmd
 }
