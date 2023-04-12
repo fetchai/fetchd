@@ -145,7 +145,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		queryCommand(),
 		txCommand(),
 		keys.Commands(app.DefaultNodeHome),
-		AddPruningCmd(a.newApp, app.DefaultNodeHome),
+		InternalCommand(a.newApp, app.DefaultNodeHome),
 	)
 }
 
@@ -201,6 +201,23 @@ func txCommand() *cobra.Command {
 
 	app.ModuleBasics.AddTxCommands(cmd)
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
+
+	return cmd
+}
+
+func InternalCommand(appCreator servertypes.AppCreator, defaultNodeHome string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:                        "internal",
+		Hidden:                     true,
+		Short:                      "Internal subcommands for debugging",
+		DisableFlagParsing:         true,
+		SuggestionsMinimumDistance: 2,
+		RunE:                       client.ValidateCmd,
+	}
+
+	cmd.AddCommand(
+		PruningCommand(appCreator, defaultNodeHome),
+	)
 
 	return cmd
 }
