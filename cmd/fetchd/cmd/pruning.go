@@ -9,6 +9,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	iavltree "github.com/cosmos/iavl"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
@@ -67,23 +69,26 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 		Use:   "prune",
 		Short: "Prune app history states by keeping the recent heights and deleting old heights",
 		Long: `Prune app history states by keeping the recent heights and deleting old heights.
-		The pruning option is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
+The pruning option is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
 		
-		For '--pruning' the options are as follows:
+For '--pruning' the options are as follows:
 		
-		default: the last 362880 states are kept
-		nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
-		everything: 2 latest states will be kept
-		custom: allow pruning options to be manually specified through 'pruning-keep-recent'.
-		besides pruning options, database home directory should also be specified via flag
-		'--home'.`,
-		Example: `prune --home './' --pruning 'custom' --pruning-keep-recent 100 --
-		pruning-keep-every 10, --pruning-interval 10`,
+default: the last 362880 states are kept
+nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
+everything: 2 latest states will be kept
+custom: allow pruning options to be manually specified through 'pruning-keep-recent'.
+
+If no pruning option is provided, the default option from the config file will be used.
+
+Besides pruning options, database home directory can also be specified via flag '--home'.
+
+If '--apply' is not provided, only the heights to be pruned will be printed out.`,
+		Example: `prune --home './' --pruning 'custom' --pruning-keep-recent 100 --apply`,
 
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			vp := viper.New()
 
-			// Bind flags to the Context's Viper so we can get pruning options.
+			// bind flags to the Context's Viper so we can get pruning options.
 			if err := vp.BindPFlags(cmd.Flags()); err != nil {
 				return err
 			}
@@ -107,11 +112,13 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 				return fmt.Errorf("currently only support the pruning of rootmulti.Store type")
 			}
 			latestHeight := rootmulti.GetLatestVersion(db)
+
 			// valid heights should be greater than 0.
 			if latestHeight <= 0 {
 				return fmt.Errorf("the database has no valid heights to prune, the latest height: %v", latestHeight)
 			}
 
+			// get the heights to be pruned
 			var pruningHeights []int64
 			for height := int64(1); height < latestHeight; height++ {
 				if height < latestHeight-int64(pruningOptions.KeepRecent) {
@@ -123,28 +130,27 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 				return nil
 			}
 
-			// Print out versions to be pruned
+			// print out versions to be pruned
 			fmt.Println("Versions to be pruned:")
 			for key, store := range rootMultiStore.GetStores() {
 				if store.GetStoreType() == storetypes.StoreTypeIAVL {
 					var kvStore = rootMultiStore.GetCommitKVStore(key)
 					pruningHeightsFiltered := filterPruningHeights(kvStore.(*iavl.Store), pruningHeights)
 					fmt.Printf("%v: %v\n", key.Name(), formatHeights(pruningHeightsFiltered))
+
+					if vp.GetBool(FlagApply) {
+						if err := kvStore.(*iavl.Store).DeleteVersions(pruningHeights...); err != nil {
+							if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
+								panic(err)
+							}
+						}
+					}
+
 				}
 			}
 
-			// Do the pruning if the apply flag is set.
+			// pruning was done if the flag was set.
 			if vp.GetBool(FlagApply) {
-				fmt.Printf(
-					"pruning heights start from %v, end at %v\n",
-					pruningHeights[0],
-					pruningHeights[len(pruningHeights)-1],
-				)
-
-				rootMultiStore.PruneStores(false, pruningHeights)
-				if err != nil {
-					return err
-				}
 				fmt.Printf("successfully pruned the application root multi stores\n")
 			}
 
@@ -155,12 +161,6 @@ func AddPruningCmd(appCreator servertypes.AppCreator, defaultNodeHome string) *c
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The database home directory")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionDefault, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagPruningKeepRecent, 0, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
-	cmd.Flags().Uint64(server.FlagPruningKeepEvery, 0,
-		`Offset heights to keep on disk after 'keep-every' (ignored if pruning is not 'custom'),
-		this is not used by this command but kept for compatibility with the complete pruning options`)
-	cmd.Flags().Uint64(server.FlagPruningInterval, 10,
-		`Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom'), 
-		this is not used by this command but kept for compatibility with the complete pruning options`)
 	cmd.Flags().Bool(FlagApply, false, "Do the pruning")
 
 	return cmd
