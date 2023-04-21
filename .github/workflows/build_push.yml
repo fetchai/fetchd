@@ -1,8 +1,8 @@
 name: Build and push images
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - test/cherry_dragonberry
 
 jobs:
   build-and-push:
@@ -11,15 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Login to Docker Hub
-        run: |
-          docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      # - name: Login to Docker Hub
+      #   run: |
+      #     docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Publish Public Images
-        uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
-        with:
-          repo: fetchai/fetchd
-          target: hub
+      # - name: Build and Publish Public Images
+      #   uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
+      #   with:
+      #     repo: fetchai/fetchd
+      #     target: hub
 
       - name: Setup GCloud
         uses: google-github-actions/setup-gcloud@v0
