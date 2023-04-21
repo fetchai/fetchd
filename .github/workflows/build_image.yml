@@ -28,5 +28,5 @@ jobs:
           
       - name: Build Docker Image
         run: |
-          docker build -t gcr.io/fetch-ai-images/fetchd:${{ steps.vars.outputs.sha_short }} -f ./Dockerfile . 
+          docker build -t gcr.io/fetch-ai-images/fetchd:${{ steps.vars.outputs.sha_short }} -f ./Dockerfile --target gcr . 
           docker push gcr.io/fetch-ai-images/fetchd:${{ steps.vars.outputs.sha_short }}
