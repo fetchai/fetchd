@@ -880,6 +880,10 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
+
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
