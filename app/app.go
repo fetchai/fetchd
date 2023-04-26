@@ -25,7 +25,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -83,7 +82,6 @@ import (
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 	ica "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts"
-	icacontrollertypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/controller/types"
 	icahost "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host"
 	icahostkeeper "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/keeper"
 	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
@@ -721,166 +719,6 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
-	if err != nil {
-		panic(err)
-	}
-
-	if upgradeInfo.Name == "fetchd-v0.10.5" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
-		storeUpgrades := storetypes.StoreUpgrades{
-			Added: []string{icacontrollertypes.StoreKey, icahosttypes.StoreKey},
-		}
-
-		// configure store loader that checks if version == upgradeHeight and applies store upgrades
-		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
-	}
-
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.5", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// IBC migration sourced from: https://github.com/cosmos/ibc-go/blob/main/docs/migrations/support-denoms-with-slashes.md
-
-		equalTraces := func(dtA, dtB ibctransfertypes.DenomTrace) bool {
-			return dtA.BaseDenom == dtB.BaseDenom && dtA.Path == dtB.Path
-		}
-
-		// list of traces that must replace the old traces in store
-		var newTraces []ibctransfertypes.DenomTrace
-		app.TransferKeeper.IterateDenomTraces(ctx,
-			func(dt ibctransfertypes.DenomTrace) bool {
-				// check if the new way of splitting FullDenom
-				// into Trace and BaseDenom passes validation and
-				// is the same as the current DenomTrace.
-				// If it isn't then store the new DenomTrace in the list of new traces.
-				newTrace := ibctransfertypes.ParseDenomTrace(dt.GetFullDenomPath())
-				if err := newTrace.Validate(); err == nil && !equalTraces(newTrace, dt) {
-					newTraces = append(newTraces, newTrace)
-				}
-
-				return false
-			})
-
-		// replace the outdated traces with the new trace information
-		for _, nt := range newTraces {
-			app.TransferKeeper.SetDenomTrace(ctx, nt)
-		}
-
-		// Add Interchain Accounts host module
-		// set the ICS27 consensus version so InitGenesis is not run
-		fromVM[icatypes.ModuleName] = app.mm.Modules[icatypes.ModuleName].ConsensusVersion()
-
-		// create ICS27 Controller submodule params, controller module not enabled.
-		controllerParams := icacontrollertypes.Params{}
-
-		// create ICS27 Host submodule params
-		hostParams := icahosttypes.Params{
-			HostEnabled: true,
-			AllowMessages: []string{
-				sdk.MsgTypeURL(&banktypes.MsgSend{}),
-				sdk.MsgTypeURL(&stakingtypes.MsgDelegate{}),
-				sdk.MsgTypeURL(&stakingtypes.MsgBeginRedelegate{}),
-				sdk.MsgTypeURL(&stakingtypes.MsgCreateValidator{}),
-				sdk.MsgTypeURL(&stakingtypes.MsgEditValidator{}),
-				sdk.MsgTypeURL(&distrtypes.MsgWithdrawDelegatorReward{}),
-				sdk.MsgTypeURL(&distrtypes.MsgSetWithdrawAddress{}),
-				sdk.MsgTypeURL(&distrtypes.MsgWithdrawValidatorCommission{}),
-				sdk.MsgTypeURL(&distrtypes.MsgFundCommunityPool{}),
-				sdk.MsgTypeURL(&govtypes.MsgVote{}),
-				sdk.MsgTypeURL(&authz.MsgExec{}),
-				sdk.MsgTypeURL(&authz.MsgGrant{}),
-				sdk.MsgTypeURL(&authz.MsgRevoke{}),
-			},
-		}
-
-		// initialize ICS27 module
-		icamodule, correctTypecast := app.mm.Modules[icatypes.ModuleName].(ica.AppModule)
-		if !correctTypecast {
-			panic("mm.Modules[icatypes.ModuleName] is not of type ica.AppModule")
-		}
-		icamodule.InitModule(ctx, controllerParams, hostParams)
-
-		validDenoms := map[string]banktypes.Metadata{
-			"atestfet": {
-				Base:        "atestfet",
-				Description: "Fetch-ai Network testnet token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: "TESTFET", Exponent: 18},
-					{Denom: "mtestfet", Exponent: 15},
-					{Denom: "utestfet", Exponent: 12},
-					{Denom: "ntestfet", Exponent: 9},
-					{Denom: "ptestfet", Exponent: 6},
-					{Denom: "ftestfet", Exponent: 3},
-					{Denom: "atestfet", Exponent: 0},
-				},
-				Display: "TESTFET",
-				Name:    "TESTFET",
-				Symbol:  "TESTFET",
-			},
-			"afet": {
-				Base:        "afet",
-				Description: "Fetch-ai Network token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: "FET", Exponent: 18},
-					{Denom: "mfet", Exponent: 15},
-					{Denom: "ufet", Exponent: 12},
-					{Denom: "nfet", Exponent: 9},
-					{Denom: "pfet", Exponent: 6},
-					{Denom: "ffet", Exponent: 3},
-					{Denom: "afet", Exponent: 0},
-				},
-				Display: "FET",
-				Name:    "FET",
-				Symbol:  "FET",
-			},
-			"nanomobx": {
-				Base:        "nanomobx",
-				Description: "MOBIX Token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: "MOBX", Exponent: 9},
-					{Denom: "mmobx", Exponent: 6},
-					{Denom: "umobx", Exponent: 3},
-					{Denom: "nanomobx", Exponent: 0},
-				},
-				Display: "MOBX",
-				Name:    "MOBX",
-				Symbol:  "MOBX",
-			},
-			"nanonomx": {
-				Base:        "nanonomx",
-				Description: "NOMIX Token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: "NOMX", Exponent: 9},
-					{Denom: "mnomx", Exponent: 6},
-					{Denom: "unomx", Exponent: 3},
-					{Denom: "nanonomx", Exponent: 0},
-				},
-				Display: "NOMX",
-				Name:    "NOMX",
-				Symbol:  "NOMX",
-			},
-			"ulrn": {
-				Base:        "ulrn",
-				Description: "CoLearn Token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: "lrn", Exponent: 6},
-					{Denom: "mlrn", Exponent: 3},
-					{Denom: "ulrn", Exponent: 0},
-				},
-				Display: "lrn",
-				Name:    "lrn",
-				Symbol:  "LRN",
-			},
-		}
-
-		app.BankKeeper.IterateTotalSupply(ctx, func(c sdk.Coin) bool {
-			metas, ok := validDenoms[c.Denom]
-			if ok {
-				app.BankKeeper.SetDenomMetaData(ctx, metas)
-			}
-			return false // iterate stop when callback return true
-		})
-
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
 	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
