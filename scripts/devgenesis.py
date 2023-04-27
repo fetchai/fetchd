@@ -34,6 +34,11 @@ def usage():
     sys.exit()
 
 
+staking_denom = "afet"
+bonded_pool_address = "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"
+not_bonded_pool_address = "fetch1tygms3xhhs3yv487phx3dw4a95jn7t7ljxu6d5"
+
+
 def main():
     if len(sys.argv) < 2:
         usage()
@@ -105,15 +110,12 @@ def main():
     val_tokens = int(val_infos["tokens"])
     val_power = int(val_tokens / (10**18))
 
-    bonded_pool_address = "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"
-    not_bonded_pool_address = "fetch1tygms3xhhs3yv487phx3dw4a95jn7t7ljxu6d5"
-
     bonded_tokens = next(
         int(amount["amount"])
         for balance in gen_content["app_state"]["bank"]["balances"]
         if balance["address"] == bonded_pool_address
         for amount in balance["coins"]
-        if amount["denom"] == "afet"
+        if amount["denom"] == staking_denom
     )
 
     not_bonded_tokens = next(
@@ -121,7 +123,7 @@ def main():
         for balance in gen_content["app_state"]["bank"]["balances"]
         if balance["address"] == not_bonded_pool_address
         for amount in balance["coins"]
-        if amount["denom"] == "afet"
+        if amount["denom"] == staking_denom
     )
 
     not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
@@ -129,12 +131,12 @@ def main():
     for balance in gen_content["app_state"]["bank"]["balances"]:
         if balance["address"] == bonded_pool_address:
             for amount in balance["coins"]:
-                if amount["denom"] == "afet":
+                if amount["denom"] == staking_denom:
                     amount["amount"] = str(val_tokens)
 
         if balance["address"] == not_bonded_pool_address:
             for amount in balance["coins"]:
-                if amount["denom"] == "afet":
+                if amount["denom"] == staking_denom:
                     amount["amount"] = str(not_bonded_tokens)
 
     # Remove all .validators but the one we work with
