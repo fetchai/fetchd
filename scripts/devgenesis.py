@@ -37,6 +37,10 @@ def usage():
 staking_denom = "afet"
 bonded_pool_address = "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"
 not_bonded_pool_address = "fetch1tygms3xhhs3yv487phx3dw4a95jn7t7ljxu6d5"
+voting_period = "60s"
+
+account_to_fund = "fetch1mrf5yyjnnlpy0egvpk2pvjdk9667j2gtu8kpfy"
+fund_balance = 10**23
 
 
 def main():
@@ -139,6 +143,31 @@ def main():
                 if amount["denom"] == staking_denom:
                     amount["amount"] = str(not_bonded_tokens)
 
+    # Create new account and fund it
+    print("Creating new account and funding it...")
+    new_balance = {
+        "address": account_to_fund,
+        "coins": [{"amount": str(fund_balance), "denom": staking_denom}],
+    }
+    gen_content["app_state"]["bank"]["balances"].append(new_balance)
+
+    last_account_number = int(
+        gen_content["app_state"]["auth"]["accounts"][-1]["account_number"]
+    )
+    new_account = {
+        "@type": "/cosmos.auth.v1beta1.BaseAccount",
+        "account_number": str(last_account_number + 1),
+        "address": account_to_fund,
+        "pub_key": None,
+        "sequence": "0",
+    }
+    gen_content["app_state"]["auth"]["accounts"].append(new_account)
+
+    # Update total supply
+    for supply in gen_content["app_state"]["bank"]["supply"]:
+        if supply["denom"] == staking_denom:
+            supply["amount"] = str(int(supply["amount"]) + fund_balance)
+
     # Remove all .validators but the one we work with
     print("Removing other validators from initchain...")
     gen_content["validators"] = [
@@ -161,6 +190,9 @@ def main():
     if "max_wasm_code_size" in gen_content["app_state"]["wasm"]["params"]:
         print("Removing max_wasm_code_size...")
         del gen_content["app_state"]["wasm"]["params"]["max_wasm_code_size"]
+
+    print(f"Setting voting period to {voting_period}...")
+    gen_content["app_state"]["gov"]["voting_params"]["voting_period"] = voting_period
 
     with open(f"{out_homedir}/config/genesis.json", "w") as f:
         json.dump(gen_content, f, indent=2)
