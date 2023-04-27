@@ -59,9 +59,6 @@ def main():
 
     print(f"Found {out_homedir}/config/priv_validator_key.json")
 
-    with open(gen_file, "r") as f:
-        gen_content = json.load(f)
-
     with open(f"{out_homedir}/config/priv_validator_key.json", "r") as f:
         priv_validator_key = json.load(f)
 
@@ -73,6 +70,9 @@ def main():
         os.popen(f"fetchd --home {out_homedir} tendermint show-address").read().strip()
     )
     print(f"- new tendermint address: {new_tmaddr}")
+
+    with open(gen_file, "r") as f:
+        gen_content = json.load(f)
 
     val_infos = gen_content["app_state"]["staking"]["validators"][0]
     if not val_infos:
@@ -145,12 +145,14 @@ def main():
 
     # Create new account and fund it
     print("Creating new account and funding it...")
+    # Add new balance to bank
     new_balance = {
         "address": account_to_fund,
         "coins": [{"amount": str(fund_balance), "denom": staking_denom}],
     }
     gen_content["app_state"]["bank"]["balances"].append(new_balance)
 
+    # Add new account to auth
     last_account_number = int(
         gen_content["app_state"]["auth"]["accounts"][-1]["account_number"]
     )
@@ -194,6 +196,7 @@ def main():
     print(f"Setting voting period to {voting_period}...")
     gen_content["app_state"]["gov"]["voting_params"]["voting_period"] = voting_period
 
+    print("Writing new genesis file...")
     with open(f"{out_homedir}/config/genesis.json", "w") as f:
         json.dump(gen_content, f, indent=2)
 
