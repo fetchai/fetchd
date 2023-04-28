@@ -199,10 +199,6 @@ def main():
     )
     genesis = json.loads(genesis_dump)
 
-    # Update the chain id
-    print(f"Updating chain id to {args.chain_id}...")
-    genesis["chain_id"] = args.chain_id
-
     # Set .app_state.slashing.signing_infos to contain only our validator signing infos
     print("Updating signing infos...")
     genesis["app_state"]["slashing"]["signing_infos"] = [
@@ -267,7 +263,7 @@ def main():
     # Add new account to auth if not already there
     genesis = _ensure_account(genesis, validator_operator_base_address)
 
-    # Update total supply
+    # Update total supply of staking denom with new funds added
     for supply in genesis["app_state"]["bank"]["supply"]:
         if supply["denom"] == args.staking_denom:
             supply["amount"] = str(int(supply["amount"]) + FUND_BALANCE)
@@ -298,6 +294,10 @@ def main():
     # Set voting period
     print(f"Setting voting period to {args.voting_period}...")
     genesis["app_state"]["gov"]["voting_params"]["voting_period"] = args.voting_period
+
+    # Update the chain id
+    print(f"Updating chain id to {args.chain_id}...")
+    genesis["chain_id"] = args.chain_id
 
     print("Writing new genesis file...")
     with open(f"{args.home_path}/config/genesis.json", "w") as f:
