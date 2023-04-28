@@ -12,44 +12,11 @@ from typing import Any, Dict, List
 import bech32
 
 DEFAULT_STAKING_DENOM = "afet"
-DEFAULT_HOME_PATH = "~/.fetchd"
+DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
 NEW_DEFAULTS_CHAIN_ID = "test-1"
-
-
-def _path(text: str) -> str:
-    return os.path.abspath(text)
-
-
-def _convert_to_valoper(address):
-    hrp, data = bech32.bech32_decode(address)
-    if hrp != "fetch":
-        print("Invalid address, expected normal fetch address")
-        sys.exit(1)
-
-    return bech32.bech32_encode("fetchvaloper", data)
-
-
-def _from_coin_list(coins: List[Any]) -> Dict[str, int]:
-    balances = {}
-    for coin in coins:
-        balances[str(coin["denom"])] = int(coin["amount"])
-    return balances
-
-
-def _to_coin_list(balances: Dict[str, int]) -> List[Any]:
-    coins = []
-    for denom in sorted(balances.keys()):
-        amount = balances[denom]
-        assert amount >= 0
-
-        if amount == 0:
-            continue
-
-        coins.append({"denom": str(denom), "amount": str(amount)})
-    return coins
 
 
 def parse_commandline():
@@ -71,8 +38,7 @@ the local chain to be started with:
         "genesis_export", type=_path, help="The path to the genesis export"
     )
     parser.add_argument(
-        "home_path",
-        type=_path,
+        "--home_path",
         help="The path to the local node data i.e. ~/.fetchd",
         default=DEFAULT_HOME_PATH,
     )
@@ -94,6 +60,70 @@ the local chain to be started with:
     )
 
     return parser.parse_args()
+
+
+def _path(text: str) -> str:
+    return os.path.abspath(text)
+
+
+def _convert_to_valoper(address):
+    hrp, data = bech32.bech32_decode(address)
+    if hrp != "fetch":
+        print("Invalid address, expected normal fetch address")
+        sys.exit(1)
+
+    return bech32.bech32_encode("fetchvaloper", data)
+
+
+def _ensure_account(genesis, address):
+    for account in genesis["app_state"]["auth"]["accounts"]:
+        if "address" in account and account["address"] == address:
+            return
+
+    # Add new account to auth
+    last_account_number = int(
+        genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
+    )
+    new_account = {
+        "@type": "/cosmos.auth.v1beta1.BaseAccount",
+        "account_number": str(last_account_number + 1),
+        "address": address,
+        "pub_key": None,
+        "sequence": "0",
+    }
+    genesis["app_state"]["auth"]["accounts"].append(new_account)
+    return genesis
+
+
+def _set_balance(genesis, address, new_balance, denom):
+    account_found = False
+    for balance in genesis["app_state"]["bank"]["balances"]:
+        if balance["address"] == address:
+            for amount in balance["coins"]:
+                if amount["denom"] == denom:
+                    amount["amount"] = str(new_balance)
+                    account_found = True
+
+    if not account_found:
+        new_balance_entry = {
+            "address": address,
+            "coins": [{"amount": str(new_balance), "denom": denom}],
+        }
+        genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
+    return genesis
+
+
+def _get_balance(genesis, address, denom):
+    amount = 0
+    for balance in genesis["app_state"]["bank"]["balances"]:
+        if balance["address"] == address:
+            for amount in balance["coins"]:
+                if amount["denom"] == denom:
+                    amount = int(amount["amount"])
+                    break
+            if amount is not 0:
+                break
+    return amount
 
 
 def main():
@@ -170,7 +200,7 @@ def main():
     genesis = json.loads(genesis_dump)
 
     # Update the chain id
-    print("Updating chain id...")
+    print(f"Updating chain id to {args.chain_id}...")
     genesis["chain_id"] = args.chain_id
 
     # Set .app_state.slashing.signing_infos to contain only our validator signing infos
@@ -195,7 +225,6 @@ def main():
     bonded_pool_address = None
     not_bonded_pool_address = None
     for account in genesis["app_state"]["auth"]["accounts"]:
-        address = None
         if "name" in account:
             if account["name"] == "bonded_tokens_pool":
                 bonded_pool_address = account["base_account"]["address"]
@@ -211,56 +240,32 @@ def main():
     val_tokens = int(val_infos["tokens"])
     val_power = int(val_tokens / (10**18))
 
-    bonded_tokens = next(
-        int(amount["amount"])
-        for balance in genesis["app_state"]["bank"]["balances"]
-        if balance["address"] == bonded_pool_address
-        for amount in balance["coins"]
-        if amount["denom"] == args.staking_denom
+    # Get current bonded and not bonded tokens
+    bonded_tokens = _get_balance(genesis, bonded_pool_address, args.staking_denom)
+    not_bonded_tokens = _get_balance(
+        genesis, not_bonded_pool_address, args.staking_denom
     )
 
-    not_bonded_tokens = next(
-        int(amount["amount"])
-        for balance in genesis["app_state"]["bank"]["balances"]
-        if balance["address"] == not_bonded_pool_address
-        for amount in balance["coins"]
-        if amount["denom"] == args.staking_denom
+    new_not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
+
+    # Update bonded pool and not bonded pool balances
+    _set_balance(genesis, bonded_pool_address, val_tokens, args.staking_denom)
+    _set_balance(
+        genesis, not_bonded_pool_address, new_not_bonded_tokens, args.staking_denom
     )
-
-    not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
-
-    for balance in genesis["app_state"]["bank"]["balances"]:
-        if balance["address"] == bonded_pool_address:
-            for amount in balance["coins"]:
-                if amount["denom"] == args.staking_denom:
-                    amount["amount"] = str(val_tokens)
-
-        if balance["address"] == not_bonded_pool_address:
-            for amount in balance["coins"]:
-                if amount["denom"] == args.staking_denom:
-                    amount["amount"] = str(not_bonded_tokens)
 
     # Create new account and fund it
-    print("Creating new funded account for local validator...")
-    # Add new balance to bank
-    new_balance = {
-        "address": validator_operator_base_address,
-        "coins": [{"amount": str(FUND_BALANCE), "denom": args.staking_denom}],
-    }
-    genesis["app_state"]["bank"]["balances"].append(new_balance)
-
-    # Add new account to auth
-    last_account_number = int(
-        genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
+    print(
+        f"Creating new funded account for local validator {validator_operator_base_address}..."
     )
-    new_account = {
-        "@type": "/cosmos.auth.v1beta1.BaseAccount",
-        "account_number": str(last_account_number + 1),
-        "address": validator_operator_base_address,
-        "pub_key": None,
-        "sequence": "0",
-    }
-    genesis["app_state"]["auth"]["accounts"].append(new_account)
+
+    # Add new balance to bank
+    genesis = _set_balance(
+        genesis, validator_operator_base_address, FUND_BALANCE, args.staking_denom
+    )
+
+    # Add new account to auth if not already there
+    genesis = _ensure_account(genesis, validator_operator_base_address)
 
     # Update total supply
     for supply in genesis["app_state"]["bank"]["supply"]:
