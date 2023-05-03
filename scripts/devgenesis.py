@@ -181,22 +181,25 @@ def main():
 
     target_validator_operator_address = val_infos["operator_address"]
     target_validator_public_key = val_infos["consensus_pubkey"]["key"]
-    val_addr = [
-        val
-        for val in genesis["validators"]
-        if val["pub_key"]["value"] == target_validator_public_key
-    ][0]["address"]
+    val_tokens = int(val_infos["tokens"])
+    val_power = int(val_tokens / (10**18))
 
     # Replace selected validator by current node one
     print(f"Replacing validator {target_validator_operator_address}...")
 
-    genesis_dump = json.dumps(genesis)
-    genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump, count=-1)
-    genesis_dump = re.sub(
-        target_validator_public_key, validator_pubkey, genesis_dump, count=-1
-    )
+    val_addr = None
+    genesis["app_state"]["staking"]["validators"][0]["consensus_pubkey"][
+        "key"
+    ] = validator_pubkey
+    for val in genesis["validators"]:
+        if val["pub_key"]["value"] == target_validator_public_key:
+            val["pub_key"]["value"] = validator_pubkey
+            val_addr = val["address"]
+            break
+    assert val_addr is not None, "Validator not found in genesis"
 
-    # Adding count=-1 to re.sub() results in bonded/not bonded tokens error -> Needs more investigation
+    genesis_dump = json.dumps(genesis)
+    genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump)
     genesis_dump = re.sub(
         target_validator_operator_address, validator_operator_address, genesis_dump
     )
@@ -235,9 +238,6 @@ def main():
 
     # Update bonded and not bonded pool values to make invariant checks happy
     print("Updating bonded and not bonded token pool values...")
-
-    val_tokens = int(val_infos["tokens"])
-    val_power = int(val_tokens / (10**18))
 
     # Get current bonded and not bonded tokens
     bonded_tokens = _get_balance(genesis, bonded_pool_address, args.staking_denom)
