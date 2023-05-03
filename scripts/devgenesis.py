@@ -49,9 +49,7 @@ the local chain to be started with:
     parser.add_argument(
         "--staking_denom", help="The staking denom", default=DEFAULT_STAKING_DENOM
     )
-    parser.add_argument(
-        "--chain_id", help="New chain ID to be set", default=None
-    )
+    parser.add_argument("--chain_id", help="New chain ID to be set", default=None)
     parser.add_argument(
         "--voting_period",
         help="The new voting period to be set",
@@ -193,10 +191,15 @@ def main():
     print(f"Replacing validator {target_validator_operator_address}...")
 
     genesis_dump = json.dumps(genesis)
-    genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump)
-    genesis_dump = re.sub(target_validator_public_key, validator_pubkey, genesis_dump)
+    genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump, count=-1)
     genesis_dump = re.sub(
-        target_validator_operator_address, validator_operator_address, genesis_dump
+        target_validator_public_key, validator_pubkey, genesis_dump, count=-1
+    )
+    genesis_dump = re.sub(
+        target_validator_operator_address,
+        validator_operator_address,
+        genesis_dump,
+        count=-1,
     )
     genesis = json.loads(genesis_dump)
 
