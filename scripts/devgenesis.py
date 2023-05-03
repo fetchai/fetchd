@@ -195,11 +195,10 @@ def main():
     genesis_dump = re.sub(
         target_validator_public_key, validator_pubkey, genesis_dump, count=-1
     )
+
+    # Adding count=-1 to re.sub() results in bonded/not bonded tokens error -> Needs more investigation
     genesis_dump = re.sub(
-        target_validator_operator_address,
-        validator_operator_address,
-        genesis_dump,
-        count=-1,
+        target_validator_operator_address, validator_operator_address, genesis_dump
     )
     genesis = json.loads(genesis_dump)
 
