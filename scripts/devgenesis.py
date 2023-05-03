@@ -16,7 +16,6 @@ DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
-NEW_DEFAULTS_CHAIN_ID = "test-1"
 
 
 def parse_commandline():
@@ -51,7 +50,7 @@ the local chain to be started with:
         "--staking_denom", help="The staking denom", default=DEFAULT_STAKING_DENOM
     )
     parser.add_argument(
-        "--chain_id", help="New chain ID to be set", default=NEW_DEFAULTS_CHAIN_ID
+        "--chain_id", help="New chain ID to be set", default=None
     )
     parser.add_argument(
         "--voting_period",
@@ -84,6 +83,8 @@ def _ensure_account(genesis, address):
     last_account_number = int(
         genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
     )
+
+    # Ensure unique account number
     new_account = {
         "@type": "/cosmos.auth.v1beta1.BaseAccount",
         "account_number": str(last_account_number + 1),
@@ -295,9 +296,10 @@ def main():
     print(f"Setting voting period to {args.voting_period}...")
     genesis["app_state"]["gov"]["voting_params"]["voting_period"] = args.voting_period
 
-    # Update the chain id
-    print(f"Updating chain id to {args.chain_id}...")
-    genesis["chain_id"] = args.chain_id
+    # Update the chain id - it works only if chain is started from scratch with genesis file
+    if args.chain_id:
+        print(f"Updating chain id to {args.chain_id}...")
+        genesis["chain_id"] = args.chain_id
 
     print("Writing new genesis file...")
     with open(f"{args.home_path}/config/genesis.json", "w") as f:
