@@ -296,7 +296,7 @@ def main():
     print(f"Setting voting period to {args.voting_period}...")
     genesis["app_state"]["gov"]["voting_params"]["voting_period"] = args.voting_period
 
-    # Update the chain id - it works only if chain is started from scratch with genesis file
+    # Update the chain id if provided
     if args.chain_id:
         print(f"Updating chain id to {args.chain_id}...")
         genesis["chain_id"] = args.chain_id
