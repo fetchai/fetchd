@@ -52,7 +52,7 @@ Finally connect fetchd to the network by getting it to connect to a seed node fo
 fetchd start --p2p.seeds=<network seed peers>
 ```
 
-**Dorado Example**
+#### Dorado Example
 
 Less abstractly then, if you wants to connect to the Dorado test net for example, you would need to run the following steps:
 
