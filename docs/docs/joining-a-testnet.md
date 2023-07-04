@@ -43,7 +43,7 @@ fetchd init <moniker-name> --chain-id <chain id>
 Execute the following command to download the latest genesis file:
 
 ```bash
-curl <rpc url>/genesis | jq '.result.genesis' > ~/.fetchd/config/genesis.json
+curl <storage url>/genesis.json --output ~/.fetchd/config/genesis.json
 ```
 
 Finally connect fetchd to the network by getting it to connect to a seed node for the given network.
@@ -61,8 +61,6 @@ Less abstractly then, if you wants to connect to the Dorado test net for example
 fetchd init my-first-fetch-node --chain-id dorado-1
 
 # genesis
-curl https://rpc-dorado.fetch.ai:443 | jq '.result.genesis' > ~/.fetchd/config/genesis.json
-# ...or, if that's too large to download from the rpc interface as a single file...
 curl https://storage.googleapis.com/fetch-ai-testnet-genesis/genesis-dorado-testing.json --output ~/.fetchd/config/genesis.json
 
 # start
