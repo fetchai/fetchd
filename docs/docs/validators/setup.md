@@ -20,7 +20,7 @@ fetchd tx staking create-validator \
   --from=<key_name>
 ```
 
-**Dorado Example**
+### Dorado Example
 
 Before trying to create a validator you should verify that you have some tokens available beforehand. The easiest way to do this is via the [CLI](../../cli-tokens/).
 
