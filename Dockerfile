@@ -1,25 +1,9 @@
 FROM golang:1.18-buster as builder
 
-ARG TARGETPLATFORM
-ARG TARGETOS
 ARG TARGETARCH
-ARG TARGETVARIANT
-ARG BUILDPLATFORM
-ARG BUILDOS
-ARG BUILDARCH
-ARG BUILDVARIANT
 
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
-
-RUN echo TARGETPLATFORM = ${TARGETPLATFORM} && \
-    echo TARGETOS       = ${TARGETOS} && \
-    echo TARGETARCH     = ${TARGETARCH} && \
-    echo TARGETVARIANT  = ${TARGETVARIANT} && \
-    echo BUILDPLATFORM  = ${BUILDPLATFORM} && \
-    echo BUILDOS        = ${BUILDOS} && \
-    echo BUILDARCH      = ${BUILDARCH} && \
-    echo BUILDVARIANT   = ${BUILDVARIANT}
 
 RUN apt-get update && \
     apt-get install -y $PACKAGES
