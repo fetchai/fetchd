@@ -10,6 +10,7 @@ services:
     environment:
       NUM_VALIDATORS: 3
       CHAINID: localnet
+      INFLATION_RATE: 0.050000000000000000
 
     volumes:
       - "setup-data:/setup"
