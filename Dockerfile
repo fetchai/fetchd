@@ -1,5 +1,7 @@
 FROM golang:1.18-buster as builder
 
+ARG TARGETARCH
+
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
 
@@ -12,6 +14,17 @@ COPY . .
 
 RUN make install
 
+RUN bash -c '\
+if [[ ${TARGETARCH,,} =~ (arm64|aarch64) ]]; then \
+    ARCH=aarch64; \
+elif [[ ${TARGETARCH,,} =~ amd64 ]]; then \
+    ARCH=amd64; \
+else \
+    echo ">>>>>>>>> ERROR: Unknown target architecture"; \
+    exit 1; \
+fi && \
+ln -s /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so'
+
 # ##################################
 
 FROM debian:buster as hub
@@ -22,7 +35,7 @@ ENV PACKAGES jq curl
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
-COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.x86_64.so /usr/lib/
+COPY --from=builder /usr/lib/libwasmvm.*.so /usr/lib/
 COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
@@ -64,3 +77,4 @@ ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT [ "/usr/bin/run-localnet-setup.py" ]
 CMD []
+
