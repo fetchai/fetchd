@@ -10,7 +10,7 @@ services:
     environment:
       NUM_VALIDATORS: 3
       CHAINID: localnet
-      INFLATION_RATE: 0.050000000000000000
+      MUNICIPAL_INFL_TARGET_ADDRESS: fetch12w7ud5hv93zu82as4d64tn00pc596ue2fs74tj
 
     volumes:
       - "setup-data:/setup"
