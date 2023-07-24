@@ -39,7 +39,7 @@ def get_gentxs():
 
 
 def main():
-    for name in ('CHAINID', 'NUM_VALIDATORS', 'INFLATION_RATE'):
+    for name in ('CHAINID', 'NUM_VALIDATORS', 'MUNICIPAL_INFL_TARGET_ADDRESS'):
         if name not in os.environ:
             print('{} environment variable not present'.format(name))
             sys.exit(1)
@@ -47,7 +47,7 @@ def main():
     # extract the environment variables
     chain_id = os.environ['CHAINID']
     num_validators = int(os.environ['NUM_VALIDATORS'])
-    inflation_rate = str(os.environ['INFLATION_RATE'])
+    municipal_infl_target_address = os.environ['MUNICIPAL_INFL_TARGET_ADDRESS']
 
     # create the initial genesis file
     if os.path.exists(GENESIS_PATH):
@@ -58,7 +58,15 @@ def main():
         genesis = json.load(f)
         genesis["app_state"]["staking"]["params"]["max_validators"] = 10
         genesis["app_state"]["staking"]["params"]["max_entries"] = 10
-        genesis["app_state"]["mint"]["minter"]["municipal_inflation"].append({"denom": "nanomobx", "target_address": "fetch102xnxjzeelcpnz06lky0jyrzmqkty57wy5cavp", "inflation": inflation_rate})
+        genesis["app_state"]["mint"]["minter"]["municipal_inflation"].extend([
+            {"denom": "nanomobx", "target_address": municipal_infl_target_address, "inflation": "0.03"},
+            {"denom": "denom005", "target_address": municipal_infl_target_address, "inflation": "0.05"},
+            {"denom": "denom100", "target_address": municipal_infl_target_address, "inflation": "1.0"},
+            {"denom": "denom010", "target_address": municipal_infl_target_address, "inflation": "0.1"},
+            {"denom": "denom050", "target_address": municipal_infl_target_address, "inflation": "0.5"},
+            {"denom": "denom020", "target_address": municipal_infl_target_address, "inflation": "0.2"}
+            ])
+
         f.seek(0)
         json.dump(genesis, f, indent=4)
         f.truncate()
@@ -72,8 +80,12 @@ def main():
 
     for validator in validators:
         cmd = ['fetchd', 'add-genesis-account',
-               validator, '200000000000000000000atestfet,100000000000000000nanomobx']
+               validator, '200000000000000000000atestfet']
         subprocess.check_call(cmd)
+
+    cmd = ['fetchd', 'add-genesis-account',
+           municipal_infl_target_address, '200000000000000000000atestfet,1000000000000000000nanomobx,1000000000000000000denom005,1000000000000000000denom010,1000000000000000000denom020,1000000000000000000denom050,1000000000000000000denom100']
+    subprocess.check_call(cmd)
 
     # copy the generated genesis file
     shutil.copy(GENESIS_PATH, '/setup/genesis.intermediate.json')
