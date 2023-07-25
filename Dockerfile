@@ -1,7 +1,5 @@
 FROM golang:1.18-buster as builder
 
-ARG TARGETARCH
-
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
 
@@ -14,16 +12,7 @@ COPY . .
 
 RUN make install
 
-RUN bash -c '\
-if [[ ${TARGETARCH,,} =~ (arm64|aarch64) ]]; then \
-    ARCH=aarch64; \
-elif [[ ${TARGETARCH,,} =~ amd64 ]]; then \
-    ARCH=amd64; \
-else \
-    echo ">>>>>>>>> ERROR: Unknown target architecture"; \
-    exit 1; \
-fi && \
-ln -s /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so'
+RUN ARCH=`uname -m` && ln -s /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so
 
 # ##################################
 
