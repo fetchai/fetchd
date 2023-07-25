@@ -12,6 +12,8 @@ COPY . .
 
 RUN make install
 
+RUN ARCH=`uname -m` && ln -s /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so
+
 # ##################################
 
 FROM debian:buster as hub
@@ -22,7 +24,7 @@ ENV PACKAGES jq curl
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
-COPY --from=builder /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.x86_64.so /usr/lib/
+COPY --from=builder /usr/lib/libwasmvm.*.so /usr/lib/
 COPY --from=builder /go/bin/fetchd /usr/bin/fetchd
 COPY entrypoints/entrypoint.sh /usr/bin/entrypoint.sh
 
@@ -64,3 +66,4 @@ ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT [ "/usr/bin/run-localnet-setup.py" ]
 CMD []
+
