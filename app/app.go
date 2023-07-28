@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/verification"
 	"io"
 	"net/http"
 	"os"
@@ -42,6 +43,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	verificationtypes "github.com/cosmos/cosmos-sdk/x/verification/types"
+
 	"github.com/cosmos/cosmos-sdk/x/capability"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
@@ -175,6 +178,7 @@ var (
 		transfer.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		wasm.AppModuleBasic{},
+		verification.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -188,6 +192,7 @@ var (
 		govtypes.ModuleName:            {authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 		wasm.ModuleName:                {authtypes.Burner},
+		verificationtypes.ModuleName:   nil,
 	}
 )
 
@@ -477,6 +482,7 @@ func New(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		wasm.NewAppModule(appCodec, &app.WasmKeeper, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+		verification.NewAppModule(appCodec),
 	)
 
 	// During begin block slashing happens after distribution.BeginBlocker so that
@@ -504,6 +510,7 @@ func New(
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
 		wasm.ModuleName,
+		verificationtypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -527,6 +534,7 @@ func New(
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
 		wasm.ModuleName,
+		verificationtypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -555,6 +563,7 @@ func New(
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
 		wasm.ModuleName,
+		verificationtypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -791,6 +800,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(ibchost.ModuleName)
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(wasm.ModuleName)
+	paramsKeeper.Subspace(verificationtypes.ModuleName)
 
 	return paramsKeeper
 }
