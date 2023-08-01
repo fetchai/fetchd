@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/cosmos/cosmos-sdk/std"
+	verificationtypes "github.com/cosmos/cosmos-sdk/x/verification/types"
 	"github.com/fetchai/fetchd/app/params"
 )
 
@@ -12,5 +13,9 @@ func MakeEncodingConfig() params.EncodingConfig {
 	std.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 	ModuleBasics.RegisterLegacyAminoCodec(encodingConfig.Amino)
 	ModuleBasics.RegisterInterfaces(encodingConfig.InterfaceRegistry)
+
+	// Register custom verification type
+	verificationtypes.RegisterInterfaces(encodingConfig.InterfaceRegistry)
+
 	return encodingConfig
 }
