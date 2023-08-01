@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/verification"
 	"io"
 	"net/http"
 	"os"
@@ -178,7 +177,6 @@ var (
 		transfer.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		wasm.AppModuleBasic{},
-		verification.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -482,7 +480,6 @@ func New(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		wasm.NewAppModule(appCodec, &app.WasmKeeper, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		verification.NewAppModule(appCodec),
 	)
 
 	// During begin block slashing happens after distribution.BeginBlocker so that
