@@ -10,6 +10,8 @@ services:
     environment:
       NUM_VALIDATORS: 3
       CHAINID: localnet
+      # Address bellow generated from mnemonic of node0 using account=0 index=1 in HD path
+      MUNICIPAL_INFL_TARGET_ADDRESS: fetch12w7ud5hv93zu82as4d64tn00pc596ue2fs74tj
 
     volumes:
       - "setup-data:/setup"
