@@ -39,6 +39,8 @@ def get_gentxs():
 
 
 def main():
+    MUNICIPAL_INFL_TARGET_ADDRESS = 'MUNICIPAL_INFL_TARGET_ADDRESS'
+
     for name in ('CHAINID', 'NUM_VALIDATORS'):
         if name not in os.environ:
             print('{} environment variable not present'.format(name))
@@ -47,6 +49,7 @@ def main():
     # extract the environment variables
     chain_id = os.environ['CHAINID']
     num_validators = int(os.environ['NUM_VALIDATORS'])
+    municipal_infl_target_address = os.environ.get(MUNICIPAL_INFL_TARGET_ADDRESS, None)
 
     # create the initial genesis file
     if os.path.exists(GENESIS_PATH):
@@ -57,6 +60,17 @@ def main():
         genesis = json.load(f)
         genesis["app_state"]["staking"]["params"]["max_validators"] = 10
         genesis["app_state"]["staking"]["params"]["max_entries"] = 10
+        municipal_infl_genesis_conf = genesis["app_state"]["mint"]["minter"]["municipal_inflation"]
+        if municipal_infl_target_address:
+            municipal_infl_genesis_conf.extend([
+                {"denom": "nanomobx", "inflation": {"target_address": municipal_infl_target_address, "value": "0.03"}},
+                {"denom": "denom005", "inflation": {"target_address": municipal_infl_target_address, "value": "0.05"}},
+                {"denom": "denom100", "inflation": {"target_address": municipal_infl_target_address, "value": "1.0"}},
+                {"denom": "denom010", "inflation": {"target_address": municipal_infl_target_address, "value": "0.1"}},
+                {"denom": "denom050", "inflation": {"target_address": municipal_infl_target_address, "value": "0.5"}},
+                {"denom": "denom020", "inflation": {"target_address": municipal_infl_target_address, "value": "0.2"}}
+                ])
+
         f.seek(0)
         json.dump(genesis, f, indent=4)
         f.truncate()
@@ -71,6 +85,18 @@ def main():
     for validator in validators:
         cmd = ['fetchd', 'add-genesis-account',
                validator, '200000000000000000000atestfet']
+        subprocess.check_call(cmd)
+
+    if municipal_infl_target_address:
+        token_list = ["200000000000000000000atestfet"]
+
+        for infl in municipal_infl_genesis_conf:
+            token_list.append(f'{10**18}{infl["denom"]}')
+        tokens = ','.join(token_list)
+
+        cmd = ['fetchd', 'add-genesis-account',
+               municipal_infl_target_address, tokens]
+
         subprocess.check_call(cmd)
 
     # copy the generated genesis file
