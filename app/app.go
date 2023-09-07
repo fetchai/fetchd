@@ -719,7 +719,17 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.1", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		mobixInfl, err := sdk.NewDecFromStr("0.03")
+		if err != nil {
+			return module.VersionMap{}, err
+		}
+		minter := app.MintKeeper.GetMinter(ctx)
+		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
+			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", mobixInfl)},
+		}
+		app.MintKeeper.SetMinter(ctx, minter)
+
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 }
