@@ -135,6 +135,10 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alp
 
 replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.2
 
+// This is to add support for Ledger Nano S-Plus (it needs to be reiterated
+// even though it is already done on cosmos-sdk v0.19.2 module level:
+replace github.com/cosmos/ledger-go => github.com/cosmos/ledger-go v0.9.3
+
 replace github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 
 replace github.com/CosmWasm/wasmvm => github.com/CosmWasm/wasmvm v1.0.1
