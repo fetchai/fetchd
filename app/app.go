@@ -653,7 +653,7 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
-// LoadHeight loads a particular t eight
+// LoadHeight loads a particular height
 func (app *App) LoadHeight(height int64) error {
 	return app.LoadVersion(height)
 }
@@ -788,9 +788,10 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		minter := app.MintKeeper.GetMinter(ctx)
+		municipalInflation := minttypes.NewMunicipalInflation(municipalInflationTargetAddress, inflation)
 		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", inflation)},
-			{Denom: "nanonomx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", inflation)},
+			{Denom: "nanomobx", Inflation: municipalInflation},
+			{Denom: nomxDenom, Inflation: municipalInflation},
 		}
 
 		app.MintKeeper.SetMinter(ctx, minter)
