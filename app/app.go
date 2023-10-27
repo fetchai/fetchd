@@ -653,7 +653,7 @@ func (app *App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.Res
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
-// LoadHeight loads a particular height
+// LoadHeight loads a particular t eight
 func (app *App) LoadHeight(height int64) error {
 	return app.LoadVersion(height)
 }
@@ -719,6 +719,8 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
+	const municipalInflationTargetAddress = "fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03"
+
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		mobixInfl, err := sdk.NewDecFromStr("0.03")
 		if err != nil {
@@ -726,8 +728,71 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 		minter := app.MintKeeper.GetMinter(ctx)
 		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", mobixInfl)},
+			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation(municipalInflationTargetAddress, mobixInfl)},
 		}
+
+		app.MintKeeper.SetMinter(ctx, minter)
+
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
+
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// Introducing the NOMX token **IF** it does not exist yet:
+		const nomxDenom = "nanonomx"
+		const nomxName = "NOMX"
+		const nomxSupply = 1000000000000000000 // = 10^18 < 2^63 (max(int64))
+		if !app.BankKeeper.HasSupply(ctx, nomxDenom) {
+			coinsToMint := sdk.NewCoins(sdk.NewInt64Coin(nomxDenom, nomxSupply))
+			app.MintKeeper.MintCoins(ctx, coinsToMint)
+
+			acc, err := sdk.AccAddressFromBech32(municipalInflationTargetAddress)
+			if err != nil {
+				panic(err)
+			}
+
+			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, acc, coinsToMint)
+			if err != nil {
+				panic(err)
+			}
+
+			ctx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					minttypes.EventTypeMunicipalMint,
+					sdk.NewAttribute(minttypes.AttributeKeyDenom, nomxDenom),
+					sdk.NewAttribute(minttypes.AttributeKeyTargetAddr, municipalInflationTargetAddress),
+					sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
+				),
+			)
+
+			nomxMetadata := banktypes.Metadata{
+				Base:        nomxDenom,
+				Name:        nomxName,
+				Symbol:      nomxName,
+				Display:     nomxName,
+				Description: nomxName + " token",
+				DenomUnits: []*banktypes.DenomUnit{
+					{Denom: nomxName, Exponent: 9, Aliases: nil},
+					{Denom: "mnomx", Exponent: 6, Aliases: nil},
+					{Denom: "unomx", Exponent: 3, Aliases: nil},
+					{Denom: nomxDenom, Exponent: 0, Aliases: nil},
+				},
+			}
+
+			app.BankKeeper.SetDenomMetaData(ctx, nomxMetadata)
+		}
+
+		// Municipal Inflation for MOBX & NOMX tokens:
+		inflation, err := sdk.NewDecFromStr("0.03")
+		if err != nil {
+			return module.VersionMap{}, err
+		}
+
+		minter := app.MintKeeper.GetMinter(ctx)
+		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
+			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", inflation)},
+			{Denom: "nanonomx", Inflation: minttypes.NewMunicipalInflation("fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03", inflation)},
+		}
+
 		app.MintKeeper.SetMinter(ctx, minter)
 
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
