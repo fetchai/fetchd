@@ -721,6 +721,15 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	const municipalInflationTargetAddress = "fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03"
 
+	// NOTE(pb): The `fetchd-v0.10.7` upgrade handler *MUST* be present due to the mainnent, where this is the *LAST*
+	//           executed upgrade. Presence of this handler is enforced by the `x/upgrade/abci.go#L31-L40` (see the
+	// https://github.com/fetchai/cosmos-sdk/blob/09cf7baf4297a30acd8d09d9db7dd97d79ffe008/x/upgrade/abci.go#L31-L40).
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
+
+	// NOTE(pb): The `v0.11.2` upgrade handler *MUST* be present due to Dorado-1 testnet, where this is the *LAST*
+	//           executed upgrade. Please see the details in the NOTE above.
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		mobixInfl, err := sdk.NewDecFromStr("0.03")
 		if err != nil {
