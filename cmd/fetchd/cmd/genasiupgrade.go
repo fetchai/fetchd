@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/types"
 	"regexp"
 	"strings"
 )
@@ -59,12 +60,12 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			genFile := config.GenesisFile()
 
 			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
-      
+
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-      appStateJSON, err := json.Marshal(appState)
+			appStateJSON, err := json.Marshal(appState)
 			if err != nil {
 				return fmt.Errorf("failed to marshal application genesis state: %w", err)
 			}
@@ -73,10 +74,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(&appStateStr)
 
-      // replace chain-id
+			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
 
-      return genutil.ExportGenesisFile(genDoc, genFile)
+			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
 
