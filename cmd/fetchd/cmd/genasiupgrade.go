@@ -1,8 +1,18 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/server"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -39,7 +49,39 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			cdc := clientCtx.Codec
+
+			serverCtx := server.GetServerContextFromCmd(cmd)
+			config := serverCtx.Config
+
+			config.SetRoot(clientCtx.HomeDir)
+
+			genFile := config.GenesisFile()
+
+			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+			}
+
+			// set denom metadata in bank module
+			err = ASIGenesisUpgradeReplaceDenomMetadata(cdc, &appState)
+			if err != nil {
+				return fmt.Errorf("failed to replace denom metadata: %w", err)
+			}
+
+			appStateJSON, err := json.Marshal(appState)
+			if err != nil {
+				return fmt.Errorf("failed to marshal application genesis state: %w", err)
+			}
+
+			appStateStr := string(appStateJSON)
+
+			// replace denom across the genesis file
+			ASIGenesisUpgradeReplaceDenom(&appStateStr)
+
+			genDoc.AppState = []byte(appStateStr)
+			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
 
@@ -51,14 +93,80 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata() {}
+func ASIGenesisUpgradeReplaceDenomMetadata(cdc codec.Codec, appState *map[string]json.RawMessage) error {
+	bankGenState := banktypes.GetGenesisStateFromAppState(cdc, *appState)
+
+	OldBaseDenomUpper := strings.ToUpper(OldBaseDenom)
+	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
+
+	denomRegex := getRegex(OldDenom, NewDenom)
+	upperDenomRegex := getRegex(OldBaseDenomUpper, NewBaseDenomUpper)
+	exponentDenomRegex := getPartialRegexLeft(OldBaseDenom, NewBaseDenom)
+
+	for _, metadata := range bankGenState.DenomMetadata {
+		replaceString(&metadata.Base, []*regexPair{denomRegex})
+		if metadata.Name == OldBaseDenomUpper {
+			metadata.Description = NewDescription
+			metadata.Display = NewBaseDenomUpper
+			metadata.Name = NewBaseDenomUpper
+			metadata.Symbol = NewBaseDenomUpper
+		}
+		for _, unit := range metadata.DenomUnits {
+			replaceString(&unit.Denom, []*regexPair{upperDenomRegex})
+			replaceString(&unit.Denom, []*regexPair{exponentDenomRegex})
+		}
+	}
+
+	bankGenStateBytes, err := cdc.MarshalJSON(bankGenState)
+	if err != nil {
+		return fmt.Errorf("failed to marshal auth genesis state: %w", err)
+	}
+
+	(*appState)[banktypes.ModuleName] = bankGenStateBytes
+	return nil
+}
 
 func ASIGenesisUpgradeReplaceChainID() {}
 
-func ASIGenesisUpgradeReplaceDenom() {}
+func ASIGenesisUpgradeReplaceDenom(jsonString *string) {
+	for _, target := range []string{"denom", "bond_denom", "mint_denom", "base_denom", "base"} {
+		re := regexp.MustCompile(fmt.Sprintf(`("%s"\s*:\s*)"%s"`, target, OldDenom))
+		if re.MatchString(*jsonString) {
+			*jsonString = re.ReplaceAllString(*jsonString, fmt.Sprintf(`${1}"%s"`, NewDenom))
+		}
+	}
+}
 
 func ASIGenesisUpgradeReplaceAddresses() {}
 
 func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
+
+func getRegex(oldValue string, newValue string) *regexPair {
+	return &regexPair{
+		pattern:     fmt.Sprintf(`^%s$`, oldValue),
+		replacement: fmt.Sprintf(`%s`, newValue),
+	}
+}
+
+func getPartialRegexLeft(oldValue string, newValue string) *regexPair {
+	return &regexPair{
+		pattern:     fmt.Sprintf(`(.*?)%s"`, oldValue),
+		replacement: fmt.Sprintf(`${1}%s"`, newValue),
+	}
+}
+
+func replaceString(s *string, replacements []*regexPair) {
+	for _, pair := range replacements {
+		re := regexp.MustCompile(pair.pattern)
+		if re.MatchString(*s) {
+			*s = re.ReplaceAllString(*s, pair.replacement)
+		}
+	}
+}
+
+type regexPair struct {
+	pattern     string
+	replacement string
+}
