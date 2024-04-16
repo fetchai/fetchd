@@ -11,7 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/types"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -57,10 +59,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			config.SetRoot(clientCtx.HomeDir)
 
 			genFile := config.GenesisFile()
-      
-      appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 
-      if err != nil {
+			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+
+			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
@@ -81,10 +83,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceDenom(&appStateStr)
 
 			genDoc.AppState = []byte(appStateStr)
-      
+
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
-      
+
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
