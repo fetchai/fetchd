@@ -12,7 +12,6 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -58,9 +57,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			config.SetRoot(clientCtx.HomeDir)
 
 			genFile := config.GenesisFile()
+      
+      appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 
-			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
-			if err != nil {
+      if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
@@ -81,6 +81,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceDenom(&appStateStr)
 
 			genDoc.AppState = []byte(appStateStr)
+      
+			// replace chain-id
+			ASIGenesisUpgradeReplaceChainID(genDoc)
+      
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -126,7 +130,9 @@ func ASIGenesisUpgradeReplaceDenomMetadata(cdc codec.Codec, appState *map[string
 	return nil
 }
 
-func ASIGenesisUpgradeReplaceChainID() {}
+func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
+	genesisData.ChainID = NewChainId
+}
 
 func ASIGenesisUpgradeReplaceDenom(jsonString *string) {
 	for _, target := range []string{"denom", "bond_denom", "mint_denom", "base_denom", "base"} {
