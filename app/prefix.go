@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	AccountAddressPrefix = "fetch"
+	AccountAddressPrefix = "asi"
 )
 
 var (
