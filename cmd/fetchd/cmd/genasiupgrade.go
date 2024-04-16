@@ -1,8 +1,14 @@
 package cmd
 
 import (
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/types"
 )
 
 const (
@@ -39,7 +45,23 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+			clientCtx := client.GetClientContextFromCmd(cmd)
+
+			serverCtx := server.GetServerContextFromCmd(cmd)
+			config := serverCtx.Config
+
+			config.SetRoot(clientCtx.HomeDir)
+
+			genFile := config.GenesisFile()
+
+			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+			}
+
+			// replace chain-id
+			ASIGenesisUpgradeReplaceChainID(genDoc)
+			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
 
@@ -53,7 +75,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 func ASIGenesisUpgradeReplaceDenomMetadata() {}
 
-func ASIGenesisUpgradeReplaceChainID() {}
+func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
+	genesisData.ChainID = NewChainId
+}
 
 func ASIGenesisUpgradeReplaceDenom() {}
 
