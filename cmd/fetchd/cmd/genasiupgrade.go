@@ -61,10 +61,12 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			genFile := config.GenesisFile()
 
 			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
-
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
+
+			// replace chain-id
+			ASIGenesisUpgradeReplaceChainID(genDoc)
 
 			// set denom metadata in bank module
 			err = ASIGenesisUpgradeReplaceDenomMetadata(cdc, &appState)
@@ -82,11 +84,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(&appStateStr)
 
+			// save the updated genesis file
 			genDoc.AppState = []byte(appStateStr)
-
-			// replace chain-id
-			ASIGenesisUpgradeReplaceChainID(genDoc)
-
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
