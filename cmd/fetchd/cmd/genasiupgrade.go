@@ -77,6 +77,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
 
+			genDoc.AppState = []byte(appStateStr)
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
