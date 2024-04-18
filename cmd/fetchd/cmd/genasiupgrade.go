@@ -79,6 +79,8 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 	genesisData.ChainID = NewChainId
 }
 
+func ASIGenesisUpgradeReplaceBridgeAdmin() {}
+
 func ASIGenesisUpgradeReplaceDenom() {}
 
 func ASIGenesisUpgradeReplaceAddresses() {}
