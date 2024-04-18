@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -12,6 +15,9 @@ import (
 )
 
 const (
+	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
+	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+
 	flagNewDescription = "new-description"
 	Bech32Chars        = "023456789acdefghjklmnpqrstuvwxyz"
 	AddrDataLength     = 32
@@ -49,18 +55,31 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			config := serverCtx.Config
+			cdc := clientCtx.Codec
 
 			config.SetRoot(clientCtx.HomeDir)
 
 			genFile := config.GenesisFile()
 
-			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
+
+			// replace bridge contract admin
+			if err = ASIGenesisUpgradeReplaceBridgeAdmin(&cdc, &appState); err != nil {
+				return fmt.Errorf("failed to replace bridge contract admin: %w", err)
+			}
+
+			var modifiedGenState json.RawMessage
+			if modifiedGenState, err = json.Marshal(appState); err != nil {
+				return fmt.Errorf("failed to marshal app state: %w", err)
+			}
+
+			(*genDoc).AppState = modifiedGenState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -79,7 +98,27 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 	genesisData.ChainID = NewChainId
 }
 
-func ASIGenesisUpgradeReplaceBridgeAdmin() {}
+func ASIGenesisUpgradeReplaceBridgeAdmin(cdc *codec.Codec, appState *map[string]json.RawMessage) error {
+	var wasmGenState wasm.GenesisState
+	if err := (*cdc).UnmarshalJSON((*appState)[wasm.ModuleName], &wasmGenState); err != nil {
+		return fmt.Errorf("failed to unmarshal wasm genesis state: %w", err)
+	}
+
+	for i, contract := range wasmGenState.Contracts {
+		if contract.ContractAddress == BridgeContractAddress {
+			wasmGenState.Contracts[i].ContractInfo.Admin = NewBridgeContractAdmin
+			break
+		}
+	}
+
+	wasmGenStateBytes, err := (*cdc).MarshalJSON(&wasmGenState)
+	if err != nil {
+		return fmt.Errorf("failed to marshal auth genesis state: %w", err)
+	}
+
+	(*appState)[wasm.ModuleName] = wasmGenStateBytes
+	return nil
+}
 
 func ASIGenesisUpgradeReplaceDenom() {}
 
