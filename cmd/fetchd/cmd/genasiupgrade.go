@@ -12,7 +12,6 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
-	"regexp"
 	"strings"
 )
 
@@ -104,21 +103,48 @@ func ASIGenesisUpgradeReplaceDenomMetadata(cdc codec.Codec, appState *map[string
 	OldBaseDenomUpper := strings.ToUpper(OldBaseDenom)
 	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
 
-	denomRegex := getRegex(OldDenom, NewDenom)
-	upperDenomRegex := getRegex(OldBaseDenomUpper, NewBaseDenomUpper)
-	exponentDenomRegex := getPartialRegexLeft(OldBaseDenom, NewBaseDenom)
+	newMetadata := banktypes.Metadata{
+		Base: NewDenom,
+		DenomUnits: []*banktypes.DenomUnit{
+			{
+				Denom:    NewBaseDenomUpper,
+				Exponent: 18,
+			},
+			{
+				Denom:    fmt.Sprintf("m%s", NewBaseDenom),
+				Exponent: 15,
+			},
+			{
+				Denom:    fmt.Sprintf("u%s", NewBaseDenom),
+				Exponent: 12,
+			},
+			{
+				Denom:    fmt.Sprintf("n%s", NewBaseDenom),
+				Exponent: 9,
+			},
+			{
+				Denom:    fmt.Sprintf("p%s", NewBaseDenom),
+				Exponent: 6,
+			},
+			{
+				Denom:    fmt.Sprintf("f%s", NewBaseDenom),
+				Exponent: 3,
+			},
+			{
+				Denom:    fmt.Sprintf("a%s", NewBaseDenom),
+				Exponent: 0,
+			},
+		},
+		Description: NewDescription,
+		Display:     NewBaseDenomUpper,
+		Name:        NewBaseDenomUpper,
+		Symbol:      NewBaseDenomUpper,
+	}
 
-	for _, metadata := range bankGenState.DenomMetadata {
-		replaceString(&metadata.Base, []*regexPair{denomRegex})
+	for i, metadata := range bankGenState.DenomMetadata {
 		if metadata.Name == OldBaseDenomUpper {
-			metadata.Description = NewDescription
-			metadata.Display = NewBaseDenomUpper
-			metadata.Name = NewBaseDenomUpper
-			metadata.Symbol = NewBaseDenomUpper
-		}
-		for _, unit := range metadata.DenomUnits {
-			replaceString(&unit.Denom, []*regexPair{upperDenomRegex})
-			replaceString(&unit.Denom, []*regexPair{exponentDenomRegex})
+			(*bankGenState).DenomMetadata[i] = newMetadata
+			break
 		}
 	}
 
@@ -136,12 +162,35 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonString *string) {
-	for _, target := range []string{"denom", "bond_denom", "mint_denom", "base_denom", "base"} {
-		re := regexp.MustCompile(fmt.Sprintf(`("%s"\s*:\s*)"%s"`, target, OldDenom))
-		if re.MatchString(*jsonString) {
-			*jsonString = re.ReplaceAllString(*jsonString, fmt.Sprintf(`${1}"%s"`, NewDenom))
-		}
+	var jsonData map[string]interface{}
+	err := json.Unmarshal([]byte(*jsonString), &jsonData)
+	if err != nil {
+		panic(err)
 	}
+
+	keyIsInTarget := func(target string) bool {
+		for _, key := range []string{"denom", "bond_denom", "mint_denom", "base_denom", "base"} {
+			if target == key {
+				return true
+			}
+		}
+		return false
+	}
+
+	modifiedGenesisJson := crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
+		if str, ok := value.(string); ok {
+			if str == OldDenom && keyIsInTarget(key.(string)) {
+				return NewDenom
+			}
+		}
+		return value
+	})
+
+	modifiedJSON, err := json.Marshal(modifiedGenesisJson)
+	if err != nil {
+		panic(err)
+	}
+	*jsonString = string(modifiedJSON)
 }
 
 func ASIGenesisUpgradeReplaceAddresses() {}
@@ -150,30 +199,21 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
 
-func getRegex(oldValue string, newValue string) *regexPair {
-	return &regexPair{
-		pattern:     fmt.Sprintf(`^%s$`, oldValue),
-		replacement: fmt.Sprintf(`%s`, newValue),
-	}
-}
-
-func getPartialRegexLeft(oldValue string, newValue string) *regexPair {
-	return &regexPair{
-		pattern:     fmt.Sprintf(`(.*?)%s"`, oldValue),
-		replacement: fmt.Sprintf(`${1}%s"`, newValue),
-	}
-}
-
-func replaceString(s *string, replacements []*regexPair) {
-	for _, pair := range replacements {
-		re := regexp.MustCompile(pair.pattern)
-		if re.MatchString(*s) {
-			*s = re.ReplaceAllString(*s, pair.replacement)
+func crawlJson(key interface{}, value interface{}, strHandler func(interface{}, interface{}) interface{}) interface{} {
+	switch val := value.(type) {
+	case string:
+		if strHandler != nil {
+			return strHandler(key, val)
 		}
+	case []interface{}:
+		for i := range val {
+			val[i] = crawlJson(nil, val[i], strHandler)
+		}
+	case map[string]interface{}:
+		for k := range val {
+			val[k] = crawlJson(k, val[k], strHandler)
+		}
+	default:
 	}
-}
-
-type regexPair struct {
-	pattern     string
-	replacement string
+	return value
 }
