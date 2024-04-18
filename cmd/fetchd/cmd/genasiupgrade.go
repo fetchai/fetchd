@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -71,6 +72,15 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
+			// set denom metadata in bank module
+			err = ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
+			if err != nil {
+				return fmt.Errorf("failed to replace denom metadata: %w", err)
+			}
+
+			// replace denom across the genesis file
+			ASIGenesisUpgradeReplaceDenom(jsonData)
+
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
 
@@ -92,7 +102,61 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata() {}
+func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) error {
+	type jsonMap map[string]interface{}
+
+	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
+
+	newMetadata := jsonMap{
+		"base": NewDenom,
+		"denom_units": []jsonMap{
+			{
+				"denom":    NewBaseDenomUpper,
+				"exponent": 18,
+			},
+			{
+				"denom":    fmt.Sprintf("m%s", NewBaseDenom),
+				"exponent": 15,
+			},
+			{
+				"denom":    fmt.Sprintf("u%s", NewBaseDenom),
+				"exponent": 12,
+			},
+			{
+				"denom":    fmt.Sprintf("n%s", NewBaseDenom),
+				"exponent": 9,
+			},
+			{
+				"denom":    fmt.Sprintf("p%s", NewBaseDenom),
+				"exponent": 6,
+			},
+			{
+				"denom":    fmt.Sprintf("f%s", NewBaseDenom),
+				"exponent": 3,
+			},
+			{
+				"denom":    fmt.Sprintf("a%s", NewBaseDenom),
+				"exponent": 0,
+			},
+		},
+		"description": NewDescription,
+		"display":     NewBaseDenomUpper,
+		"name":        NewBaseDenomUpper,
+		"symbol":      NewBaseDenomUpper,
+	}
+
+	bank := jsonData["bank"].(map[string]interface{})
+	denomMetadata := bank["denom_metadata"].([]interface{})
+
+	for i, metadata := range denomMetadata {
+		denomUnit := metadata.(map[string]interface{})
+		if denomUnit["base"] == OldDenom {
+			denomMetadata[i] = newMetadata
+			break
+		}
+	}
+	return nil
+}
 
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 	genesisData.ChainID = NewChainId
@@ -100,7 +164,19 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 
 func ASIGenesisUpgradeReplaceBridgeAdmin() {}
 
-func ASIGenesisUpgradeReplaceDenom() {}
+func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}) {
+	targets := map[string]struct{}{"denom": {}, "bond_denom": {}, "mint_denom": {}, "base_denom": {}, "base": {}}
+
+	crawlJson("", jsonData, -1, func(key string, value interface{}, idx int) interface{} {
+		if str, ok := value.(string); ok {
+			_, isInTargets := targets[key]
+			if str == OldDenom && isInTargets {
+				return NewDenom
+			}
+		}
+		return value
+	})
+}
 
 func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
 	// account addresses
@@ -116,7 +192,7 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
 func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
 	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
 
-	crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
+	crawlJson("", jsonData, -1, func(key string, value interface{}, idx int) interface{} {
 		if str, ok := value.(string); ok {
 			if !re.MatchString(str) {
 				return value
@@ -136,19 +212,19 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
 
-func crawlJson(key interface{}, value interface{}, strHandler func(interface{}, interface{}) interface{}) interface{} {
+func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
 	switch val := value.(type) {
 	case string:
 		if strHandler != nil {
-			return strHandler(key, val)
+			return strHandler(key, val, idx)
 		}
 	case []interface{}:
 		for i := range val {
-			val[i] = crawlJson(nil, val[i], strHandler)
+			val[i] = crawlJson("", val[i], i, strHandler)
 		}
 	case map[string]interface{}:
 		for k, v := range val {
-			val[k] = crawlJson(k, v, strHandler)
+			val[k] = crawlJson(k, v, -1, strHandler)
 		}
 	}
 	return value
