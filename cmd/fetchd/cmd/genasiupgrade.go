@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
-	cosmostypes "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
@@ -116,28 +116,18 @@ func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength i
 	replacements := make(map[string]string, len(matches))
 	for _, match := range matches {
 		matchedAddr := strings.ReplaceAll(match, `"`, "")
-		_, decodedAddrData, err := bech32.Decode(matchedAddr)
-		if err != nil {
-			panic(err)
-		}
-
-		newAddress, err := bech32.Encode(NewAddrPrefix+addressTypePrefix, decodedAddrData)
-		if err != nil {
-			panic(err)
-		}
-
-		err = cosmostypes.VerifyAddressFormat(decodedAddrData)
+		newAddress, err := convertAddressToASI(matchedAddr, addressTypePrefix)
 		if err != nil {
 			panic(err)
 		}
 
 		switch addressTypePrefix {
 		case AccAddressPrefix:
-			_, err = cosmostypes.AccAddressFromBech32(newAddress)
+			_, err = sdk.AccAddressFromBech32(newAddress)
 		case ValAddressPrefix:
-			_, err = cosmostypes.ValAddressFromBech32(newAddress)
+			_, err = sdk.ValAddressFromBech32(newAddress)
 		case ConsAddressPrefix:
-			_, err = cosmostypes.ConsAddressFromBech32(newAddress)
+			_, err = sdk.ConsAddressFromBech32(newAddress)
 		default:
 			panic("invalid address type prefix")
 		}
@@ -153,15 +143,15 @@ func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength i
 		panic(err)
 	}
 
-	modified := crawlJson(jsonData, func(data interface{}) interface{} {
-		if str, ok := data.(string); ok {
+	modified := crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
+		if str, ok := value.(string); ok {
 			if !re.MatchString(fmt.Sprintf(`"%s"`, str)) || len(str) > 200 {
-				return data
+				return value
 			}
 
 			return replacements[str]
 		}
-		return data
+		return value
 	})
 
 	modifiedJSON, err := json.Marshal(modified)
@@ -175,21 +165,40 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
 
-func crawlJson(data interface{}, strHandler func(interface{}) interface{}) interface{} {
-	switch value := data.(type) {
+func crawlJson(key interface{}, value interface{}, strHandler func(interface{}, interface{}) interface{}) interface{} {
+	switch val := value.(type) {
 	case string:
 		if strHandler != nil {
-			return strHandler(data)
+			return strHandler(key, val)
 		}
 	case []interface{}:
-		for i := range value {
-			value[i] = crawlJson(value[i], strHandler)
+		for i := range val {
+			val[i] = crawlJson(nil, val[i], strHandler)
 		}
 	case map[string]interface{}:
-		for k := range value {
-			value[k] = crawlJson(value[k], strHandler)
+		for k := range val {
+			val[k] = crawlJson(k, val[k], strHandler)
 		}
 	default:
 	}
-	return data
+	return value
+}
+
+func convertAddressToASI(addr string, addressPrefix string) (string, error) {
+	_, decodedAddrData, err := bech32.Decode(addr)
+	if err != nil {
+		return "", err
+	}
+
+	newAddress, err := bech32.Encode(NewAddrPrefix+addressPrefix, decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	err = sdk.VerifyAddressFormat(decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	return newAddress, nil
 }
