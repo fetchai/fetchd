@@ -76,6 +76,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to withdraw IBC channels balances: %w", err)
 			}
 
+			// reflect changes in the genesis file
+			var modifiedGenState json.RawMessage
+			if modifiedGenState, err = json.Marshal(appState); err != nil {
+				return fmt.Errorf("failed to marshal app state: %w", err)
+			}
+
+			(*genDoc).AppState = modifiedGenState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -116,12 +123,6 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(cdc *codec.Codec, appState *ma
 		return fmt.Errorf("failed to find withdrawal address in genesis balances")
 	}
 
-	for _, balance := range bankGenState.Balances {
-		if balance.Address == IbcWithdrawAddress {
-			fmt.Println("Withdrawal address balance:", balance.Coins.String())
-		}
-	}
-
 	for _, channel := range ibcAppState.ChannelGenesis.Channels {
 		rawAddr := ibctransfertypes.GetEscrowAddress(channel.PortId, channel.ChannelId)
 		addr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
@@ -140,7 +141,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(cdc *codec.Codec, appState *ma
 
 		balanceIdx, ok := (*balanceMap)[addr]
 		if !ok {
-			fmt.Println("Channel address not found in genesis balances:", addr)
+			// channel address not found in genesis balances
 			continue
 		}
 
@@ -159,12 +160,6 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(cdc *codec.Codec, appState *ma
 	bankGenStateBytes, err := (*cdc).MarshalJSON(bankGenState)
 	if err != nil {
 		return fmt.Errorf("failed to marshal auth genesis state: %w", err)
-	}
-
-	for _, balance := range bankGenState.Balances {
-		if balance.Address == IbcWithdrawAddress {
-			fmt.Println("Withdrawal address balance:", balance.Coins.String())
-		}
 	}
 
 	(*appState)[banktypes.ModuleName] = bankGenStateBytes
