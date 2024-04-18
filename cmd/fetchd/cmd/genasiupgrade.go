@@ -1,14 +1,18 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
+	"regexp"
 )
 
 const (
@@ -59,8 +63,23 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
+			var jsonData map[string]interface{}
+			if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
+				return fmt.Errorf("failed to unmarshal app state: %w", err)
+			}
+
+			// replace addresses across the genesis file
+			ASIGenesisUpgradeReplaceAddresses(jsonData)
+
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
+
+			var encodedAppState []byte
+			if encodedAppState, err = json.Marshal(jsonData); err != nil {
+				return err
+			}
+
+			genDoc.AppState = encodedAppState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -83,8 +102,73 @@ func ASIGenesisUpgradeReplaceBridgeAdmin() {}
 
 func ASIGenesisUpgradeReplaceDenom() {}
 
-func ASIGenesisUpgradeReplaceAddresses() {}
+func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
+	// account addresses
+	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// validator addresses
+	replaceAddresses(ValAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// consensus addresses
+	replaceAddresses(ConsAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// contract addresses
+	replaceAddresses(AccAddressPrefix, jsonData, WasmDataLength+AddrChecksumLength)
+}
+
+func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
+	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
+
+	crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
+		if str, ok := value.(string); ok {
+			if !re.MatchString(str) {
+				return value
+			}
+			newAddress, err := convertAddressToASI(str, addressTypePrefix)
+			if err != nil {
+				panic(err)
+			}
+
+			return newAddress
+		}
+		return value
+	})
+}
 
 func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
+
+func crawlJson(key interface{}, value interface{}, strHandler func(interface{}, interface{}) interface{}) interface{} {
+	switch val := value.(type) {
+	case string:
+		if strHandler != nil {
+			return strHandler(key, val)
+		}
+	case []interface{}:
+		for i := range val {
+			val[i] = crawlJson(nil, val[i], strHandler)
+		}
+	case map[string]interface{}:
+		for k, v := range val {
+			val[k] = crawlJson(k, v, strHandler)
+		}
+	}
+	return value
+}
+
+func convertAddressToASI(addr string, addressTypePrefix string) (string, error) {
+	_, decodedAddrData, err := bech32.Decode(addr)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode address: %w", err)
+	}
+
+	err = sdk.VerifyAddressFormat(decodedAddrData)
+	if err != nil {
+		return "", fmt.Errorf("failed to verify address format: %w", err)
+	}
+
+	newAddress, err := bech32.Encode(NewAddrPrefix+addressTypePrefix, decodedAddrData)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode new address: %w", err)
+	}
+
+	return newAddress, nil
+}
