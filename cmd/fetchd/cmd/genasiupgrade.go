@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -43,6 +45,9 @@ const (
 	OldDenom      = "afet"
 	OldAddrPrefix = "fetch"
 )
+
+//go:embed reconciliation_data.csv
+var reconciliationData []byte
 
 // ASIGenesisUpgradeCmd returns replace-genesis-values cobra Command.
 func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
@@ -153,7 +158,8 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *
 	}
 	defer file.Close()
 
-	r := csv.NewReader(file)
+	fileData := reconciliationData
+	r := csv.NewReader(bytes.NewReader(fileData))
 	items, err := r.ReadAll()
 	if err != nil {
 		log.Fatalf("Error reading reconciliation data: %s", err)
