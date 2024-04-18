@@ -70,8 +70,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			}
 
 			appStateStr := string(appStateJSON)
+			var jsonData map[string]interface{}
+			if err = json.Unmarshal([]byte(appStateStr), &jsonData); err != nil {
+				return fmt.Errorf("failed to unmarshal app state: %w", err)
+			}
+
 			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(&appStateStr)
+			ASIGenesisUpgradeReplaceAddresses(&jsonData)
 
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
@@ -97,29 +102,23 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 
 func ASIGenesisUpgradeReplaceDenom() {}
 
-func ASIGenesisUpgradeReplaceAddresses(jsonString *string) {
+func ASIGenesisUpgradeReplaceAddresses(jsonData *map[string]interface{}) {
 	// account addresses
-	replaceAddresses(AccAddressPrefix, jsonString, AddrDataLength+AddrChecksumLength)
+	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// validator addresses
-	replaceAddresses(ValAddressPrefix, jsonString, AddrDataLength+AddrChecksumLength)
+	replaceAddresses(ValAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// consensus addresses
-	replaceAddresses(ConsAddressPrefix, jsonString, AddrDataLength+AddrChecksumLength)
+	replaceAddresses(ConsAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// contract addresses
-	replaceAddresses(AccAddressPrefix, jsonString, WasmDataLength+AddrChecksumLength)
+	replaceAddresses(AccAddressPrefix, jsonData, WasmDataLength+AddrChecksumLength)
 }
 
-func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength int) {
-	re := regexp.MustCompile(fmt.Sprintf(`"%s%s1([%s]{%d})"`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
+func replaceAddresses(addressTypePrefix string, jsonData *map[string]interface{}, dataLength int) {
+	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
 
-	var jsonData map[string]interface{}
-	err := json.Unmarshal([]byte(*jsonString), &jsonData)
-	if err != nil {
-		panic(err)
-	}
-
-	modified := crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
+	crawlJson(nil, &jsonData, func(key interface{}, value interface{}) interface{} {
 		if str, ok := value.(string); ok {
-			if !re.MatchString(fmt.Sprintf(`"%s"`, str)) || len(str) > 200 {
+			if !re.MatchString(fmt.Sprintf(`%s`, str)) {
 				return value
 			}
 			newAddress, err := convertAddressToASI(str, addressTypePrefix)
@@ -145,12 +144,6 @@ func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength i
 		}
 		return value
 	})
-
-	modifiedJSON, err := json.Marshal(modified)
-	if err != nil {
-		panic(err)
-	}
-	*jsonString = string(modifiedJSON)
 }
 
 func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
