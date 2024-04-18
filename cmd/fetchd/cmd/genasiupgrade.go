@@ -58,30 +58,28 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			genFile := config.GenesisFile()
 
-			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
-
+			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-			appStateJSON, err := json.Marshal(appState)
-			if err != nil {
-				return fmt.Errorf("failed to marshal application genesis state: %w", err)
-			}
-
-			appStateStr := string(appStateJSON)
 			var jsonData map[string]interface{}
-			if err = json.Unmarshal([]byte(appStateStr), &jsonData); err != nil {
+			if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
 			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(&jsonData)
+			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
 
-			genDoc.AppState = []byte(appStateStr)
+			var encodedAppState []byte
+			if encodedAppState, err = json.Marshal(jsonData); err != nil {
+				return err
+			}
+
+			genDoc.AppState = encodedAppState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -102,7 +100,7 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 
 func ASIGenesisUpgradeReplaceDenom() {}
 
-func ASIGenesisUpgradeReplaceAddresses(jsonData *map[string]interface{}) {
+func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
 	// account addresses
 	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// validator addresses
@@ -113,29 +111,15 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData *map[string]interface{}) {
 	replaceAddresses(AccAddressPrefix, jsonData, WasmDataLength+AddrChecksumLength)
 }
 
-func replaceAddresses(addressTypePrefix string, jsonData *map[string]interface{}, dataLength int) {
-	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
+func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d})`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
 
-	crawlJson(nil, &jsonData, func(key interface{}, value interface{}) interface{} {
+	crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
 		if str, ok := value.(string); ok {
-			if !re.MatchString(fmt.Sprintf(`%s`, str)) {
+			if !re.MatchString(str) {
 				return value
 			}
 			newAddress, err := convertAddressToASI(str, addressTypePrefix)
-			if err != nil {
-				panic(err)
-			}
-
-			switch addressTypePrefix {
-			case AccAddressPrefix:
-				_, err = sdk.AccAddressFromBech32(newAddress)
-			case ValAddressPrefix:
-				_, err = sdk.ValAddressFromBech32(newAddress)
-			case ConsAddressPrefix:
-				_, err = sdk.ConsAddressFromBech32(newAddress)
-			default:
-				panic("invalid address type prefix")
-			}
 			if err != nil {
 				panic(err)
 			}
@@ -161,28 +145,27 @@ func crawlJson(key interface{}, value interface{}, strHandler func(interface{}, 
 			val[i] = crawlJson(nil, val[i], strHandler)
 		}
 	case map[string]interface{}:
-		for k := range val {
-			val[k] = crawlJson(k, val[k], strHandler)
+		for k, v := range val {
+			val[k] = crawlJson(k, v, strHandler)
 		}
-	default:
 	}
 	return value
 }
 
-func convertAddressToASI(addr string, addressPrefix string) (string, error) {
+func convertAddressToASI(addr string, addressTypePrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.Decode(addr)
 	if err != nil {
-		return "", err
-	}
-
-	newAddress, err := bech32.Encode(NewAddrPrefix+addressPrefix, decodedAddrData)
-	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to decode address: %w", err)
 	}
 
 	err = sdk.VerifyAddressFormat(decodedAddrData)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to verify address format: %w", err)
+	}
+
+	newAddress, err := bech32.Encode(NewAddrPrefix+addressTypePrefix, decodedAddrData)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode new address: %w", err)
 	}
 
 	return newAddress, nil
