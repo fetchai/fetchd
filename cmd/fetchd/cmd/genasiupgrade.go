@@ -112,7 +112,7 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
 }
 
 func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
-	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d})`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
+	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
 
 	crawlJson(nil, jsonData, func(key interface{}, value interface{}) interface{} {
 		if str, ok := value.(string); ok {
