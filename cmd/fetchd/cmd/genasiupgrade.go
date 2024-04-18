@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -111,31 +110,6 @@ func ASIGenesisUpgradeReplaceAddresses(jsonString *string) {
 
 func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength int) {
 	re := regexp.MustCompile(fmt.Sprintf(`"%s%s1([%s]{%d})"`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
-	matches := re.FindAllString(*jsonString, -1)
-
-	replacements := make(map[string]string, len(matches))
-	for _, match := range matches {
-		matchedAddr := strings.ReplaceAll(match, `"`, "")
-		newAddress, err := convertAddressToASI(matchedAddr, addressTypePrefix)
-		if err != nil {
-			panic(err)
-		}
-
-		switch addressTypePrefix {
-		case AccAddressPrefix:
-			_, err = sdk.AccAddressFromBech32(newAddress)
-		case ValAddressPrefix:
-			_, err = sdk.ValAddressFromBech32(newAddress)
-		case ConsAddressPrefix:
-			_, err = sdk.ConsAddressFromBech32(newAddress)
-		default:
-			panic("invalid address type prefix")
-		}
-		if err != nil {
-			panic(err)
-		}
-		replacements[matchedAddr] = newAddress
-	}
 
 	var jsonData map[string]interface{}
 	err := json.Unmarshal([]byte(*jsonString), &jsonData)
@@ -148,8 +122,26 @@ func replaceAddresses(addressTypePrefix string, jsonString *string, dataLength i
 			if !re.MatchString(fmt.Sprintf(`"%s"`, str)) || len(str) > 200 {
 				return value
 			}
+			newAddress, err := convertAddressToASI(str, addressTypePrefix)
+			if err != nil {
+				panic(err)
+			}
 
-			return replacements[str]
+			switch addressTypePrefix {
+			case AccAddressPrefix:
+				_, err = sdk.AccAddressFromBech32(newAddress)
+			case ValAddressPrefix:
+				_, err = sdk.ValAddressFromBech32(newAddress)
+			case ConsAddressPrefix:
+				_, err = sdk.ConsAddressFromBech32(newAddress)
+			default:
+				panic("invalid address type prefix")
+			}
+			if err != nil {
+				panic(err)
+			}
+
+			return newAddress
 		}
 		return value
 	})
