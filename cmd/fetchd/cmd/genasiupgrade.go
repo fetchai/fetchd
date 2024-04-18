@@ -13,7 +13,7 @@ import (
 
 const (
 	flagNewDescription = "new-description"
-	Bech32Chars        = "023456789acdefghjklmnpqrstuvwxyz"
+	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmDataLength     = 52
 	AddrChecksumLength = 6
