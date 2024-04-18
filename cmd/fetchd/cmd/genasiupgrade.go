@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 	"log"
-	"os"
 )
 
 const (
@@ -83,6 +82,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to withdraw reconciliation balances: %w", err)
 			}
 
+			// reflect changes in the genesis file
+			var modifiedGenState json.RawMessage
+			if modifiedGenState, err = json.Marshal(appState); err != nil {
+				return fmt.Errorf("failed to marshal app state: %w", err)
+			}
+
+			(*genDoc).AppState = modifiedGenState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -151,12 +157,6 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *
 	if err != nil {
 		return err
 	}
-
-	file, err := os.Open(ReconcilliationDataPath)
-	if err != nil {
-		log.Fatalf("Error opening reconciliation data: %s", err)
-	}
-	defer file.Close()
 
 	fileData := reconciliationData
 	r := csv.NewReader(bytes.NewReader(fileData))
