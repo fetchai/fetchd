@@ -1,17 +1,27 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibc_core "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	ibctypes "github.com/cosmos/ibc-go/v3/modules/core/types"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 )
 
 const (
+	IbcWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
+
 	flagNewDescription = "new-description"
 	Bech32Chars        = "023456789acdefghjklmnpqrstuvwxyz"
 	AddrDataLength     = 32
@@ -46,21 +56,26 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
-
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			config := serverCtx.Config
+			cdc := clientCtx.Codec
 
 			config.SetRoot(clientCtx.HomeDir)
 
 			genFile := config.GenesisFile()
 
-			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
+
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(&cdc, &appState); err != nil {
+				return fmt.Errorf("failed to withdraw IBC channels balances: %w", err)
+			}
+
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -83,6 +98,106 @@ func ASIGenesisUpgradeReplaceDenom() {}
 
 func ASIGenesisUpgradeReplaceAddresses() {}
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(cdc *codec.Codec, appState *map[string]json.RawMessage) error {
+	bankGenState := banktypes.GetGenesisStateFromAppState(*cdc, *appState)
+	balances := bankGenState.Balances
+	balanceMap, err := getGenesisBalancesMap(bankGenState)
+	if err != nil {
+		return err
+	}
+
+	var ibcAppState ibctypes.GenesisState
+	if err := (*cdc).UnmarshalJSON((*appState)[ibc_core.ModuleName], &ibcAppState); err != nil {
+		return fmt.Errorf("failed to unmarshal IBC genesis state: %w", err)
+	}
+
+	withdrawalBalanceIdx, ok := (*balanceMap)[IbcWithdrawAddress]
+	if !ok {
+		return fmt.Errorf("failed to find withdrawal address in genesis balances")
+	}
+
+	for _, balance := range bankGenState.Balances {
+		if balance.Address == IbcWithdrawAddress {
+			fmt.Println("Withdrawal address balance:", balance.Coins.String())
+		}
+	}
+
+	for _, channel := range ibcAppState.ChannelGenesis.Channels {
+		rawAddr := ibctransfertypes.GetEscrowAddress(channel.PortId, channel.ChannelId)
+		addr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
+		if err != nil {
+			return fmt.Errorf("failed to bech32ify address: %w", err)
+		}
+
+		// TODO: use this conversion when merging with address replacement branch
+		//addr, err := convertAddressToASI(oldAddr, AccAddressPrefix)
+		//if err != nil {
+		//	return fmt.Errorf("failed to convert address: %w", err)
+		//}
+		//if _, err = sdk.AccAddressFromBech32(addr); err != nil {
+		//	return fmt.Errorf("converted address is invalid: %w", err)
+		//}
+
+		balanceIdx, ok := (*balanceMap)[addr]
+		if !ok {
+			fmt.Println("Channel address not found in genesis balances:", addr)
+			continue
+		}
+
+		accBalance := balances[balanceIdx]
+
+		// withdraw funds from the channel balance
+		balances[withdrawalBalanceIdx].Coins = balances[withdrawalBalanceIdx].Coins.Add(accBalance.Coins...)
+
+		// zero out the channel balance
+		balances[balanceIdx].Coins = sdk.NewCoins()
+	}
+
+	// update the bank genesis state
+	(*bankGenState).Balances = balances
+
+	bankGenStateBytes, err := (*cdc).MarshalJSON(bankGenState)
+	if err != nil {
+		return fmt.Errorf("failed to marshal auth genesis state: %w", err)
+	}
+
+	for _, balance := range bankGenState.Balances {
+		if balance.Address == IbcWithdrawAddress {
+			fmt.Println("Withdrawal address balance:", balance.Coins.String())
+		}
+	}
+
+	(*appState)[banktypes.ModuleName] = bankGenStateBytes
+	return nil
+}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
+
+func getGenesisBalancesMap(bankGenState *banktypes.GenesisState) (*map[string]int, error) {
+	balanceMap := make(map[string]int)
+
+	for i, balance := range bankGenState.Balances {
+		balanceMap[balance.Address] = i
+	}
+
+	return &balanceMap, nil
+}
+
+func convertAddressToASI(addr string, addressPrefix string) (string, error) {
+	_, decodedAddrData, err := bech32.Decode(addr)
+	if err != nil {
+		return "", err
+	}
+
+	newAddress, err := bech32.Encode(NewAddrPrefix+addressPrefix, decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	err = sdk.VerifyAddressFormat(decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	return newAddress, nil
+}
