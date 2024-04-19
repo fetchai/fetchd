@@ -82,10 +82,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceDenom(jsonData)
 
 			// set denom metadata in bank module
-			err = ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
-			if err != nil {
-				return fmt.Errorf("failed to replace denom metadata: %w", err)
-			}
+			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
@@ -108,7 +105,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) error {
+func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
 	type jsonMap map[string]interface{}
 
 	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
@@ -161,7 +158,6 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) erro
 			break
 		}
 	}
-	return nil
 }
 
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
