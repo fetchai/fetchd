@@ -8,8 +8,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibc_core "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 	"regexp"
@@ -19,6 +22,8 @@ import (
 const (
 	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
 	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+
+	IbcWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
 
 	flagNewDescription = "new-description"
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
@@ -54,7 +59,6 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
-
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			config := serverCtx.Config
 
@@ -77,6 +81,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// replace bridge contract admin
 			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
+
+			// withdraw balances from IBC channels
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData); err != nil {
+				return err
+			}
 
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(jsonData)
@@ -222,7 +231,53 @@ func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{},
 	})
 }
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}) error {
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	balances := bank["balances"].([]interface{})
+	balanceMap, err := getGenesisBalancesMap(balances)
+	if err != nil {
+		return err
+	}
+
+	withdrawalBalanceIdx, ok := (*balanceMap)[IbcWithdrawAddress]
+	if !ok {
+		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
+		return nil
+	}
+
+	ibc := jsonData[ibc_core.ModuleName].(map[string]interface{})
+	channelGenesis := ibc["channel_genesis"].(map[string]interface{})
+	ibcChannels := channelGenesis["channels"].([]interface{})
+
+	for _, channel := range ibcChannels {
+		channelId := channel.(map[string]interface{})["channel_id"].(string)
+		portId := channel.(map[string]interface{})["port_id"].(string)
+
+		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
+		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
+		if err != nil {
+			return fmt.Errorf("failed to bech32ify address: %w", err)
+		}
+
+		balanceIdx, ok := (*balanceMap)[channelAddr]
+		if !ok {
+			// channel address not found in genesis balances
+			continue
+		}
+
+		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
+		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
+
+		// add channel balance to withdrawal balance
+		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
+		balances[withdrawalBalanceIdx].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newWithdrawalBalanceCoins)
+
+		// zero out the channel balance
+		balances[balanceIdx] = nil
+	}
+
+	return nil
+}
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances() {}
 
@@ -244,6 +299,17 @@ func crawlJson(key string, value interface{}, idx int, strHandler func(string, i
 	return value
 }
 
+func getGenesisBalancesMap(balances []interface{}) (*map[string]int, error) {
+	balanceMap := make(map[string]int)
+
+	for i, balance := range balances {
+		addr := balance.(map[string]interface{})["address"].(string)
+		balanceMap[addr] = i
+	}
+
+	return &balanceMap, nil
+}
+
 func convertAddressToASI(addr string, addressTypePrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.Decode(addr)
 	if err != nil {
@@ -261,4 +327,31 @@ func convertAddressToASI(addr string, addressTypePrefix string) (string, error) 
 	}
 
 	return newAddress, nil
+}
+
+func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
+	balance := data.(map[string]interface{})["coins"]
+	var balanceCoins sdk.Coins
+
+	for _, coin := range balance.([]interface{}) {
+		coinData := coin.(map[string]interface{})
+		coinDenom := coinData["denom"].(string)
+		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
+		if !ok {
+			panic("IBC withdraw: failed to convert coin amount to int")
+		}
+		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
+	}
+	return balanceCoins
+}
+
+func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
+	var balance []interface{}
+	for _, coin := range coins {
+		balance = append(balance, map[string]interface{}{
+			"denom":  coin.Denom,
+			"amount": coin.Amount.String(),
+		})
+	}
+	return balance
 }
