@@ -32,20 +32,20 @@ const (
 	IbcWithdrawAddress            = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
 	ReconciliationWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
-	flagNewDescription = "new-description"
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
-	WasmDataLength     = 52
+	WasmAddrDataLength = 52
 	AddrChecksumLength = 6
-	AccAddressPrefix   = ""
-	ValAddressPrefix   = "valoper"
-	ConsAddressPrefix  = "valcons"
+
+	AccAddressPrefix  = ""
+	ValAddressPrefix  = "valoper"
+	ConsAddressPrefix = "valcons"
 
 	NewBaseDenom   = "asi"
 	NewDenom       = "aasi"
 	NewAddrPrefix  = "asi"
 	NewChainId     = "asi-1"
-	NewDescription = "ASI Token"
+	NewDescription = "ASI Token" // TODO(JS): change this, potentially
 
 	OldDenom      = "afet"
 	OldAddrPrefix = "fetch"
@@ -62,8 +62,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		Long: `The following command will upgrade the current genesis file to the new ASI chain parameters. The following changes will be made:
               - Chain ID will be updated to "asi-1"
               - The native coin denom will be updated to "asi"
+              - The denom metadata will be updated to the new ASI token
               - The address prefix will be updated to "asi"
-              - The old fetch addresses will be updated to the new asi addresses`,
+              - The old fetch addresses will be updated to the new asi addresses
+              - The bridge contract admin will be updated to the new address
+              - The IBC withdrawal address will be updated to the new address
+              - The reconciliation withdrawal address will be updated to the new address
+`,
 
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -122,7 +127,6 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
-	cmd.Flags().String(flagNewDescription, "", "The new description for the native coin in the genesis file")
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
@@ -223,7 +227,7 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
 	// consensus addresses
 	replaceAddresses(ConsAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// contract addresses
-	replaceAddresses(AccAddressPrefix, jsonData, WasmDataLength+AddrChecksumLength)
+	replaceAddresses(AccAddressPrefix, jsonData, WasmAddrDataLength+AddrChecksumLength)
 }
 
 func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
