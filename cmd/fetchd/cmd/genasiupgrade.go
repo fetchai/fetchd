@@ -9,24 +9,31 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 	"log"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 const (
-	ReconcilliationDataPath  = "reconciliation_data.csv"
-	ReconciliationAccAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
+	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
+	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+
+	IbcWithdrawAddress            = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
+	ReconciliationWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
 	flagNewDescription = "new-description"
-	Bech32Chars        = "023456789acdefghjklmnpqrstuvwxyz"
+	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmDataLength     = 52
 	AddrChecksumLength = 6
@@ -40,7 +47,6 @@ const (
 	NewChainId     = "asi-1"
 	NewDescription = "ASI Token"
 
-	OldBaseDenom  = "fet"
 	OldDenom      = "afet"
 	OldAddrPrefix = "fetch"
 )
@@ -62,7 +68,6 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
-
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			config := serverCtx.Config
 
@@ -70,25 +75,47 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			genFile := config.GenesisFile()
 
-			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+			}
+
+			var jsonData map[string]interface{}
+			if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
+				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc)
 
-			if err = ASIGenesisUpgradeWithdrawReconciliationBalances(clientCtx.Codec, &appState); err != nil {
-				return fmt.Errorf("failed to withdraw reconciliation balances: %w", err)
+			// replace bridge contract admin
+			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
+
+			// withdraw balances from IBC channels
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData); err != nil {
+				return err
 			}
 
-			// reflect changes in the genesis file
-			var modifiedGenState json.RawMessage
-			if modifiedGenState, err = json.Marshal(appState); err != nil {
-				return fmt.Errorf("failed to marshal app state: %w", err)
+			// withdraw balances from reconciliation addresses
+			if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData); err != nil {
+				return err
 			}
 
-			(*genDoc).AppState = modifiedGenState
+			// replace denom across the genesis file
+			ASIGenesisUpgradeReplaceDenom(jsonData)
+
+			// set denom metadata in bank module
+			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
+
+			// replace addresses across the genesis file
+			ASIGenesisUpgradeReplaceAddresses(jsonData)
+
+			var encodedAppState []byte
+			if encodedAppState, err = json.Marshal(jsonData); err != nil {
+				return err
+			}
+
+			genDoc.AppState = encodedAppState
 			return genutil.ExportGenesisFile(genDoc, genFile)
 		},
 	}
@@ -101,62 +128,202 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata() {}
+func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
+	type jsonMap map[string]interface{}
+
+	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
+
+	newMetadata := jsonMap{
+		"base": NewDenom,
+		"denom_units": []jsonMap{
+			{
+				"denom":    NewBaseDenomUpper,
+				"exponent": 18,
+			},
+			{
+				"denom":    fmt.Sprintf("m%s", NewBaseDenom),
+				"exponent": 15,
+			},
+			{
+				"denom":    fmt.Sprintf("u%s", NewBaseDenom),
+				"exponent": 12,
+			},
+			{
+				"denom":    fmt.Sprintf("n%s", NewBaseDenom),
+				"exponent": 9,
+			},
+			{
+				"denom":    fmt.Sprintf("p%s", NewBaseDenom),
+				"exponent": 6,
+			},
+			{
+				"denom":    fmt.Sprintf("f%s", NewBaseDenom),
+				"exponent": 3,
+			},
+			{
+				"denom":    fmt.Sprintf("a%s", NewBaseDenom),
+				"exponent": 0,
+			},
+		},
+		"description": NewDescription,
+		"display":     NewBaseDenomUpper,
+		"name":        NewBaseDenomUpper,
+		"symbol":      NewBaseDenomUpper,
+	}
+
+	bank := jsonData["bank"].(map[string]interface{})
+	denomMetadata := bank["denom_metadata"].([]interface{})
+
+	for i, metadata := range denomMetadata {
+		denomUnit := metadata.(map[string]interface{})
+		if denomUnit["base"] == OldDenom {
+			denomMetadata[i] = newMetadata
+			break
+		}
+	}
+}
 
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 	genesisData.ChainID = NewChainId
 }
 
-func ASIGenesisUpgradeReplaceDenom() {}
+func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}) {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
 
-func ASIGenesisUpgradeReplaceAddresses() {}
+	for i, contract := range contracts {
+		c := contract.(map[string]interface{})
+		if c["contract_address"] == BridgeContractAddress {
+			contractInfo := c["contract_info"].(map[string]interface{})
+			contractInfo["admin"] = NewBridgeContractAdmin
+			contracts[i] = c
+			break
+		}
+	}
+}
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances() {}
+func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}) {
+	targets := map[string]struct{}{"denom": {}, "bond_denom": {}, "mint_denom": {}, "base_denom": {}, "base": {}}
 
-func getGenesisAccountsMap(authGenState *authtypes.GenesisState) (map[string]*authtypes.GenesisAccount, *authtypes.GenesisAccounts, error) {
-	accountMap := make(map[string]*authtypes.GenesisAccount)
+	crawlJson("", jsonData, -1, func(key string, value interface{}, idx int) interface{} {
+		if str, ok := value.(string); ok {
+			_, isInTargets := targets[key]
+			if str == OldDenom && isInTargets {
+				return NewDenom
+			}
+		}
+		return value
+	})
+}
 
-	accounts, err := authtypes.UnpackAccounts(authGenState.Accounts)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to unpack accounts from authtypes.GenState: %w", err)
+func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
+	// account addresses
+	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// validator addresses
+	replaceAddresses(ValAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// consensus addresses
+	replaceAddresses(ConsAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
+	// contract addresses
+	replaceAddresses(AccAddressPrefix, jsonData, WasmDataLength+AddrChecksumLength)
+}
+
+func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
+	re := regexp.MustCompile(fmt.Sprintf(`^%s%s1([%s]{%d})$`, OldAddrPrefix, addressTypePrefix, Bech32Chars, dataLength))
+
+	crawlJson("", jsonData, -1, func(key string, value interface{}, idx int) interface{} {
+		if str, ok := value.(string); ok {
+			if !re.MatchString(str) {
+				return value
+			}
+			newAddress, err := convertAddressToASI(str, addressTypePrefix)
+			if err != nil {
+				panic(err)
+			}
+
+			return newAddress
+		}
+		return value
+	})
+}
+
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}) error {
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	balances := bank["balances"].([]interface{})
+	balanceMap := getGenesisBalancesMap(balances)
+
+	withdrawalBalanceIdx, ok := (*balanceMap)[IbcWithdrawAddress]
+	if !ok {
+		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
+		return nil
 	}
 
-	for _, account := range accounts {
-		// ensure account is valid
-		err := account.Validate()
+	ibc := jsonData[ibccore.ModuleName].(map[string]interface{})
+	channelGenesis := ibc["channel_genesis"].(map[string]interface{})
+	ibcChannels := channelGenesis["channels"].([]interface{})
+
+	for _, channel := range ibcChannels {
+		channelId := channel.(map[string]interface{})["channel_id"].(string)
+		portId := channel.(map[string]interface{})["port_id"].(string)
+
+		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
+		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
 		if err != nil {
-			return nil, nil, err
+			return fmt.Errorf("failed to bech32ify address: %w", err)
 		}
 
-		accountMap[account.GetAddress().String()] = &account
+		balanceIdx, ok := (*balanceMap)[channelAddr]
+		if !ok {
+			// channel address not found in genesis balances
+			continue
+		}
+
+		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
+		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
+
+		// add channel balance to withdrawal balance
+		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
+		balances[withdrawalBalanceIdx].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newWithdrawalBalanceCoins)
+
+		// zero out the channel balance
+		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 	}
 
-	return accountMap, &accounts, nil
+	return nil
 }
 
-func getGenesisBalancesMap(bankGenState *banktypes.GenesisState) (*map[string]int, error) {
-	balanceMap := make(map[string]int)
+func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
+	const ModuleAccount = "/cosmos.auth.v1beta1.ModuleAccount"
+	accountMap := make(map[string]int)
 
-	for i, balance := range bankGenState.Balances {
-		balanceMap[balance.Address] = i
+	for _, acc := range accounts {
+		accType := acc.(map[string]interface{})["@type"]
+
+		accData := acc
+		if accType == ModuleAccount {
+			accData = acc.(map[string]interface{})["base_account"]
+		}
+
+		addr := accData.(map[string]interface{})["address"].(string)
+		sequence := accData.(map[string]interface{})["sequence"].(string)
+
+		sequenceInt, ok := strconv.Atoi(sequence)
+		if ok != nil {
+			panic("getGenesisAccountSequenceMap: failed to convert sequence to int")
+		}
+		accountMap[addr] = sequenceInt
 	}
 
-	return &balanceMap, nil
+	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *map[string]json.RawMessage) error {
-	bankGenState := banktypes.GetGenesisStateFromAppState(cdc, *appState)
-	balances := bankGenState.Balances
-	balanceMap, err := getGenesisBalancesMap(bankGenState)
-	if err != nil {
-		return err
-	}
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}) error {
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	balances := bank["balances"].([]interface{})
 
-	authGenState := authtypes.GetGenesisStateFromAppState(cdc, *appState)
-	accountMap, _, err := getGenesisAccountsMap(&authGenState)
-	if err != nil {
-		return err
-	}
+	balanceMap := getGenesisBalancesMap(balances)
+
+	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
+	accounts := auth["accounts"].([]interface{})
+	accountSequenceMap := getGenesisAccountSequenceMap(accounts)
 
 	fileData := reconciliationData
 	r := csv.NewReader(bytes.NewReader(fileData))
@@ -165,14 +332,9 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *
 		log.Fatalf("Error reading reconciliation data: %s", err)
 	}
 
-	//reconciliationAccount, ok := accountMap[ReconciliationAccAddress]
-	//if !ok {
-	//	return fmt.Errorf("no genesis match for reconciliation address: %s", ReconciliationAccAddress)
-	//}
-
-	reconciliationBalanceIdx, ok := (*balanceMap)[ReconciliationAccAddress]
+	reconciliationBalanceIdx, ok := (*balanceMap)[ReconciliationWithdrawAddress]
 	if !ok {
-		return fmt.Errorf("no genesis match for reconciliation address: %s", ReconciliationAccAddress)
+		return fmt.Errorf("no genesis match for reconciliation address: %s", ReconciliationWithdrawAddress)
 	}
 
 	for _, row := range items {
@@ -180,16 +342,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *
 
 		//_ = row[3] balance from CSV
 
-		// TODO: use this conversion when merging with address replacement branch
-		//addr, err := convertAddressToASI(oldAddr, AccAddressPrefix)
-		//if err != nil {
-		//	return fmt.Errorf("failed to convert address: %w", err)
-		//}
-		//if _, err = sdk.AccAddressFromBech32(addr); err != nil {
-		//	return fmt.Errorf("converted address is invalid: %w", err)
-		//}
-
-		acc, ok := accountMap[addr]
+		accSequence, ok := (*accountSequenceMap)[addr]
 		if !ok {
 			return fmt.Errorf("no genesis match for reconciliation address: %s", addr)
 		}
@@ -200,30 +353,23 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(cdc codec.Codec, appState *
 		}
 
 		accBalance := balances[balanceIdx]
+		accBalanceCoins := getCoinsFromInterfaceSlice(accBalance)
+
+		reconciliationBalance := balances[reconciliationBalanceIdx]
+		reconciliationBalanceCoins := getCoinsFromInterfaceSlice(reconciliationBalance)
 
 		// check if the reconciliation address is still dormant and contains funds
-		if (*acc).GetSequence() != 0 && !accBalance.Coins.IsAllPositive() {
-			fmt.Println("Reconciliation address is not dormant or has no funds, skipping withdrawal")
+		if accSequence != 0 || !accBalanceCoins.IsAllPositive() {
 			continue
 		}
 
-		// withdraw funds from the reconciliation address
-		balances[reconciliationBalanceIdx].Coins = balances[reconciliationBalanceIdx].Coins.Add(accBalance.Coins...)
+		// add reconciliation account balance to withdrawal balance
+		newReconciliationBalanceCoins := reconciliationBalanceCoins.Add(accBalanceCoins...)
+		reconciliationBalance.(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newReconciliationBalanceCoins)
 
-		// zero out the other account's balance
-		balances[balanceIdx].Coins = sdk.NewCoins()
+		// zero out the reconciliation account balance
+		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 	}
-
-	// update the bank genesis state
-	(*bankGenState).Balances = balances
-
-	bankGenStateBytes, err := cdc.MarshalJSON(bankGenState)
-	if err != nil {
-		return fmt.Errorf("failed to marshal auth genesis state: %w", err)
-	}
-
-	(*appState)[banktypes.ModuleName] = bankGenStateBytes
-
 	return nil
 }
 
@@ -244,4 +390,64 @@ func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	}
 
 	return newAddress, nil
+}
+
+func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
+	switch val := value.(type) {
+	case string:
+		if strHandler != nil {
+			return strHandler(key, val, idx)
+		}
+	case []interface{}:
+		for i := range val {
+			val[i] = crawlJson("", val[i], i, strHandler)
+		}
+	case map[string]interface{}:
+		for k, v := range val {
+			val[k] = crawlJson(k, v, -1, strHandler)
+		}
+	}
+	return value
+}
+
+func getGenesisBalancesMap(balances []interface{}) *map[string]int {
+	balanceMap := make(map[string]int)
+
+	for i, balance := range balances {
+		addr := balance.(map[string]interface{})["address"]
+		if addr == nil {
+			fmt.Println(balance)
+		}
+		addrStr := addr.(string)
+		balanceMap[addrStr] = i
+	}
+
+	return &balanceMap
+}
+
+func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
+	balance := data.(map[string]interface{})["coins"]
+	var balanceCoins sdk.Coins
+
+	for _, coin := range balance.([]interface{}) {
+		coinData := coin.(map[string]interface{})
+		coinDenom := coinData["denom"].(string)
+		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
+		if !ok {
+			panic("IBC withdraw: failed to convert coin amount to int")
+		}
+		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
+	}
+	return balanceCoins
+}
+
+func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
+	var balance []interface{}
+	for _, coin := range coins {
+		balance = append(balance, map[string]interface{}{
+			"denom":  coin.Denom,
+			"amount": coin.Amount.String(),
+		})
+	}
+	return balance
 }
