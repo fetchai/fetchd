@@ -21,7 +21,7 @@ const (
 	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
 
 	flagNewDescription = "new-description"
-	Bech32Chars        = "023456789acdefghjklmnpqrstuvwxyz"
+	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmDataLength     = 52
 	AddrChecksumLength = 6
@@ -72,11 +72,14 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
+			// replace chain-id
+			ASIGenesisUpgradeReplaceChainID(genDoc)
+
 			// replace bridge contract admin
 			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
 
-			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(jsonData)
+			// replace denom across the genesis file
+			ASIGenesisUpgradeReplaceDenom(jsonData)
 
 			// set denom metadata in bank module
 			err = ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
@@ -84,11 +87,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to replace denom metadata: %w", err)
 			}
 
-			// replace denom across the genesis file
-			ASIGenesisUpgradeReplaceDenom(jsonData)
-
-			// replace chain-id
-			ASIGenesisUpgradeReplaceChainID(genDoc)
+			// replace addresses across the genesis file
+			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
 			var encodedAppState []byte
 			if encodedAppState, err = json.Marshal(jsonData); err != nil {
