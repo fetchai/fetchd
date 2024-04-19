@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
+	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+
 	flagNewDescription = "new-description"
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
@@ -69,20 +72,20 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
-			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(jsonData)
+			// replace chain-id
+			ASIGenesisUpgradeReplaceChainID(genDoc)
 
-			// set denom metadata in bank module
-			err = ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
-			if err != nil {
-				return fmt.Errorf("failed to replace denom metadata: %w", err)
-			}
+			// replace bridge contract admin
+			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
 
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(jsonData)
 
-			// replace chain-id
-			ASIGenesisUpgradeReplaceChainID(genDoc)
+			// set denom metadata in bank module
+			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
+
+			// replace addresses across the genesis file
+			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
 			var encodedAppState []byte
 			if encodedAppState, err = json.Marshal(jsonData); err != nil {
@@ -102,7 +105,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) error {
+func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
 	type jsonMap map[string]interface{}
 
 	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
@@ -155,14 +158,25 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) erro
 			break
 		}
 	}
-	return nil
 }
 
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
 	genesisData.ChainID = NewChainId
 }
 
-func ASIGenesisUpgradeReplaceBridgeAdmin() {}
+func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}) {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+
+	for i, contract := range contracts {
+		c := contract.(map[string]interface{})
+		if c["contract_address"] == BridgeContractAddress {
+			contractInfo := c["contract_info"].(map[string]interface{})
+			contractInfo["admin"] = NewBridgeContractAdmin
+			contracts[i] = c
+			break
+		}
+	}
+}
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}) {
 	targets := map[string]struct{}{"denom": {}, "bond_denom": {}, "mint_denom": {}, "base_denom": {}, "base": {}}
