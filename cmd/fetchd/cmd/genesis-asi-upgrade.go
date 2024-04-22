@@ -116,14 +116,14 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return err
 			}
 
-			// replace denom across the genesis file
-			ASIGenesisUpgradeReplaceDenom(jsonData)
+			// supplement the genesis supply
+			ASIGenesisUpgradeASISupply(updatedSupplyVal, jsonData)
 
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
 
-			// supplement the genesis supply
-			ASIGenesisUpgradeASISupply(updatedSupplyVal, jsonData)
+			// replace denom across the genesis file
+			ASIGenesisUpgradeReplaceDenom(jsonData)
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
