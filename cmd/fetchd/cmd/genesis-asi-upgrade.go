@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
-	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
-
+	BridgeContractAddress         = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
+	NewBridgeContractAdmin        = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+	NewSupplyOverflowAddress      = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
 	IbcWithdrawAddress            = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
 	ReconciliationWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
@@ -51,6 +51,11 @@ const (
 	OldAddrPrefix = "fetch"
 )
 
+const (
+	flagUpdatedSupplyValue    = "updated-supply-value"
+	defaultUpdatedSupplyValue = "2000000000000000000000000000"
+)
+
 //go:embed reconciliation_data.csv
 var reconciliationData []byte
 
@@ -64,10 +69,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
               - The native coin denom will be updated to "asi"
               - The denom metadata will be updated to the new ASI token
               - The address prefix will be updated to "asi"
-              - The old fetch addresses will be updated to the new asi addresses
+              - The old fetch addresses will be updated to the new asi addresses, e.g. asivaloper1, asivalcons1, asi1, etc.
               - The bridge contract admin will be updated to the new address
-              - The IBC withdrawal address will be updated to the new address
-              - The reconciliation withdrawal address will be updated to the new address
+              - The IBC channel funds will be transferred to the IBC withdrawal address
+              - The reconciliation withdrawal funds will be transferred to the reconciliation withdrawal address
 `,
 
 		Args: cobra.ExactArgs(0),
@@ -77,6 +82,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			config := serverCtx.Config
 
 			config.SetRoot(clientCtx.HomeDir)
+
+			updatedSupplyVal, err := cmd.Flags().GetString(flagUpdatedSupplyValue)
+			if err != nil {
+				return fmt.Errorf("failed to get flag %q: %w", flagUpdatedSupplyValue, err)
+			}
 
 			genFile := config.GenesisFile()
 
@@ -112,6 +122,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
 
+			// supplement the genesis supply
+			ASIGenesisUpgradeASISupply(updatedSupplyVal, jsonData)
+
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
@@ -125,8 +138,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String(flagUpdatedSupplyValue, defaultUpdatedSupplyValue, "The amount of ASI to add to the genesis supply, accounting for merged tokens")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
-	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
@@ -256,7 +269,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 
 	withdrawalBalanceIdx, ok := (*balanceMap)[IbcWithdrawAddress]
 	if !ok {
-		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
+		fmt.Println("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
 		return nil
 	}
 
@@ -377,6 +390,55 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	return nil
 }
 
+func ASIGenesisUpgradeASISupply(newSupplyValStr string, jsonData map[string]interface{}) {
+	newSupplyValue, ok := sdk.NewIntFromString(newSupplyValStr)
+	if !ok {
+		panic("asi upgrade update supply: failed to convert new supply value to int")
+	}
+
+	if newSupplyValue.LT(sdk.ZeroInt()) {
+		panic("asi upgrade update supply: new supply value is negative")
+	}
+
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	supply := bank["supply"].([]interface{})
+	balances := bank["balances"].([]interface{})
+	balancesMap := getGenesisBalancesMap(bank["balances"].([]interface{}))
+
+	var curSupply sdk.Int
+	var curSupplyIdx int
+	for idx, coin := range supply {
+		coinData := coin.(map[string]interface{})
+		if coinData["denom"] == NewDenom {
+			curSupplyIdx = idx
+			curSupply, ok = sdk.NewIntFromString(coinData["amount"].(string))
+			if !ok {
+				panic("asi upgrade update supply: failed to convert coin amount to int")
+			}
+			break
+		}
+	}
+
+	overflowAddressBalance := balances[(*balancesMap)[NewSupplyOverflowAddress]]
+	overflowAddressBalanceCoins := getCoinsFromInterfaceSlice(overflowAddressBalance)
+
+	newSupplyCoins := sdk.NewCoin(NewDenom, newSupplyValue)
+	curSupplyCoin := sdk.NewCoin(NewDenom, curSupply)
+
+	// calculate the difference between the new supply and the current supply
+	supplyDiffCoin := newSupplyCoins.Sub(curSupplyCoin)
+	if supplyDiffCoin.IsNegative() {
+		panic("asi upgrade update supply: new supply is less than current supply")
+	}
+
+	// add the supply diff to the overflow address balance
+	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(supplyDiffCoin)
+
+	// update the supply in the bank module
+	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
+	balances[(*balancesMap)[NewSupplyOverflowAddress]].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(overflowAddressBalanceCoins)
+}
+
 func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.Decode(addr)
 	if err != nil {
@@ -438,7 +500,7 @@ func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
 		coinDenom := coinData["denom"].(string)
 		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
 		if !ok {
-			panic("IBC withdraw: failed to convert coin amount to int")
+			panic("ibc withdraw: failed to convert coin amount to int")
 		}
 		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
 	}
