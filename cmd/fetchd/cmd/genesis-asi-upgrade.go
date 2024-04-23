@@ -116,14 +116,14 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return err
 			}
 
-			// supplement the genesis supply
-			ASIGenesisUpgradeASISupply(updatedSupplyVal, jsonData)
-
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
 
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(jsonData)
+
+			// supplement the genesis supply
+			ASIGenesisUpgradeASISupply(updatedSupplyVal, jsonData)
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
@@ -278,8 +278,12 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	ibcChannels := channelGenesis["channels"].([]interface{})
 
 	for _, channel := range ibcChannels {
-		channelId := channel.(map[string]interface{})["channel_id"].(string)
-		portId := channel.(map[string]interface{})["port_id"].(string)
+		channelMap := channel.(map[string]interface{})
+		channelId := channelMap["channel_id"].(string)
+		portId := channelMap["port_id"].(string)
+
+		// close channel
+		channelMap["state"] = "STATE_CLOSED"
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
 		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
@@ -312,15 +316,17 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	accountMap := make(map[string]int)
 
 	for _, acc := range accounts {
-		accType := acc.(map[string]interface{})["@type"]
+		accMap := acc.(map[string]interface{})
+		accType := accMap["@type"]
 
 		accData := acc
 		if accType == ModuleAccount {
-			accData = acc.(map[string]interface{})["base_account"]
+			accData = accMap["base_account"]
 		}
 
-		addr := accData.(map[string]interface{})["address"].(string)
-		sequence := accData.(map[string]interface{})["sequence"].(string)
+		accDataMap := accData.(map[string]interface{})
+		addr := accDataMap["address"].(string)
+		sequence := accDataMap["sequence"].(string)
 
 		sequenceInt, ok := strconv.Atoi(sequence)
 		if ok != nil {
