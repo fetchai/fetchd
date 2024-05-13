@@ -3,7 +3,9 @@ package cmd
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcutil/bech32"
@@ -28,6 +30,8 @@ import (
 const (
 	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
 	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
+
+	MobixStakingContractAddress = "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e"
 
 	IbcWithdrawAddress            = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
 	ReconciliationWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
@@ -96,6 +100,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace bridge contract admin
 			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
 
+			// update mobix staking contract
+			ASIGenesisUpgradeUpdateMobixStakingContract(jsonData)
+
 			// withdraw balances from IBC channels
 			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData); err != nil {
 				return err
@@ -130,6 +137,73 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
+}
+
+func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}) {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength))
+
+	for _, contract := range contracts {
+		if contract.(map[string]interface{})["contract_address"] == MobixStakingContractAddress {
+			mobixContractStates := contract.(map[string]interface{})["contract_state"].([]interface{})
+			for _, val := range mobixContractStates {
+				state := val.(map[string]interface{})
+				hexKey := state["key"].(string)
+				b64Value := state["value"].(string)
+
+				keyBytes, err := hex.DecodeString(hexKey)
+				if err != nil {
+					panic(err)
+				}
+
+				valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+				if err != nil {
+					panic(err)
+				}
+
+				val = replaceContractState(re, string(keyBytes), string(valueBytes))
+			}
+
+			return
+		}
+	}
+
+	panic("mobix staking contract not found")
+}
+
+func replaceContractState(re *regexp.Regexp, key string, value string) map[string]interface{} {
+	var newKey []byte
+	var newValue []byte
+
+	// replace key
+	newKeyStr := re.ReplaceAllStringFunc(key, func(match string) string {
+		newAddr, err := convertAddressToASI(match, AccAddressPrefix)
+		if err != nil {
+			panic(err)
+		}
+		return newAddr
+	})
+	newKey = []byte(newKeyStr)
+
+	// replace value
+	valJson := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(value), &valJson); err != nil {
+		panic(err)
+	}
+
+	var err error
+	replaceAddresses(AccAddressPrefix, valJson, AddrDataLength+AddrChecksumLength)
+	newValue, err = json.Marshal(valJson)
+	if err != nil {
+		panic(err)
+	}
+
+	// return reconstructed contract state
+	return map[string]interface{}{
+		"key":   hex.EncodeToString(newKey),
+		"value": base64.StdEncoding.EncodeToString(newValue),
+	}
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
