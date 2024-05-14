@@ -111,7 +111,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			}
 
 			var ok bool
-			var networkConfig NetworkConfig
+			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
 			if networkConfig, ok = networkInfos[args[0]]; !ok {
 				return fmt.Errorf("network type not found")
 			}
