@@ -117,7 +117,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData)
 
-			if err = SaveASIManifest(&manifest); err != nil {
+			if err = SaveASIManifest(&manifest, config); err != nil {
 				return err
 			}
 
