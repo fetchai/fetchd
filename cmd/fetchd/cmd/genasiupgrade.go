@@ -39,8 +39,10 @@ const (
 	OldAddrPrefix = "fetch"
 )
 
+var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
+
 var networkInfos = map[string]NetworkConfig{
-	"mainnet": {
+	"fetchhub-4": {
 		NewChainID:     "asi-1",
 		NewDescription: "ASI token", // TODO(JS): confirm this
 		DenomInfo: DenomInfo{
@@ -49,30 +51,24 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "afet",
 		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
-		ReconciliationTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
-		Contracts: Contracts{
-			TokenBridge: TokenBridge{
+		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
+		Contracts: &Contracts{
+			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
 		},
 	},
-	"testnet": {
-		NewChainID:     "dorado-1",       // TODO(JS): confirm this
+
+	"dorado-1": {
+		NewChainID:     "asi-1",          // TODO(JS): likely amend this
 		NewDescription: "Test ASI token", // TODO(JS): confirm this
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "testasi",
 			NewDenom:     "atestasi",
 			OldDenom:     "atestfet",
 		},
-		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
-		ReconciliationTargetAddr: "",                                             // Not applicable to testnet
-		Contracts: Contracts{
-			TokenBridge: TokenBridge{
-				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n", // TODO(JS): amend this
-				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): amend this
-			},
-		},
+		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 	},
 }
 
@@ -82,7 +78,7 @@ var reconciliationData []byte
 // ASIGenesisUpgradeCmd returns replace-genesis-values cobra Command.
 func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "asi-genesis-upgrade [testnet|mainnet]",
+		Use:   "asi-genesis-upgrade",
 		Short: "This command carries out a full upgrade of the genesis file to the new ASI chain parameters.",
 		Long: `The following command will upgrade the current genesis file to the new ASI chain parameters. The following changes will be made:
               - Chain ID will be updated to "asi-1"
@@ -95,7 +91,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
               - The reconciliation withdrawal address will be updated to the new address
 `,
 
-		Args: cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
 			serverCtx := server.GetServerContextFromCmd(cmd)
@@ -112,8 +108,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			var ok bool
 			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
-			if networkConfig, ok = networkInfos[args[0]]; !ok {
-				return fmt.Errorf("network type not found")
+			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
+				return fmt.Errorf("network not found, not match for Chain-ID")
 			}
 
 			var jsonData map[string]interface{}
@@ -125,7 +121,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
 
 			// replace bridge contract admin
-			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
+				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			}
 
 			// withdraw balances from IBC channels
 			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig); err != nil {
@@ -133,7 +131,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			}
 
 			// withdraw balances from reconciliation addresses
-			if args[0] == "mainnet" {
+			if networkConfig.ReconciliationTargetAddr != nil {
 				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig); err != nil {
 					return err
 				}
@@ -378,9 +376,9 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		log.Fatalf("Error reading reconciliation data: %s", err)
 	}
 
-	reconciliationBalanceIdx, ok := (*balanceMap)[reconciliationWithdrawAddress]
+	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
 	if !ok {
-		return fmt.Errorf("no match in genesis for reconciliation address: %s", reconciliationWithdrawAddress)
+		return fmt.Errorf("no match in genesis for reconciliation address: %s", *reconciliationWithdrawAddress)
 	}
 
 	for _, row := range items {
@@ -502,9 +500,9 @@ type NetworkConfig struct {
 	NewChainID               string
 	NewDescription           string
 	IbcTargetAddr            string
-	ReconciliationTargetAddr string
+	ReconciliationTargetAddr *string
+	Contracts                *Contracts
 	DenomInfo                DenomInfo
-	Contracts                Contracts
 }
 
 type DenomInfo struct {
@@ -514,7 +512,7 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge TokenBridge
+	TokenBridge *TokenBridge
 }
 
 type TokenBridge struct {
