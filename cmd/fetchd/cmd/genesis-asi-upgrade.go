@@ -43,14 +43,16 @@ var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
 var networkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
-		AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
-		UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
-		NewChainID:                "asi-1",
-		NewDescription:            "ASI token", // TODO(JS): confirm this
+		NewChainID:     "asi-1",
+		NewDescription: "ASI token", // TODO(JS): confirm this
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "asi",
 			NewDenom:     "aasi",
 			OldDenom:     "afet",
+		},
+		SupplyInfo: SupplyInfo{
+			AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
@@ -63,14 +65,16 @@ var networkInfos = map[string]NetworkConfig{
 	},
 
 	"dorado-1": {
-		AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
-		UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
-		NewChainID:                "asi-1",                                        // TODO(JS): likely amend this
-		NewDescription:            "Test ASI token",                               // TODO(JS): confirm this
+		NewChainID:     "asi-1",          // TODO(JS): likely amend this
+		NewDescription: "Test ASI token", // TODO(JS): confirm this
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "testasi",
 			NewDenom:     "atestasi",
 			OldDenom:     "atestfet",
+		},
+		SupplyInfo: SupplyInfo{
+			AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 	},
@@ -433,13 +437,13 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	denomInfo := networkInfo.DenomInfo
 	supplyInfo := networkInfo.SupplyInfo
-	newSupplyValue, ok := sdk.NewIntFromString(supplyInfo.AdditionalSupplyValue)
+	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.AdditionalSupplyValue)
 	if !ok {
 		panic("asi upgrade update supply: failed to convert new supply value to int")
 	}
 
-	if newSupplyValue.LT(sdk.ZeroInt()) {
-		panic("asi upgrade update supply: new supply value is negative")
+	if additionalSupply.LT(sdk.ZeroInt()) {
+		panic("asi upgrade update supply: additional supply value is negative")
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
@@ -461,24 +465,21 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 		}
 	}
 
-	overflowAddressBalance := balances[(*balancesMap)[supplyInfo.NewSupplyOverflowAddress]]
+	overflowAddressBalance := balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]]
 	overflowAddressBalanceCoins := getCoinsFromInterfaceSlice(overflowAddressBalance)
 
-	newSupplyCoins := sdk.NewCoin(NewDenom, newSupplyValue)
-	curSupplyCoin := sdk.NewCoin(NewDenom, curSupply)
+	additionalSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, additionalSupply)
+	curSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, curSupply)
 
-	// calculate the difference between the new supply and the current supply
-	supplyDiffCoin := newSupplyCoins.Sub(curSupplyCoin)
-	if supplyDiffCoin.IsNegative() {
-		panic("asi upgrade update supply: new supply is less than current supply")
-	}
+	// add new coins to the current supply
+	newSupplyCoins := additionalSupplyCoin.Add(curSupplyCoin)
 
-	// add the supply diff to the overflow address balance
-	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(supplyDiffCoin)
+	// add the additional coins to the overflow address balance
+	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
-	balances[(*balancesMap)[NewSupplyOverflowAddress]].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(overflowAddressBalanceCoins)
+	balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(overflowAddressBalanceCoins)
 }
 
 func convertAddressToASI(addr string, addressPrefix string) (string, error) {
