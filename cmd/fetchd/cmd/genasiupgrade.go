@@ -301,7 +301,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 
 	manifest.IBC = &ASIUpgradeTransfers{
 		Transfer: []ASIUpgradeTransfer{},
-		To:       ibcWithdrawAddress,
+		To:       ibcWithdrawalAddress,
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
@@ -395,7 +395,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 
 	manifest.Reconciliation = &ASIUpgradeTransfers{
 		Transfer: []ASIUpgradeTransfer{},
-		To:       ReconciliationWithdrawAddress,
+		To:       *reconciliationWithdrawAddress,
 	}
 
 	for _, row := range items {
