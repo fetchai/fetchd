@@ -53,6 +53,9 @@ var networkInfos = map[string]NetworkConfig{
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
 		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q", // mainnet STAGING contract,
+			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
@@ -69,6 +72,11 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "atestfet",
 		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
+			},
+		},
 	},
 }
 
@@ -123,6 +131,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace bridge contract admin
 			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			}
+
+			// replace almanac contract state
+			if networkConfig.Contracts != nil && networkConfig.Contracts.Almanac != nil {
+				ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
 			}
 
 			// withdraw balances from IBC channels
@@ -255,6 +268,19 @@ func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo 
 		}
 		return value
 	})
+}
+
+func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	for _, contract := range contracts {
+		if contract.(map[string]interface{})["contract_address"] == networkInfo.Contracts.Almanac.Addr {
+			almanacContract := contract.(map[string]interface{})
+			// empty the almanac contract state
+			almanacContract["contract_state"] = []interface{}{}
+			return
+		}
+	}
+	panic("failed to find almanac contract using provided address")
 }
 
 func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -513,9 +539,14 @@ type DenomInfo struct {
 
 type Contracts struct {
 	TokenBridge *TokenBridge
+	Almanac     *Almanac
 }
 
 type TokenBridge struct {
 	Addr     string
 	NewAdmin string
+}
+
+type Almanac struct {
+	Addr string
 }
