@@ -26,12 +26,6 @@ import (
 )
 
 const (
-	BridgeContractAddress  = "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
-	NewBridgeContractAdmin = "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"
-
-	IbcWithdrawAddress            = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x" /* "asi1rhrlzsx9z865dqen8t4v47r99dw6y4vaw76rd9" */
-	ReconciliationWithdrawAddress = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
-
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmAddrDataLength = 52
@@ -41,15 +35,42 @@ const (
 	ValAddressPrefix  = "valoper"
 	ConsAddressPrefix = "valcons"
 
-	NewBaseDenom   = "asi"
-	NewDenom       = "aasi"
-	NewAddrPrefix  = "asi"
-	NewChainId     = "asi-1"
-	NewDescription = "ASI Token" // TODO(JS): change this, potentially
-
-	OldDenom      = "afet"
+	NewAddrPrefix = "asi"
 	OldAddrPrefix = "fetch"
 )
+
+var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
+
+var networkInfos = map[string]NetworkConfig{
+	"fetchhub-4": {
+		NewChainID:     "asi-1",
+		NewDescription: "ASI token", // TODO(JS): confirm this
+		DenomInfo: DenomInfo{
+			NewBaseDenom: "asi",
+			NewDenom:     "aasi",
+			OldDenom:     "afet",
+		},
+		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
+		Contracts: &Contracts{
+			TokenBridge: &TokenBridge{
+				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
+				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+			},
+		},
+	},
+
+	"dorado-1": {
+		NewChainID:     "asi-1",          // TODO(JS): likely amend this
+		NewDescription: "Test ASI token", // TODO(JS): confirm this
+		DenomInfo: DenomInfo{
+			NewBaseDenom: "testasi",
+			NewDenom:     "atestasi",
+			OldDenom:     "atestfet",
+		},
+		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+	},
+}
 
 //go:embed reconciliation_data.csv
 var reconciliationData []byte
@@ -85,37 +106,47 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
+			var ok bool
+			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
+			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
+				return fmt.Errorf("network not found, not match for Chain-ID")
+			}
+
 			var jsonData map[string]interface{}
 			if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
 			// replace chain-id
-			ASIGenesisUpgradeReplaceChainID(genDoc)
+			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
 
 			// replace bridge contract admin
-			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData)
+			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
+				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			}
 
 			manifest := ASIUpgradeManifest{}
 
 			// withdraw balances from IBC channels
-			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, &manifest); err != nil {
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
 				return err
 			}
 
 			// withdraw balances from reconciliation addresses
-			if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, &manifest); err != nil {
-				return err
+			if networkConfig.ReconciliationTargetAddr != nil {
+				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest); err != nil {
+					return err
+				}
 			}
 
 			// set denom metadata in bank module
-			ASIGenesisUpgradeReplaceDenomMetadata(jsonData)
+			ASIGenesisUpgradeReplaceDenomMetadata(jsonData, networkConfig)
 
 			// replace denom across the genesis file
-			ASIGenesisUpgradeReplaceDenom(jsonData)
+			ASIGenesisUpgradeReplaceDenom(jsonData, networkConfig)
 
 			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(jsonData)
+			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
 
 			if err = SaveASIManifest(&manifest, config); err != nil {
 				return err
@@ -132,50 +163,55 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	}
 
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
-	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring backend (os|file|kwallet|pass|test)")
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
 }
 
-func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
+func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	type jsonMap map[string]interface{}
 
-	NewBaseDenomUpper := strings.ToUpper(NewBaseDenom)
+	newBaseDenom := networkInfo.DenomInfo.NewBaseDenom
+	oldDenom := networkInfo.DenomInfo.OldDenom
+	newDenom := networkInfo.DenomInfo.NewDenom
+	newDescription := networkInfo.NewDescription
+
+	NewBaseDenomUpper := strings.ToUpper(newBaseDenom)
 
 	newMetadata := jsonMap{
-		"base": NewDenom,
+		"base": newDenom,
 		"denom_units": []jsonMap{
 			{
 				"denom":    NewBaseDenomUpper,
 				"exponent": 18,
 			},
 			{
-				"denom":    fmt.Sprintf("m%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("m%s", newBaseDenom),
 				"exponent": 15,
 			},
 			{
-				"denom":    fmt.Sprintf("u%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("u%s", newBaseDenom),
 				"exponent": 12,
 			},
 			{
-				"denom":    fmt.Sprintf("n%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("n%s", newBaseDenom),
 				"exponent": 9,
 			},
 			{
-				"denom":    fmt.Sprintf("p%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("p%s", newBaseDenom),
 				"exponent": 6,
 			},
 			{
-				"denom":    fmt.Sprintf("f%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("f%s", newBaseDenom),
 				"exponent": 3,
 			},
 			{
-				"denom":    fmt.Sprintf("a%s", NewBaseDenom),
+				"denom":    fmt.Sprintf("a%s", newBaseDenom),
 				"exponent": 0,
 			},
 		},
-		"description": NewDescription,
+		"description": newDescription,
 		"display":     NewBaseDenomUpper,
 		"name":        NewBaseDenomUpper,
 		"symbol":      NewBaseDenomUpper,
@@ -186,46 +222,48 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}) {
 
 	for i, metadata := range denomMetadata {
 		denomUnit := metadata.(map[string]interface{})
-		if denomUnit["base"] == OldDenom {
+		if denomUnit["base"] == oldDenom {
 			denomMetadata[i] = newMetadata
 			break
 		}
 	}
 }
 
-func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc) {
-	genesisData.ChainID = NewChainId
+func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo NetworkConfig) {
+	genesisData.ChainID = networkInfo.NewChainID
 }
 
-func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}) {
+func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
 
 	for i, contract := range contracts {
 		c := contract.(map[string]interface{})
-		if c["contract_address"] == BridgeContractAddress {
+		if c["contract_address"] == networkInfo.Contracts.TokenBridge.Addr {
 			contractInfo := c["contract_info"].(map[string]interface{})
-			contractInfo["admin"] = NewBridgeContractAdmin
+			contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
 			contracts[i] = c
 			break
 		}
 	}
 }
 
-func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}) {
+func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	targets := map[string]struct{}{"denom": {}, "bond_denom": {}, "mint_denom": {}, "base_denom": {}, "base": {}}
+	oldDenom := networkInfo.DenomInfo.OldDenom
+	newDenom := networkInfo.DenomInfo.NewDenom
 
 	crawlJson("", jsonData, -1, func(key string, value interface{}, idx int) interface{} {
 		if str, ok := value.(string); ok {
 			_, isInTargets := targets[key]
-			if str == OldDenom && isInTargets {
-				return NewDenom
+			if str == oldDenom && isInTargets {
+				return newDenom
 			}
 		}
 		return value
 	})
 }
 
-func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}) {
+func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	// account addresses
 	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// validator addresses
@@ -255,17 +293,17 @@ func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{},
 	})
 }
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, manifest *ASIUpgradeManifest) error {
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	balanceMap := getGenesisBalancesMap(balances)
+	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
 	manifest.IBC = &ASIUpgradeTransfers{
 		Transfer: []ASIUpgradeTransfer{},
-		To:       IbcWithdrawAddress,
+		To:       ibcWithdrawAddress,
 	}
-
-	withdrawalBalanceIdx, ok := (*balanceMap)[IbcWithdrawAddress]
+	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
 		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
 		return nil
@@ -332,9 +370,10 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, manifest *ASIUpgradeManifest) error {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
+	reconciliationWithdrawAddress := networkInfo.ReconciliationTargetAddr
 
 	balanceMap := getGenesisBalancesMap(balances)
 
@@ -349,9 +388,9 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		log.Fatalf("Error reading reconciliation data: %s", err)
 	}
 
-	reconciliationBalanceIdx, ok := (*balanceMap)[ReconciliationWithdrawAddress]
+	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
 	if !ok {
-		return fmt.Errorf("no genesis match for reconciliation address: %s", ReconciliationWithdrawAddress)
+		return fmt.Errorf("no match in genesis for reconciliation address: %s", *reconciliationWithdrawAddress)
 	}
 
 	manifest.Reconciliation = &ASIUpgradeTransfers{
@@ -366,7 +405,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 
 		accSequence, ok := (*accountSequenceMap)[addr]
 		if !ok {
-			return fmt.Errorf("no genesis match for reconciliation address: %s", addr)
+			return fmt.Errorf("no match in genesis for reconciliation address: %s", addr)
 		}
 
 		balanceIdx, ok := (*balanceMap)[addr]
@@ -474,4 +513,28 @@ func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
 		})
 	}
 	return balance
+}
+
+type NetworkConfig struct {
+	NewChainID               string
+	NewDescription           string
+	IbcTargetAddr            string
+	ReconciliationTargetAddr *string
+	Contracts                *Contracts
+	DenomInfo                DenomInfo
+}
+
+type DenomInfo struct {
+	NewBaseDenom string
+	NewDenom     string
+	OldDenom     string
+}
+
+type Contracts struct {
+	TokenBridge *TokenBridge
+}
+
+type TokenBridge struct {
+	Addr     string
+	NewAdmin string
 }
