@@ -55,6 +55,9 @@ var networkInfos = map[string]NetworkConfig{
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
 		Contracts: &Contracts{
+			MobixStaking: &MobixStaking{
+				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e", // TODO(JS): amend this
+			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
@@ -71,6 +74,11 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "atestfet",
 		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		Contracts: &Contracts{
+			MobixStaking: &MobixStaking{
+				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
+			},
+		},
 	},
 }
 
@@ -122,13 +130,15 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
 
-			// replace bridge contract admin
+			// replace bridge contract admin, if address and new admin present
 			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
 			}
 
-			// update mobix staking contract
-			ASIGenesisUpgradeUpdateMobixStakingContract(jsonData)
+			// update mobix staking contract, if address present
+			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
+				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
+			}
 
 			// withdraw balances from IBC channels
 			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig); err != nil {
@@ -168,8 +178,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
-func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}) {
+func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	MobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
 
 	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength))
 
@@ -584,10 +595,15 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge *TokenBridge
+	TokenBridge  *TokenBridge
+	MobixStaking *MobixStaking
 }
 
 type TokenBridge struct {
 	Addr     string
 	NewAdmin string
+}
+
+type MobixStaking struct {
+	Addr string
 }
