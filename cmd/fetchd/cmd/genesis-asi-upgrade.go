@@ -51,7 +51,7 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "afet",
 		},
 		SupplyInfo: SupplyInfo{
-			AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
@@ -73,7 +73,7 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "atestfet",
 		},
 		SupplyInfo: SupplyInfo{
-			AdditionalSupplyValue:     "100000000000000000000000000",                  // TODO(JS): likely amend this
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
@@ -437,7 +437,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	denomInfo := networkInfo.DenomInfo
 	supplyInfo := networkInfo.SupplyInfo
-	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.AdditionalSupplyValue)
+	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.SupplyToMint)
 	if !ok {
 		panic("asi upgrade update supply: failed to convert new supply value to int")
 	}
@@ -472,7 +472,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 	curSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, curSupply)
 
 	// add new coins to the current supply
-	newSupplyCoins := additionalSupplyCoin.Add(curSupplyCoin)
+	newSupplyCoins := curSupplyCoin.Add(additionalSupplyCoin)
 
 	// add the additional coins to the overflow address balance
 	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
@@ -573,7 +573,7 @@ type NetworkConfig struct {
 
 type SupplyInfo struct {
 	UpdatedSupplyOverflowAddr string
-	AdditionalSupplyValue     string
+	SupplyToMint              string
 }
 
 type DenomInfo struct {
