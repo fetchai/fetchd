@@ -2,6 +2,7 @@ import argparse
 import copy
 import json
 import os
+from collections import OrderedDict
 
 
 def load_json_file(filename):
@@ -54,7 +55,7 @@ def main():
 
     print("Building code hashes map")
     # Create maps with code hashes and IDs
-    original_code_hash_to_code = {}
+    original_code_hash_to_code = OrderedDict()
     original_code_id_to_hash = {}
     for code in codes:
         code_hash = code["code_info"]["code_hash"]
