@@ -133,14 +133,16 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
 			}
 
+			manifest := ASIUpgradeManifest{}
+
 			// withdraw balances from IBC channels
-			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig); err != nil {
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
 				return err
 			}
 
 			// withdraw balances from reconciliation addresses
 			if networkConfig.ReconciliationTargetAddr != nil {
-				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig); err != nil {
+				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest); err != nil {
 					return err
 				}
 			}
@@ -156,6 +158,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
+
+			if err = SaveASIManifest(&manifest, config); err != nil {
+				return err
+			}
 
 			var encodedAppState []byte
 			if encodedAppState, err = json.Marshal(jsonData); err != nil {
@@ -298,12 +304,16 @@ func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{},
 	})
 }
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig) error {
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	balanceMap := getGenesisBalancesMap(balances)
 	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
+	manifest.IBC = &ASIUpgradeTransfers{
+		Transfer: []ASIUpgradeTransfer{},
+		To:       ibcWithdrawalAddress,
+	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
 		fmt.Println("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
@@ -336,6 +346,8 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 
 		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
 		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
+
+		manifest.IBC.Transfer = append(manifest.IBC.Transfer, ASIUpgradeTransfer{From: channelAddr, Amount: channelBalanceCoins})
 
 		// add channel balance to withdrawal balance
 		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
@@ -375,7 +387,7 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig) error {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	reconciliationWithdrawAddress := networkInfo.ReconciliationTargetAddr
@@ -396,6 +408,11 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
 	if !ok {
 		return fmt.Errorf("no match in genesis for reconciliation address: %s", *reconciliationWithdrawAddress)
+	}
+
+	manifest.Reconciliation = &ASIUpgradeTransfers{
+		Transfer: []ASIUpgradeTransfer{},
+		To:       *reconciliationWithdrawAddress,
 	}
 
 	for _, row := range items {
@@ -427,6 +444,8 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		// add reconciliation account balance to withdrawal balance
 		newReconciliationBalanceCoins := reconciliationBalanceCoins.Add(accBalanceCoins...)
 		reconciliationBalance.(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newReconciliationBalanceCoins)
+
+		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeTransfer{From: addr, Amount: accBalanceCoins})
 
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
