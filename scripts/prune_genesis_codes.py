@@ -57,8 +57,9 @@ def main():
     original_code_hash_to_code = {}
     original_code_id_to_hash = {}
     for code in codes:
-        original_code_hash_to_code[code["code_info"]["code_hash"]] = code
-        original_code_id_to_hash[code["code_id"]] = code["code_info"]["code_hash"]
+        code_hash = code["code_info"]["code_hash"]
+        original_code_hash_to_code[code_hash] = code
+        original_code_id_to_hash[code["code_id"]] = code_hash
 
     # Create pruned code list
     new_codes = []
@@ -68,7 +69,6 @@ def main():
     for code_hash, code in original_code_hash_to_code.items():
         new_code = copy.deepcopy(code)
         new_code["code_id"] = str(next_code_id)
-
         new_code_hash_to_code[code["code_info"]["code_hash"]] = new_code
 
         new_codes.append(new_code)
