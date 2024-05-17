@@ -50,6 +50,10 @@ var networkInfos = map[string]NetworkConfig{
 			NewDenom:     "aasi",
 			OldDenom:     "afet",
 		},
+		SupplyInfo: SupplyInfo{
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
 		Contracts: &Contracts{
@@ -68,6 +72,10 @@ var networkInfos = map[string]NetworkConfig{
 			NewDenom:     "atestasi",
 			OldDenom:     "atestfet",
 		},
+		SupplyInfo: SupplyInfo{
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 	},
 }
@@ -85,10 +93,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
               - The native coin denom will be updated to "asi"
               - The denom metadata will be updated to the new ASI token
               - The address prefix will be updated to "asi"
-              - The old fetch addresses will be updated to the new asi addresses
+              - The old fetch addresses will be updated to the new asi addresses, e.g. asivaloper1, asivalcons1, asi1, etc.
               - The bridge contract admin will be updated to the new address
-              - The IBC withdrawal address will be updated to the new address
-              - The reconciliation withdrawal address will be updated to the new address
+              - The IBC channel funds will be transferred to the IBC withdrawal address
+              - The reconciliation withdrawal funds (if applicable) will be transferred to the reconciliation withdrawal address
 `,
 
 		Args: cobra.ExactArgs(0),
@@ -144,6 +152,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(jsonData, networkConfig)
+
+			// supplement the genesis supply
+			ASIGenesisUpgradeASISupply(jsonData, networkConfig)
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
@@ -305,7 +316,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
-		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
+		fmt.Println("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
 		return nil
 	}
 
@@ -314,8 +325,12 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	ibcChannels := channelGenesis["channels"].([]interface{})
 
 	for _, channel := range ibcChannels {
-		channelId := channel.(map[string]interface{})["channel_id"].(string)
-		portId := channel.(map[string]interface{})["port_id"].(string)
+		channelMap := channel.(map[string]interface{})
+		channelId := channelMap["channel_id"].(string)
+		portId := channelMap["port_id"].(string)
+
+		// close channel
+		channelMap["state"] = "STATE_CLOSED"
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
 		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
@@ -350,15 +365,17 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	accountMap := make(map[string]int)
 
 	for _, acc := range accounts {
-		accType := acc.(map[string]interface{})["@type"]
+		accMap := acc.(map[string]interface{})
+		accType := accMap["@type"]
 
 		accData := acc
 		if accType == ModuleAccount {
-			accData = acc.(map[string]interface{})["base_account"]
+			accData = accMap["base_account"]
 		}
 
-		addr := accData.(map[string]interface{})["address"].(string)
-		sequence := accData.(map[string]interface{})["sequence"].(string)
+		accDataMap := accData.(map[string]interface{})
+		addr := accDataMap["address"].(string)
+		sequence := accDataMap["sequence"].(string)
 
 		sequenceInt, ok := strconv.Atoi(sequence)
 		if ok != nil {
@@ -436,6 +453,54 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	return nil
 }
 
+func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	denomInfo := networkInfo.DenomInfo
+	supplyInfo := networkInfo.SupplyInfo
+	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.SupplyToMint)
+	if !ok {
+		panic("asi upgrade update supply: failed to convert new supply value to int")
+	}
+
+	if additionalSupply.LT(sdk.ZeroInt()) {
+		panic("asi upgrade update supply: additional supply value is negative")
+	}
+
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	supply := bank["supply"].([]interface{})
+	balances := bank["balances"].([]interface{})
+	balancesMap := getGenesisBalancesMap(bank["balances"].([]interface{}))
+
+	var curSupply sdk.Int
+	var curSupplyIdx int
+	for idx, coin := range supply {
+		coinData := coin.(map[string]interface{})
+		if coinData["denom"] == denomInfo.NewDenom {
+			curSupplyIdx = idx
+			curSupply, ok = sdk.NewIntFromString(coinData["amount"].(string))
+			if !ok {
+				panic("asi upgrade update supply: failed to convert coin amount to int")
+			}
+			break
+		}
+	}
+
+	overflowAddressBalance := balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]]
+	overflowAddressBalanceCoins := getCoinsFromInterfaceSlice(overflowAddressBalance)
+
+	additionalSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, additionalSupply)
+	curSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, curSupply)
+
+	// add new coins to the current supply
+	newSupplyCoins := curSupplyCoin.Add(additionalSupplyCoin)
+
+	// add the additional coins to the overflow address balance
+	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
+
+	// update the supply in the bank module
+	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
+	balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(overflowAddressBalanceCoins)
+}
+
 func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.Decode(addr)
 	if err != nil {
@@ -497,7 +562,7 @@ func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
 		coinDenom := coinData["denom"].(string)
 		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
 		if !ok {
-			panic("IBC withdraw: failed to convert coin amount to int")
+			panic("ibc withdraw: failed to convert coin amount to int")
 		}
 		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
 	}
@@ -520,8 +585,14 @@ type NetworkConfig struct {
 	NewDescription           string
 	IbcTargetAddr            string
 	ReconciliationTargetAddr *string
-	Contracts                *Contracts
+	SupplyInfo               SupplyInfo
 	DenomInfo                DenomInfo
+	Contracts                *Contracts
+}
+
+type SupplyInfo struct {
+	UpdatedSupplyOverflowAddr string
+	SupplyToMint              string
 }
 
 type DenomInfo struct {
