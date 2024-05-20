@@ -57,6 +57,12 @@ var networkInfos = map[string]NetworkConfig{
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
 		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y", // mainnet STAGING contract,
+			},
+			AName: &AName{
+				Addr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q", // mainnet DEVELOPMENT contract,
+			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
@@ -77,6 +83,18 @@ var networkInfos = map[string]NetworkConfig{
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp", // testnet DEVELOPMENT contract,
+			},
+			AName: &AName{
+				Addr: "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
+			},
+			TokenBridge: &TokenBridge{
+				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
+				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+			},
+		},
 	},
 }
 
@@ -117,7 +135,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			var ok bool
 			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
 			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
-				return fmt.Errorf("network not found, not match for Chain-ID")
+				return fmt.Errorf("network not found, no match for Chain-ID in genesis file")
 			}
 
 			var jsonData map[string]interface{}
@@ -134,6 +152,16 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			}
 
 			manifest := ASIUpgradeManifest{}
+
+			// replace almanac contract state
+			if networkConfig.Contracts != nil && networkConfig.Contracts.Almanac != nil {
+				ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
+			}
+
+			// replace aname contract state
+			if networkConfig.Contracts != nil && networkConfig.Contracts.AName != nil {
+				ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
+			}
 
 			// withdraw balances from IBC channels
 			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
@@ -245,17 +273,12 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo 
 }
 
 func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	tokenBridgeContract := getContractFromAddr(networkInfo.Contracts.TokenBridge.Addr, jsonData)
 
-	for i, contract := range contracts {
-		c := contract.(map[string]interface{})
-		if c["contract_address"] == networkInfo.Contracts.TokenBridge.Addr {
-			contractInfo := c["contract_info"].(map[string]interface{})
-			contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
-			contracts[i] = c
-			break
-		}
-	}
+	// replace token bridge admin
+	contractInfo := tokenBridgeContract["contract_info"].(map[string]interface{})
+	contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
+	return
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -272,6 +295,30 @@ func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo 
 		}
 		return value
 	})
+}
+
+func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	almanacContract := getContractFromAddr(networkInfo.Contracts.Almanac.Addr, jsonData)
+
+	// empty the almanac contract state
+	almanacContract["contract_state"] = []interface{}{}
+}
+
+func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	anameContract := getContractFromAddr(networkInfo.Contracts.AName.Addr, jsonData)
+
+	// empty the AName contract state
+	anameContract["contract_state"] = []interface{}{}
+}
+
+func getContractFromAddr(addr string, jsonData map[string]interface{}) map[string]interface{} {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	for _, contract := range contracts {
+		if contract.(map[string]interface{})["contract_address"] == addr {
+			return contract.(map[string]interface{})
+		}
+	}
+	panic("failed to find contract using provided address")
 }
 
 func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -603,9 +650,19 @@ type DenomInfo struct {
 
 type Contracts struct {
 	TokenBridge *TokenBridge
+	Almanac     *Almanac
+	AName       *AName
 }
 
 type TokenBridge struct {
 	Addr     string
 	NewAdmin string
+}
+
+type Almanac struct {
+	Addr string
+}
+
+type AName struct {
+	Addr string
 }
