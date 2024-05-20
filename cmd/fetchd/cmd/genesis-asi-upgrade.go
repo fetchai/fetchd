@@ -135,7 +135,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			var ok bool
 			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
 			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
-				return fmt.Errorf("network not found, not match for Chain-ID")
+				return fmt.Errorf("network not found, no match for Chain-ID in genesis file")
 			}
 
 			var jsonData map[string]interface{}
