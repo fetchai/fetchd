@@ -53,9 +53,19 @@ var networkInfos = map[string]NetworkConfig{
 			NewDenom:     "aasi",
 			OldDenom:     "afet",
 		},
+		SupplyInfo: SupplyInfo{
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
 		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y", // mainnet STAGING contract,
+			},
+			AName: &AName{
+				Addr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q", // mainnet DEVELOPMENT contract,
+			},
 			MobixStaking: &MobixStaking{
 				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e", // TODO(JS): amend this
 			},
@@ -74,10 +84,24 @@ var networkInfos = map[string]NetworkConfig{
 			NewDenom:     "atestasi",
 			OldDenom:     "atestfet",
 		},
+		SupplyInfo: SupplyInfo{
+			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+		},
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		Contracts: &Contracts{
+			Almanac: &Almanac{
+				Addr: "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp", // testnet DEVELOPMENT contract,
+			},
+			AName: &AName{
+				Addr: "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
+			},
 			MobixStaking: &MobixStaking{
 				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
+			},
+			TokenBridge: &TokenBridge{
+				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
+				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
 		},
 	},
@@ -96,10 +120,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
               - The native coin denom will be updated to "asi"
               - The denom metadata will be updated to the new ASI token
               - The address prefix will be updated to "asi"
-              - The old fetch addresses will be updated to the new asi addresses
+              - The old fetch addresses will be updated to the new asi addresses, e.g. asivaloper1, asivalcons1, asi1, etc.
               - The bridge contract admin will be updated to the new address
-              - The IBC withdrawal address will be updated to the new address
-              - The reconciliation withdrawal address will be updated to the new address
+              - The IBC channel funds will be transferred to the IBC withdrawal address
+              - The reconciliation withdrawal funds (if applicable) will be transferred to the reconciliation withdrawal address
 `,
 
 		Args: cobra.ExactArgs(0),
@@ -120,7 +144,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			var ok bool
 			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
 			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
-				return fmt.Errorf("network not found, not match for Chain-ID")
+				return fmt.Errorf("network not found, no match for Chain-ID in genesis file")
 			}
 
 			var jsonData map[string]interface{}
@@ -141,14 +165,26 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
 			}
 
+			manifest := ASIUpgradeManifest{}
+
+			// replace almanac contract state
+			if networkConfig.Contracts != nil && networkConfig.Contracts.Almanac != nil {
+				ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
+			}
+
+			// replace aname contract state
+			if networkConfig.Contracts != nil && networkConfig.Contracts.AName != nil {
+				ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
+			}
+
 			// withdraw balances from IBC channels
-			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig); err != nil {
+			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
 				return err
 			}
 
 			// withdraw balances from reconciliation addresses
 			if networkConfig.ReconciliationTargetAddr != nil {
-				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig); err != nil {
+				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest); err != nil {
 					return err
 				}
 			}
@@ -159,8 +195,15 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace denom across the genesis file
 			ASIGenesisUpgradeReplaceDenom(jsonData, networkConfig)
 
+			// supplement the genesis supply
+			ASIGenesisUpgradeASISupply(jsonData, networkConfig)
+
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
+
+			if err = SaveASIManifest(&manifest, config); err != nil {
+				return err
+			}
 
 			var encodedAppState []byte
 			if encodedAppState, err = json.Marshal(jsonData); err != nil {
@@ -321,17 +364,12 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo 
 }
 
 func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	tokenBridgeContract := getContractFromAddr(networkInfo.Contracts.TokenBridge.Addr, jsonData)
 
-	for i, contract := range contracts {
-		c := contract.(map[string]interface{})
-		if c["contract_address"] == networkInfo.Contracts.TokenBridge.Addr {
-			contractInfo := c["contract_info"].(map[string]interface{})
-			contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
-			contracts[i] = c
-			break
-		}
-	}
+	// replace token bridge admin
+	contractInfo := tokenBridgeContract["contract_info"].(map[string]interface{})
+	contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
+	return
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -348,6 +386,30 @@ func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo 
 		}
 		return value
 	})
+}
+
+func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	almanacContract := getContractFromAddr(networkInfo.Contracts.Almanac.Addr, jsonData)
+
+	// empty the almanac contract state
+	almanacContract["contract_state"] = []interface{}{}
+}
+
+func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	anameContract := getContractFromAddr(networkInfo.Contracts.AName.Addr, jsonData)
+
+	// empty the AName contract state
+	anameContract["contract_state"] = []interface{}{}
+}
+
+func getContractFromAddr(addr string, jsonData map[string]interface{}) map[string]interface{} {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	for _, contract := range contracts {
+		if contract.(map[string]interface{})["contract_address"] == addr {
+			return contract.(map[string]interface{})
+		}
+	}
+	panic("failed to find contract using provided address")
 }
 
 func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -380,15 +442,19 @@ func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{},
 	})
 }
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig) error {
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	balanceMap := getGenesisBalancesMap(balances)
 	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
+	manifest.IBC = &ASIUpgradeTransfers{
+		Transfer: []ASIUpgradeTransfer{},
+		To:       ibcWithdrawalAddress,
+	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
-		fmt.Println("failed to find Ibc withdrawal address in genesis balances - have addresses already been converted?")
+		fmt.Println("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
 		return nil
 	}
 
@@ -397,8 +463,12 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	ibcChannels := channelGenesis["channels"].([]interface{})
 
 	for _, channel := range ibcChannels {
-		channelId := channel.(map[string]interface{})["channel_id"].(string)
-		portId := channel.(map[string]interface{})["port_id"].(string)
+		channelMap := channel.(map[string]interface{})
+		channelId := channelMap["channel_id"].(string)
+		portId := channelMap["port_id"].(string)
+
+		// close channel
+		channelMap["state"] = "STATE_CLOSED"
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
 		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
@@ -414,6 +484,8 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 
 		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
 		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
+
+		manifest.IBC.Transfer = append(manifest.IBC.Transfer, ASIUpgradeTransfer{From: channelAddr, Amount: channelBalanceCoins})
 
 		// add channel balance to withdrawal balance
 		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
@@ -431,15 +503,17 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	accountMap := make(map[string]int)
 
 	for _, acc := range accounts {
-		accType := acc.(map[string]interface{})["@type"]
+		accMap := acc.(map[string]interface{})
+		accType := accMap["@type"]
 
 		accData := acc
 		if accType == ModuleAccount {
-			accData = acc.(map[string]interface{})["base_account"]
+			accData = accMap["base_account"]
 		}
 
-		addr := accData.(map[string]interface{})["address"].(string)
-		sequence := accData.(map[string]interface{})["sequence"].(string)
+		accDataMap := accData.(map[string]interface{})
+		addr := accDataMap["address"].(string)
+		sequence := accDataMap["sequence"].(string)
 
 		sequenceInt, ok := strconv.Atoi(sequence)
 		if ok != nil {
@@ -451,7 +525,7 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig) error {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	reconciliationWithdrawAddress := networkInfo.ReconciliationTargetAddr
@@ -472,6 +546,11 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
 	if !ok {
 		return fmt.Errorf("no match in genesis for reconciliation address: %s", *reconciliationWithdrawAddress)
+	}
+
+	manifest.Reconciliation = &ASIUpgradeTransfers{
+		Transfer: []ASIUpgradeTransfer{},
+		To:       *reconciliationWithdrawAddress,
 	}
 
 	for _, row := range items {
@@ -504,10 +583,60 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		newReconciliationBalanceCoins := reconciliationBalanceCoins.Add(accBalanceCoins...)
 		reconciliationBalance.(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newReconciliationBalanceCoins)
 
+		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeTransfer{From: addr, Amount: accBalanceCoins})
+
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 	}
 	return nil
+}
+
+func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	denomInfo := networkInfo.DenomInfo
+	supplyInfo := networkInfo.SupplyInfo
+	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.SupplyToMint)
+	if !ok {
+		panic("asi upgrade update supply: failed to convert new supply value to int")
+	}
+
+	if additionalSupply.LT(sdk.ZeroInt()) {
+		panic("asi upgrade update supply: additional supply value is negative")
+	}
+
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	supply := bank["supply"].([]interface{})
+	balances := bank["balances"].([]interface{})
+	balancesMap := getGenesisBalancesMap(bank["balances"].([]interface{}))
+
+	var curSupply sdk.Int
+	var curSupplyIdx int
+	for idx, coin := range supply {
+		coinData := coin.(map[string]interface{})
+		if coinData["denom"] == denomInfo.NewDenom {
+			curSupplyIdx = idx
+			curSupply, ok = sdk.NewIntFromString(coinData["amount"].(string))
+			if !ok {
+				panic("asi upgrade update supply: failed to convert coin amount to int")
+			}
+			break
+		}
+	}
+
+	overflowAddressBalance := balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]]
+	overflowAddressBalanceCoins := getCoinsFromInterfaceSlice(overflowAddressBalance)
+
+	additionalSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, additionalSupply)
+	curSupplyCoin := sdk.NewCoin(denomInfo.NewDenom, curSupply)
+
+	// add new coins to the current supply
+	newSupplyCoins := curSupplyCoin.Add(additionalSupplyCoin)
+
+	// add the additional coins to the overflow address balance
+	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
+
+	// update the supply in the bank module
+	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
+	balances[(*balancesMap)[supplyInfo.UpdatedSupplyOverflowAddr]].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(overflowAddressBalanceCoins)
 }
 
 func convertAddressToASI(addr string, addressPrefix string) (string, error) {
@@ -571,7 +700,7 @@ func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
 		coinDenom := coinData["denom"].(string)
 		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
 		if !ok {
-			panic("IBC withdraw: failed to convert coin amount to int")
+			panic("ibc withdraw: failed to convert coin amount to int")
 		}
 		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
 	}
@@ -594,8 +723,14 @@ type NetworkConfig struct {
 	NewDescription           string
 	IbcTargetAddr            string
 	ReconciliationTargetAddr *string
-	Contracts                *Contracts
+	SupplyInfo               SupplyInfo
 	DenomInfo                DenomInfo
+	Contracts                *Contracts
+}
+
+type SupplyInfo struct {
+	UpdatedSupplyOverflowAddr string
+	SupplyToMint              string
 }
 
 type DenomInfo struct {
@@ -605,13 +740,23 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge  *TokenBridge
+	TokenBridge *TokenBridge
+	Almanac     *Almanac
+	AName       *AName
 	MobixStaking *MobixStaking
 }
 
 type TokenBridge struct {
 	Addr     string
 	NewAdmin string
+}
+
+type Almanac struct {
+	Addr string
+}
+
+type AName struct {
+	Addr string
 }
 
 type MobixStaking struct {
