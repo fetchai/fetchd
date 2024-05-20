@@ -31,6 +31,7 @@ const (
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmAddrDataLength = 52
+	MaxAddrDataLength  = 100
 	AddrChecksumLength = 6
 
 	AccAddressPrefix  = ""
@@ -182,7 +183,7 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
 	MobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
 
-	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength))
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
 
 	for _, contract := range contracts {
 		if contract.(map[string]interface{})["contract_address"] == MobixStakingContractAddress {
@@ -202,7 +203,13 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 					panic(err)
 				}
 
-				val = replaceContractState(re, string(keyBytes), string(valueBytes))
+				updatedKey := replaceContractStateKey(re, string(keyBytes))
+				updatedValue := replaceContractStateValue(re, string(valueBytes))
+
+				val = map[string]interface{}{
+					"key":   updatedKey,
+					"value": updatedValue,
+				}
 			}
 
 			return
@@ -212,19 +219,8 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 	panic("mobix staking contract not found")
 }
 
-func replaceContractState(re *regexp.Regexp, key string, value string) map[string]interface{} {
-	var newKey []byte
+func replaceContractStateValue(re *regexp.Regexp, value string) string {
 	var newValue []byte
-
-	// replace key
-	newKeyStr := re.ReplaceAllStringFunc(key, func(match string) string {
-		newAddr, err := convertAddressToASI(match, AccAddressPrefix)
-		if err != nil {
-			panic(err)
-		}
-		return newAddr
-	})
-	newKey = []byte(newKeyStr)
 
 	// replace value
 	valJson := make(map[string]interface{})
@@ -239,11 +235,25 @@ func replaceContractState(re *regexp.Regexp, key string, value string) map[strin
 		panic(err)
 	}
 
-	// return reconstructed contract state
-	return map[string]interface{}{
-		"key":   hex.EncodeToString(newKey),
-		"value": base64.StdEncoding.EncodeToString(newValue),
-	}
+	// return new value
+	return base64.StdEncoding.EncodeToString(newValue)
+}
+
+func replaceContractStateKey(re *regexp.Regexp, key string) string {
+	var newKey []byte
+
+	// replace key
+	newKeyStr := re.ReplaceAllStringFunc(key, func(match string) string {
+		newAddr, err := convertAddressToASI(match, AccAddressPrefix)
+		if err != nil {
+			panic(err)
+		}
+		return newAddr
+	})
+	newKey = []byte(newKeyStr)
+
+	// return new key
+	return hex.EncodeToString(newKey)
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
