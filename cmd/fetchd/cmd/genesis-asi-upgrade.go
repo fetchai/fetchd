@@ -42,6 +42,12 @@ const (
 	OldAddrPrefix = "fetch"
 )
 
+var (
+	stakesKey        = lengthPrefixStr("stakes")
+	unbondEntriesKey = lengthPrefixStr("unbond_entries")
+	configKey        = []byte("config")
+)
+
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
 var networkInfos = map[string]NetworkConfig{
@@ -236,18 +242,22 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 				hexKey := state["key"].(string)
 				b64Value := state["value"].(string)
 
-				keyBytes, err := hex.DecodeString(hexKey)
-				if err != nil {
-					panic(err)
-				}
-
 				valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
 				if err != nil {
 					panic(err)
 				}
 
-				updatedKey := replaceContractStateKey(re, string(keyBytes))
-				updatedValue := replaceContractStateValue(re, string(valueBytes))
+				updatedValue := b64Value
+				keyBytes, err := hex.DecodeString(hexKey)
+				if err != nil {
+					panic(err)
+				}
+
+				updatedKey := replaceContractStateKey(re, keyBytes)
+
+				if bytes.Compare(keyBytes, configKey) == 0 {
+					updatedValue = replaceContractStateValue(re, string(valueBytes))
+				}
 
 				val = map[string]interface{}{
 					"key":   updatedKey,
@@ -272,7 +282,7 @@ func replaceContractStateValue(re *regexp.Regexp, value string) string {
 	}
 
 	var err error
-	replaceAddresses(AccAddressPrefix, valJson, AddrDataLength+AddrChecksumLength)
+	replaceAddresses(AccAddressPrefix, valJson, MaxAddrDataLength)
 	newValue, err = json.Marshal(valJson)
 	if err != nil {
 		panic(err)
@@ -282,18 +292,39 @@ func replaceContractStateValue(re *regexp.Regexp, value string) string {
 	return base64.StdEncoding.EncodeToString(newValue)
 }
 
-func replaceContractStateKey(re *regexp.Regexp, key string) string {
-	var newKey []byte
+func lengthPrefixStr(val string) []byte {
+	length := len(val)
 
-	// replace key
-	newKeyStr := re.ReplaceAllStringFunc(key, func(match string) string {
-		newAddr, err := convertAddressToASI(match, AccAddressPrefix)
+	if length > 0xFF {
+		panic("length of input string is greater than two bytes")
+	}
+
+	byteArray := []byte("00" + val)
+
+	byteArray[0] = byte((0xFF00 & length) >> 8)
+	byteArray[1] = byte(0x00FF & length)
+
+	return byteArray
+}
+
+func replaceContractStateKey(re *regexp.Regexp, keyBytes []byte) string {
+	replaceKey := func(prefix []byte) []byte {
+		// replace key
+		newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
 		if err != nil {
 			panic(err)
 		}
-		return newAddr
-	})
-	newKey = []byte(newKeyStr)
+		return append(prefix, []byte(newAddr)...)
+	}
+
+	var newKey []byte
+	if bytes.Compare(keyBytes[0:len(stakesKey)], stakesKey) == 0 {
+		newKey = replaceKey(stakesKey)
+	} else if bytes.Compare(keyBytes[0:len(unbondEntriesKey)], unbondEntriesKey) == 0 {
+		newKey = replaceKey(unbondEntriesKey)
+	} else {
+		return hex.EncodeToString(keyBytes)
+	}
 
 	// return new key
 	return hex.EncodeToString(newKey)
@@ -740,9 +771,9 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge *TokenBridge
-	Almanac     *Almanac
-	AName       *AName
+	TokenBridge  *TokenBridge
+	Almanac      *Almanac
+	AName        *AName
 	MobixStaking *MobixStaking
 }
 
