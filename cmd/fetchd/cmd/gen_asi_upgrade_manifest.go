@@ -26,7 +26,7 @@ type ASIUpgradeSupply struct {
 }
 
 type ASIUpgradeManifest struct {
-	Supply         *ASIUpgradeSupply    `json:"supply_mint,omitempty"`
+	Supply         *ASIUpgradeSupply    `json:"supply,omitempty"`
 	IBC            *ASIUpgradeTransfers `json:"ibc,omitempty"`
 	Reconciliation *ASIUpgradeTransfers `json:"reconciliation,omitempty"`
 }
