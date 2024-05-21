@@ -497,12 +497,12 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
 
 	// add the new supply mint record to the manifest
-	mintRecord := ASIUpgradeSupplyMint{
-		LandingAddress: supplyInfo.UpdatedSupplyOverflowAddr,
-		Amount:         sdk.NewCoins(additionalSupplyCoin),
-		NewSupplyTotal: sdk.NewCoins(newSupplyCoins),
+	supplyRecord := ASIUpgradeSupply{
+		LandingAddress:       supplyInfo.UpdatedSupplyOverflowAddr,
+		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
+		ResultingSupplyTotal: sdk.NewCoins(newSupplyCoins),
 	}
-	manifest.SupplyMint = append(manifest.SupplyMint, mintRecord)
+	manifest.Supply = &supplyRecord
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()

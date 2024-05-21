@@ -19,16 +19,16 @@ type ASIUpgradeTransfers struct {
 	To       string               `json:"to"`
 }
 
-type ASIUpgradeSupplyMint struct {
-	LandingAddress string      `json:"landing_address"`
-	Amount         types.Coins `json:"amount"`
-	NewSupplyTotal types.Coins `json:"new_supply_total"`
+type ASIUpgradeSupply struct {
+	LandingAddress       string      `json:"landing_address"`
+	MintedAmount         types.Coins `json:"minted_amount"`
+	ResultingSupplyTotal types.Coins `json:"resulting_supply_total"`
 }
 
 type ASIUpgradeManifest struct {
-	SupplyMint     []ASIUpgradeSupplyMint `json:"supply_mint"`
-	IBC            *ASIUpgradeTransfers   `json:"ibc,omitempty"`
-	Reconciliation *ASIUpgradeTransfers   `json:"reconciliation,omitempty"`
+	Supply         *ASIUpgradeSupply    `json:"supply_mint,omitempty"`
+	IBC            *ASIUpgradeTransfers `json:"ibc,omitempty"`
+	Reconciliation *ASIUpgradeTransfers `json:"reconciliation,omitempty"`
 }
 
 func SaveASIManifest(manifest *ASIUpgradeManifest, config *config2.Config) error {
