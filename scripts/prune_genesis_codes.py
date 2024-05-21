@@ -53,7 +53,6 @@ def main():
     codes = wasm["codes"]
     contracts = wasm["contracts"]
 
-
     print("Building code hashes map")
     # Create maps with code hashes and IDs
     original_code_hash_to_code = OrderedDict()
