@@ -295,7 +295,7 @@ func replaceAddressInContractStateValue(re *regexp.Regexp, value string) string 
 	}
 
 	var err error
-	replaceAddresses(AccAddressPrefix, valJson, MaxAddrDataLength)
+	replaceAddresses(AccAddressPrefix, valJson, AddrDataLength+AddrChecksumLength)
 	newValue, err = json.Marshal(valJson)
 	if err != nil {
 		panic(err)
