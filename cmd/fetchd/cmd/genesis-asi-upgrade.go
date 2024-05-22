@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
@@ -43,8 +44,8 @@ const (
 )
 
 var (
-	stakesKey        = lengthPrefixStr("stakes")
-	unbondEntriesKey = lengthPrefixStr("unbond_entries")
+	stakesKey        = prefixStringWithLength("stakes")
+	unbondEntriesKey = prefixStringWithLength("unbond_entries")
 	configKey        = []byte("config")
 )
 
@@ -228,6 +229,12 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	return cmd
 }
 
+type Bytes []byte
+
+func (a Bytes) StartsWith(with []byte) bool {
+	return len(a) >= len(with) && bytes.Compare(a[0:len(stakesKey)], with) == 0
+}
+
 func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
 	MobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
@@ -247,16 +254,22 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 					panic(err)
 				}
 
+				updatedKey := hexKey
 				updatedValue := b64Value
+
 				keyBytes, err := hex.DecodeString(hexKey)
 				if err != nil {
 					panic(err)
 				}
 
-				updatedKey := replaceContractStateKey(re, keyBytes)
-
-				if bytes.Compare(keyBytes, configKey) == 0 {
-					updatedValue = replaceContractStateValue(re, string(valueBytes))
+				_keyBytes := Bytes(keyBytes)
+				switch {
+				case _keyBytes.StartsWith(stakesKey):
+					updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
+				case _keyBytes.StartsWith(unbondEntriesKey):
+					updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
+				case _keyBytes.StartsWith(configKey):
+					updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
 				}
 
 				val = map[string]interface{}{
@@ -272,7 +285,7 @@ func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}
 	panic("mobix staking contract not found")
 }
 
-func replaceContractStateValue(re *regexp.Regexp, value string) string {
+func replaceAddressInContractStateValue(re *regexp.Regexp, value string) string {
 	var newValue []byte
 
 	// replace value
@@ -292,42 +305,27 @@ func replaceContractStateValue(re *regexp.Regexp, value string) string {
 	return base64.StdEncoding.EncodeToString(newValue)
 }
 
-func lengthPrefixStr(val string) []byte {
+func prefixStringWithLength(val string) []byte {
 	length := len(val)
 
-	if length > 0xFF {
-		panic("length of input string is greater than two bytes")
+	if length > 0xFFFF {
+		panic("length of input string does fit in to uint16")
 	}
 
 	byteArray := []byte("00" + val)
-
-	byteArray[0] = byte((0xFF00 & length) >> 8)
-	byteArray[1] = byte(0x00FF & length)
+	binary.BigEndian.PutUint16(byteArray, uint16(length))
 
 	return byteArray
 }
 
-func replaceContractStateKey(re *regexp.Regexp, keyBytes []byte) string {
-	replaceKey := func(prefix []byte) []byte {
-		// replace key
-		newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
-		if err != nil {
-			panic(err)
-		}
-		return append(prefix, []byte(newAddr)...)
+func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
+	newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
+	if err != nil {
+		panic(err)
 	}
+	key := append(prefix, []byte(newAddr)...)
 
-	var newKey []byte
-	if bytes.Compare(keyBytes[0:len(stakesKey)], stakesKey) == 0 {
-		newKey = replaceKey(stakesKey)
-	} else if bytes.Compare(keyBytes[0:len(unbondEntriesKey)], unbondEntriesKey) == 0 {
-		newKey = replaceKey(unbondEntriesKey)
-	} else {
-		return hex.EncodeToString(keyBytes)
-	}
-
-	// return new key
-	return hex.EncodeToString(newKey)
+	return hex.EncodeToString(key)
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
