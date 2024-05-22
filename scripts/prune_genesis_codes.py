@@ -91,6 +91,12 @@ def main():
 
         contract["contract_info"]["code_id"] = new_code_id
 
+    # Replace code_id sequence
+    sequences = wasm["sequences"]
+    for sequence in sequences:
+        if sequence["id_key"] == "BGxhc3RDb2RlSWQ=":
+            sequence["value"] = str(next_code_id)
+
     # Store pruned genesis file
     print("Writing output json")
     save_json_file(args.output_file, genesis)
