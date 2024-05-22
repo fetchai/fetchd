@@ -232,7 +232,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 type Bytes []byte
 
 func (a Bytes) StartsWith(with []byte) bool {
-	return len(a) >= len(with) && bytes.Compare(a[0:len(stakesKey)], with) == 0
+	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
 }
 
 func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
