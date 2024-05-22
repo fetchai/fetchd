@@ -182,7 +182,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceDenom(jsonData, networkConfig)
 
 			// supplement the genesis supply
-			ASIGenesisUpgradeASISupply(jsonData, networkConfig)
+			ASIGenesisUpgradeASISupply(jsonData, networkConfig, &manifest)
 
 			// replace addresses across the genesis file
 			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
@@ -500,7 +500,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	return nil
 }
 
-func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	denomInfo := networkInfo.DenomInfo
 	supplyInfo := networkInfo.SupplyInfo
 	additionalSupply, ok := sdk.NewIntFromString(supplyInfo.SupplyToMint)
@@ -542,6 +542,14 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 
 	// add the additional coins to the overflow address balance
 	overflowAddressBalanceCoins = overflowAddressBalanceCoins.Add(additionalSupplyCoin)
+
+	// add the new supply mint record to the manifest
+	supplyRecord := ASIUpgradeSupply{
+		LandingAddress:       supplyInfo.UpdatedSupplyOverflowAddr,
+		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
+		ResultingSupplyTotal: sdk.NewCoins(newSupplyCoins),
+	}
+	manifest.Supply = &supplyRecord
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()

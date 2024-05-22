@@ -19,7 +19,14 @@ type ASIUpgradeTransfers struct {
 	To       string               `json:"to"`
 }
 
+type ASIUpgradeSupply struct {
+	LandingAddress       string      `json:"landing_address"`
+	MintedAmount         types.Coins `json:"minted_amount"`
+	ResultingSupplyTotal types.Coins `json:"resulting_supply_total"`
+}
+
 type ASIUpgradeManifest struct {
+	Supply         *ASIUpgradeSupply    `json:"supply,omitempty"`
 	IBC            *ASIUpgradeTransfers `json:"ibc,omitempty"`
 	Reconciliation *ASIUpgradeTransfers `json:"reconciliation,omitempty"`
 }
