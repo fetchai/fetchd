@@ -3,7 +3,10 @@ package cmd
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcutil/bech32"
@@ -29,6 +32,7 @@ const (
 	Bech32Chars        = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 	AddrDataLength     = 32
 	WasmAddrDataLength = 52
+	MaxAddrDataLength  = 100
 	AddrChecksumLength = 6
 
 	AccAddressPrefix  = ""
@@ -37,6 +41,12 @@ const (
 
 	NewAddrPrefix = "asi"
 	OldAddrPrefix = "fetch"
+)
+
+var (
+	stakesKey        = prefixStringWithLength("stakes")
+	unbondEntriesKey = prefixStringWithLength("unbond_entries")
+	configKey        = []byte("config")
 )
 
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
@@ -62,6 +72,9 @@ var networkInfos = map[string]NetworkConfig{
 			},
 			AName: &AName{
 				Addr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q", // mainnet DEVELOPMENT contract,
+			},
+			MobixStaking: &MobixStaking{
+				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e", // TODO(JS): amend this
 			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
@@ -89,6 +102,9 @@ var networkInfos = map[string]NetworkConfig{
 			},
 			AName: &AName{
 				Addr: "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
+			},
+			MobixStaking: &MobixStaking{
+				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
 			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
@@ -146,9 +162,14 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
 
-			// replace bridge contract admin
+			// replace bridge contract admin, if address and new admin present
 			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			}
+
+			// update mobix staking contract, if address present
+			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
+				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
 			}
 
 			manifest := ASIUpgradeManifest{}
@@ -206,6 +227,105 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
+}
+
+type Bytes []byte
+
+func (a Bytes) StartsWith(with []byte) bool {
+	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
+}
+
+func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
+	MobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
+
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+
+	for _, contract := range contracts {
+		if contract.(map[string]interface{})["contract_address"] == MobixStakingContractAddress {
+			mobixContractStates := contract.(map[string]interface{})["contract_state"].([]interface{})
+			for _, val := range mobixContractStates {
+				state := val.(map[string]interface{})
+				hexKey := state["key"].(string)
+				b64Value := state["value"].(string)
+
+				valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+				if err != nil {
+					panic(err)
+				}
+
+				updatedKey := hexKey
+				updatedValue := b64Value
+
+				keyBytes, err := hex.DecodeString(hexKey)
+				if err != nil {
+					panic(err)
+				}
+
+				_keyBytes := Bytes(keyBytes)
+				switch {
+				case _keyBytes.StartsWith(stakesKey):
+					updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
+				case _keyBytes.StartsWith(unbondEntriesKey):
+					updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
+				case _keyBytes.StartsWith(configKey):
+					updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
+				}
+
+				val = map[string]interface{}{
+					"key":   updatedKey,
+					"value": updatedValue,
+				}
+			}
+
+			return
+		}
+	}
+
+	panic("mobix staking contract not found")
+}
+
+func replaceAddressInContractStateValue(re *regexp.Regexp, value string) string {
+	var newValue []byte
+
+	// replace value
+	valJson := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(value), &valJson); err != nil {
+		panic(err)
+	}
+
+	var err error
+	replaceAddresses(AccAddressPrefix, valJson, AddrDataLength+AddrChecksumLength)
+	newValue, err = json.Marshal(valJson)
+	if err != nil {
+		panic(err)
+	}
+
+	// return new value
+	return base64.StdEncoding.EncodeToString(newValue)
+}
+
+func prefixStringWithLength(val string) []byte {
+	length := len(val)
+
+	if length > 0xFFFF {
+		panic("length of input string does fit in to uint16")
+	}
+
+	byteArray := []byte("00" + val)
+	binary.BigEndian.PutUint16(byteArray, uint16(length))
+
+	return byteArray
+}
+
+func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
+	newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	key := append(prefix, []byte(newAddr)...)
+
+	return hex.EncodeToString(key)
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -657,9 +777,10 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge *TokenBridge
-	Almanac     *Almanac
-	AName       *AName
+	TokenBridge  *TokenBridge
+	Almanac      *Almanac
+	AName        *AName
+	MobixStaking *MobixStaking
 }
 
 type TokenBridge struct {
@@ -672,5 +793,9 @@ type Almanac struct {
 }
 
 type AName struct {
+	Addr string
+}
+
+type MobixStaking struct {
 	Addr string
 }
