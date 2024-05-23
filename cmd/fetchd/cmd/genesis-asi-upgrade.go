@@ -44,9 +44,16 @@ const (
 )
 
 var (
+	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
 	unbondEntriesKey = prefixStringWithLength("unbond_entries")
 	configKey        = []byte("config")
+
+	// Fcc issuance contract keys
+	claimsKey               = prefixStringWithLength("claims")
+	issuerAddressKey        = []byte("issuer_address")
+	sourceOfFundsAddressKey = []byte("source_of_funds_address")
+	cw20AddressKey          = []byte("cw20_address")
 )
 
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
@@ -110,6 +117,9 @@ var networkInfos = map[string]NetworkConfig{
 				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
+			FccIssuance: &FccIssuance{
+				Addr: "fetch17z773v8ree3e75s5sme38vvenlcyavcfs2ct3y6w77rwa5ag3srslelug5",
+			},
 		},
 	},
 }
@@ -167,7 +177,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
 			}
 
-			// update mobix staking contract, if address present
+			// update mobix staking contract, if address present TODO: include all contract checks within the functions themselves
 			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
 				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
 			}
@@ -182,6 +192,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace aname contract state
 			if networkConfig.Contracts != nil && networkConfig.Contracts.AName != nil {
 				ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
+			}
+
+			// update fcc issuance contract
+			if networkConfig.Contracts != nil && networkConfig.Contracts.FccIssuance != nil {
+				ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 			}
 
 			// withdraw balances from IBC channels
@@ -233,6 +248,59 @@ type Bytes []byte
 
 func (a Bytes) StartsWith(with []byte) bool {
 	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
+}
+
+func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	FccIssuanceContractAddr := networkInfo.Contracts.FccIssuance.Addr
+	FccIssuanceContract := getContractFromAddr(FccIssuanceContractAddr, jsonData)
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+
+	replaceContractValueString := func(value string) string {
+		newVal := re.ReplaceAllStringFunc(value, func(match string) string {
+			newAddr, err := convertAddressToASI(match, AccAddressPrefix)
+			if err != nil {
+				panic(err)
+			}
+			return newAddr
+		})
+		return base64.StdEncoding.EncodeToString([]byte(newVal))
+	}
+
+	for _, val := range FccIssuanceContract["contract_state"].([]interface{}) {
+		state := val.(map[string]interface{})
+		hexKey := state["key"].(string)
+		b64Value := state["value"].(string)
+
+		valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+		if err != nil {
+			panic(err)
+		}
+
+		keyBytes, err := hex.DecodeString(hexKey)
+		if err != nil {
+			panic(err)
+		}
+
+		updatedKey := hexKey
+		updatedValue := b64Value
+
+		_keyBytes := Bytes(keyBytes)
+		switch {
+		case _keyBytes.StartsWith(claimsKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, claimsKey)
+		case _keyBytes.StartsWith(issuerAddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(sourceOfFundsAddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(cw20AddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		}
+
+		val = map[string]interface{}{
+			"key":   updatedKey,
+			"value": updatedValue,
+		}
+	}
 }
 
 func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -781,6 +849,7 @@ type Contracts struct {
 	Almanac      *Almanac
 	AName        *AName
 	MobixStaking *MobixStaking
+	FccIssuance  *FccIssuance
 }
 
 type TokenBridge struct {
@@ -797,5 +866,9 @@ type AName struct {
 }
 
 type MobixStaking struct {
+	Addr string
+}
+
+type FccIssuance struct {
 	Addr string
 }
