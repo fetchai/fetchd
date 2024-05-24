@@ -120,9 +120,15 @@ def _get_balance(genesis, address, denom):
                 if amount["denom"] == denom:
                     amount = int(amount["amount"])
                     break
-            if amount is not 0:
+            if amount != 0:
                 break
     return amount
+
+
+def _get_unjailed_validator(genesis):
+    for val_info in genesis["app_state"]["staking"]["validators"]:
+        if not val_info["jailed"]:
+            return val_info
 
 
 def main():
@@ -174,7 +180,7 @@ def main():
         genesis = json.load(export_file)
     print("reading genesis export...complete")
 
-    val_infos = genesis["app_state"]["staking"]["validators"][0]
+    val_infos = _get_unjailed_validator(genesis)
     if not val_infos:
         print("Genesis file does not contain any validators")
         sys.exit(1)
@@ -188,9 +194,7 @@ def main():
     print(f"Replacing validator {target_validator_operator_address}...")
 
     val_addr = None
-    genesis["app_state"]["staking"]["validators"][0]["consensus_pubkey"][
-        "key"
-    ] = validator_pubkey
+    val_infos["consensus_pubkey"]["key"] = validator_pubkey
     for val in genesis["validators"]:
         if val["pub_key"]["value"] == target_validator_public_key:
             val["pub_key"]["value"] = validator_pubkey
