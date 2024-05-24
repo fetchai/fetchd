@@ -51,9 +51,11 @@ var (
 
 	// Fcc issuance contract keys
 	claimsKey               = prefixStringWithLength("claims")
+	issuanceKey             = prefixStringWithLength("issuance")
 	issuerAddressKey        = []byte("issuer_address")
 	sourceOfFundsAddressKey = []byte("source_of_funds_address")
 	cw20AddressKey          = []byte("cw20_address")
+	issuanceFccAddressKey   = []byte("issuance_fcc_address")
 )
 
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
@@ -290,9 +292,13 @@ func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{},
 			updatedKey = replaceAddressInContractStateKey(keyBytes, claimsKey)
 		case _keyBytes.StartsWith(issuerAddressKey):
 			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(issuanceKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, issuanceKey)
 		case _keyBytes.StartsWith(sourceOfFundsAddressKey):
 			updatedValue = replaceContractValueString(string(valueBytes))
 		case _keyBytes.StartsWith(cw20AddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(issuanceFccAddressKey):
 			updatedValue = replaceContractValueString(string(valueBytes))
 		}
 
