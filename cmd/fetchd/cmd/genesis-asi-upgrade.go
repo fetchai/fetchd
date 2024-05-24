@@ -45,9 +45,18 @@ const (
 )
 
 var (
+	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
 	unbondEntriesKey = prefixStringWithLength("unbond_entries")
 	configKey        = []byte("config")
+
+	// Fcc issuance contract keys
+	claimsKey               = prefixStringWithLength("claims")
+	issuanceKey             = prefixStringWithLength("issuance")
+	issuerAddressKey        = []byte("issuer_address")
+	sourceOfFundsAddressKey = []byte("source_of_funds_address")
+	cw20AddressKey          = []byte("cw20_address")
+	issuanceFccAddressKey   = []byte("issuance_fcc_address")
 
 	// Fcc Cw20 contract keys
 	marketingInfoKey    = []byte("marketing_info")
@@ -121,6 +130,9 @@ var networkInfos = map[string]NetworkConfig{
 			FccCw20: &FccCw20{
 				Addr: "fetch1s0p7pwtm8qhvh2sfpg0ajgl20hwtehr0vcztyeku0vkzzvg044xqx4t7pt",
 			},
+			FccIssuance: &FccIssuance{
+				Addr: "fetch17z773v8ree3e75s5sme38vvenlcyavcfs2ct3y6w77rwa5ag3srslelug5",
+			},
 		},
 	},
 }
@@ -178,7 +190,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
 			}
 
-			// update mobix staking contract, if address present
+			// update mobix staking contract, if address present TODO: include all contract checks within the functions themselves
 			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
 				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
 			}
@@ -197,6 +209,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// replace aname contract state
 			if networkConfig.Contracts != nil && networkConfig.Contracts.AName != nil {
 				ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
+			}
+
+			// update fcc issuance contract
+			if networkConfig.Contracts != nil && networkConfig.Contracts.FccIssuance != nil {
+				ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 			}
 
 			// withdraw balances from IBC channels
@@ -328,6 +345,63 @@ func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, net
 		}
 
 		state = map[string]interface{}{
+			"key":   updatedKey,
+			"value": updatedValue,
+		}
+	}
+}
+
+func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	FccIssuanceContractAddr := networkInfo.Contracts.FccIssuance.Addr
+	FccIssuanceContract := getContractFromAddr(FccIssuanceContractAddr, jsonData)
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+
+	replaceContractValueString := func(value string) string {
+		newVal := re.ReplaceAllStringFunc(value, func(match string) string {
+			newAddr, err := convertAddressToASI(match, AccAddressPrefix)
+			if err != nil {
+				panic(err)
+			}
+			return newAddr
+		})
+		return base64.StdEncoding.EncodeToString([]byte(newVal))
+	}
+
+	for _, val := range FccIssuanceContract["contract_state"].([]interface{}) {
+		state := val.(map[string]interface{})
+		hexKey := state["key"].(string)
+		b64Value := state["value"].(string)
+
+		valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+		if err != nil {
+			panic(err)
+		}
+
+		keyBytes, err := hex.DecodeString(hexKey)
+		if err != nil {
+			panic(err)
+		}
+
+		updatedKey := hexKey
+		updatedValue := b64Value
+
+		_keyBytes := Bytes(keyBytes)
+		switch {
+		case _keyBytes.StartsWith(claimsKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, claimsKey)
+		case _keyBytes.StartsWith(issuerAddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(issuanceKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, issuanceKey)
+		case _keyBytes.StartsWith(sourceOfFundsAddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(cw20AddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		case _keyBytes.StartsWith(issuanceFccAddressKey):
+			updatedValue = replaceContractValueString(string(valueBytes))
+		}
+
+		val = map[string]interface{}{
 			"key":   updatedKey,
 			"value": updatedValue,
 		}
@@ -891,6 +965,7 @@ type Contracts struct {
 	Almanac      *Almanac
 	AName        *AName
 	MobixStaking *MobixStaking
+	FccIssuance  *FccIssuance
 	FccCw20      *FccCw20
 }
 
@@ -912,5 +987,9 @@ type MobixStaking struct {
 }
 
 type FccCw20 struct {
+	Addr string
+}
+
+type FccIssuance struct {
 	Addr string
 }
