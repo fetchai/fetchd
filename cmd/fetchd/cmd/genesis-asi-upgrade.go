@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	_ "embed"
 	"encoding/base64"
@@ -56,6 +57,13 @@ var (
 	sourceOfFundsAddressKey = []byte("source_of_funds_address")
 	cw20AddressKey          = []byte("cw20_address")
 	issuanceFccAddressKey   = []byte("issuance_fcc_address")
+
+	// Fcc Cw20 contract keys
+	marketingInfoKey    = []byte("marketing_info")
+	tokenInfoKey        = []byte("token_info")
+	allowanceSpenderKey = prefixStringWithLength("allowance_spender")
+	allowanceKey        = prefixStringWithLength("allowance")
+	balanceKey          = prefixStringWithLength("balance")
 )
 
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
@@ -118,6 +126,9 @@ var networkInfos = map[string]NetworkConfig{
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+			},
+			FccCw20: &FccCw20{
+				Addr: "fetch1s0p7pwtm8qhvh2sfpg0ajgl20hwtehr0vcztyeku0vkzzvg044xqx4t7pt",
 			},
 			FccIssuance: &FccIssuance{
 				Addr: "fetch17z773v8ree3e75s5sme38vvenlcyavcfs2ct3y6w77rwa5ag3srslelug5",
@@ -182,6 +193,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// update mobix staking contract, if address present TODO: include all contract checks within the functions themselves
 			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
 				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
+			}
+
+			if networkConfig.Contracts != nil && networkConfig.Contracts.FccCw20 != nil {
+				ASIGenesisUpgradeUpdateFccCw20Contract(jsonData, networkConfig)
 			}
 
 			manifest := ASIUpgradeManifest{}
@@ -250,6 +265,90 @@ type Bytes []byte
 
 func (a Bytes) StartsWith(with []byte) bool {
 	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
+}
+
+func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
+	address1StartIdx := len(prefix) + 2
+	address1Len := int(binary.BigEndian.Uint16(keyBytes[len(prefix):address1StartIdx]))
+	address2StartIdx := address1StartIdx + address1Len
+
+	address1, err := convertAddressToASI(string(keyBytes[address1StartIdx:address2StartIdx]), AccAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	address2, err := convertAddressToASI(string(keyBytes[address2StartIdx:]), AccAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
+
+	if _, err := writer.Write(prefix); err != nil {
+		panic(err)
+	}
+
+	if err := binary.Write(writer, binary.BigEndian, uint16(address1Len)); err != nil {
+		panic(err)
+	}
+
+	if _, err := writer.WriteString(address1); err != nil {
+		panic(err)
+	}
+	if _, err := writer.WriteString(address2); err != nil {
+		panic(err)
+	}
+
+	if err := writer.Flush(); err != nil {
+		panic(err)
+	}
+
+	return hex.EncodeToString(buffer.Bytes())
+}
+
+func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	FccCw20Address := networkInfo.Contracts.FccCw20.Addr
+	FccCw20Contract := getContractFromAddr(FccCw20Address, jsonData)
+
+	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+
+	for _, state := range FccCw20Contract["contract_state"].([]interface{}) {
+		stateMap := state.(map[string]interface{})
+		hexKey := stateMap["key"].(string)
+		b64Value := stateMap["value"].(string)
+
+		keyBytes, err := hex.DecodeString(hexKey)
+		if err != nil {
+			panic(err)
+		}
+
+		valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+		if err != nil {
+			panic(err)
+		}
+
+		updatedKey := hexKey
+		updatedValue := b64Value
+		_keyBytes := Bytes(keyBytes)
+		switch {
+		case _keyBytes.StartsWith(balanceKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, balanceKey)
+		case _keyBytes.StartsWith(tokenInfoKey):
+			updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
+		case _keyBytes.StartsWith(marketingInfoKey):
+			updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
+		case _keyBytes.StartsWith(allowanceSpenderKey):
+			updatedKey = replaceAddressInContractStateKey2(keyBytes, allowanceSpenderKey)
+		case _keyBytes.StartsWith(allowanceKey):
+			updatedKey = replaceAddressInContractStateKey2(keyBytes, allowanceKey)
+		}
+
+		state = map[string]interface{}{
+			"key":   updatedKey,
+			"value": updatedValue,
+		}
+	}
 }
 
 func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -383,15 +482,26 @@ func prefixStringWithLength(val string) []byte {
 	length := len(val)
 
 	if length > 0xFFFF {
-		panic("length of input string does fit in to uint16")
+		panic("length of input string does not fit into uint16")
 	}
 
-	byteArray := []byte("00" + val)
-	binary.BigEndian.PutUint16(byteArray, uint16(length))
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
 
-	return byteArray
+	if err := binary.Write(writer, binary.BigEndian, uint16(length)); err != nil {
+		panic(err)
+	}
+
+	if _, err := writer.WriteString(val); err != nil {
+		panic(err)
+	}
+
+	if err := writer.Flush(); err != nil {
+		panic(err)
+	}
+
+	return buffer.Bytes()
 }
-
 func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
 	if err != nil {
@@ -856,6 +966,7 @@ type Contracts struct {
 	AName        *AName
 	MobixStaking *MobixStaking
 	FccIssuance  *FccIssuance
+	FccCw20      *FccCw20
 }
 
 type TokenBridge struct {
@@ -872,6 +983,10 @@ type AName struct {
 }
 
 type MobixStaking struct {
+	Addr string
+}
+
+type FccCw20 struct {
 	Addr string
 }
 
