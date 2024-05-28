@@ -115,7 +115,8 @@ var networkInfos = map[string]NetworkConfig{
 		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		Contracts: &Contracts{
 			Almanac: &Almanac{
-				Addr: "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp", // testnet DEVELOPMENT contract,
+				Addr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w", // testnet PROD contract,
+				//Addr: "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp", // testnet DEVELOPMENT contract,
 			},
 			AName: &AName{
 				Addr: "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
