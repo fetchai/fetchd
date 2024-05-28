@@ -171,50 +171,42 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
+			// fetch the network config using chain-id
 			var ok bool
-			var networkConfig NetworkConfig // TODO(JS): potentially just read Chain-ID, instead of taking a new arg
+			var networkConfig NetworkConfig
 			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
 				return fmt.Errorf("network not found, no match for Chain-ID in genesis file")
 			}
 
+			// unmarshal the app state
 			var jsonData map[string]interface{}
 			if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
+			// create a new manifest
+			manifest := ASIUpgradeManifest{}
+
 			// replace chain-id
 			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
 
-			// replace bridge contract admin, if address and new admin present
-			if networkConfig.Contracts != nil && networkConfig.Contracts.TokenBridge != nil {
-				ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
-			}
+			// replace bridge contract admin
+			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
 
-			// update mobix staking contract, if address present TODO: include all contract checks within the functions themselves
-			if networkConfig.Contracts != nil && networkConfig.Contracts.MobixStaking != nil {
-				ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
-			}
+			// update mobix staking contract
+			ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
 
-			if networkConfig.Contracts != nil && networkConfig.Contracts.FccCw20 != nil {
-				ASIGenesisUpgradeUpdateFccCw20Contract(jsonData, networkConfig)
-			}
-
-			manifest := ASIUpgradeManifest{}
+			// update fcc cw20 contract
+			ASIGenesisUpgradeUpdateFccCw20Contract(jsonData, networkConfig)
 
 			// replace almanac contract state
-			if networkConfig.Contracts != nil && networkConfig.Contracts.Almanac != nil {
-				ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
-			}
+			ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
 
 			// replace aname contract state
-			if networkConfig.Contracts != nil && networkConfig.Contracts.AName != nil {
-				ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
-			}
+			ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
 
 			// update fcc issuance contract
-			if networkConfig.Contracts != nil && networkConfig.Contracts.FccIssuance != nil {
-				ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
-			}
+			ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 
 			// withdraw balances from IBC channels
 			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
@@ -308,12 +300,17 @@ func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 }
 
 func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	if networkInfo.Contracts == nil || networkInfo.Contracts.FccCw20 == nil {
+		return
+	}
+
 	FccCw20Address := networkInfo.Contracts.FccCw20.Addr
 	FccCw20Contract := getContractFromAddr(FccCw20Address, jsonData)
 
 	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
 
-	for _, state := range FccCw20Contract["contract_state"].([]interface{}) {
+	states := FccCw20Contract["contract_state"].([]interface{})
+	for i, state := range states {
 		stateMap := state.(map[string]interface{})
 		hexKey := stateMap["key"].(string)
 		b64Value := stateMap["value"].(string)
@@ -344,7 +341,7 @@ func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, net
 			updatedKey = replaceAddressInContractStateKey2(keyBytes, allowanceKey)
 		}
 
-		state = map[string]interface{}{
+		states[i] = map[string]interface{}{
 			"key":   updatedKey,
 			"value": updatedValue,
 		}
@@ -352,6 +349,10 @@ func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, net
 }
 
 func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+	if networkInfo.Contracts == nil || networkInfo.Contracts.FccIssuance == nil {
+		return
+	}
+
 	FccIssuanceContractAddr := networkInfo.Contracts.FccIssuance.Addr
 	FccIssuanceContract := getContractFromAddr(FccIssuanceContractAddr, jsonData)
 	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
@@ -367,7 +368,8 @@ func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{},
 		return base64.StdEncoding.EncodeToString([]byte(newVal))
 	}
 
-	for _, val := range FccIssuanceContract["contract_state"].([]interface{}) {
+	states := FccIssuanceContract["contract_state"].([]interface{})
+	for i, val := range states {
 		state := val.(map[string]interface{})
 		hexKey := state["key"].(string)
 		b64Value := state["value"].(string)
@@ -401,7 +403,7 @@ func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{},
 			updatedValue = replaceContractValueString(string(valueBytes))
 		}
 
-		val = map[string]interface{}{
+		states[i] = map[string]interface{}{
 			"key":   updatedKey,
 			"value": updatedValue,
 		}
@@ -409,53 +411,47 @@ func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{},
 }
 
 func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	contracts := jsonData["wasm"].(map[string]interface{})["contracts"].([]interface{})
-	MobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
+	if networkInfo.Contracts == nil || networkInfo.Contracts.MobixStaking == nil {
+		return
+	}
+	mobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
+	mobixStakingContract := getContractFromAddr(mobixStakingContractAddress, jsonData)
 
 	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+	states := mobixStakingContract["contract_state"].([]interface{})
+	for i, val := range states {
+		state := val.(map[string]interface{})
+		hexKey := state["key"].(string)
+		b64Value := state["value"].(string)
 
-	for _, contract := range contracts {
-		if contract.(map[string]interface{})["contract_address"] == MobixStakingContractAddress {
-			mobixContractStates := contract.(map[string]interface{})["contract_state"].([]interface{})
-			for _, val := range mobixContractStates {
-				state := val.(map[string]interface{})
-				hexKey := state["key"].(string)
-				b64Value := state["value"].(string)
+		valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+		if err != nil {
+			panic(err)
+		}
 
-				valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
-				if err != nil {
-					panic(err)
-				}
+		updatedKey := hexKey
+		updatedValue := b64Value
 
-				updatedKey := hexKey
-				updatedValue := b64Value
+		keyBytes, err := hex.DecodeString(hexKey)
+		if err != nil {
+			panic(err)
+		}
 
-				keyBytes, err := hex.DecodeString(hexKey)
-				if err != nil {
-					panic(err)
-				}
+		_keyBytes := Bytes(keyBytes)
+		switch {
+		case _keyBytes.StartsWith(stakesKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
+		case _keyBytes.StartsWith(unbondEntriesKey):
+			updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
+		case _keyBytes.StartsWith(configKey):
+			updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
+		}
 
-				_keyBytes := Bytes(keyBytes)
-				switch {
-				case _keyBytes.StartsWith(stakesKey):
-					updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
-				case _keyBytes.StartsWith(unbondEntriesKey):
-					updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
-				case _keyBytes.StartsWith(configKey):
-					updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
-				}
-
-				val = map[string]interface{}{
-					"key":   updatedKey,
-					"value": updatedValue,
-				}
-			}
-
-			return
+		states[i] = map[string]interface{}{
+			"key":   updatedKey,
+			"value": updatedValue,
 		}
 	}
-
-	panic("mobix staking contract not found")
 }
 
 func replaceAddressInContractStateValue(re *regexp.Regexp, value string) string {
@@ -577,7 +573,12 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo 
 }
 
 func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	tokenBridgeContract := getContractFromAddr(networkInfo.Contracts.TokenBridge.Addr, jsonData)
+	if networkInfo.Contracts == nil || networkInfo.Contracts.TokenBridge == nil || networkInfo.Contracts.TokenBridge.NewAdmin == "" {
+		return
+	}
+
+	tokenBridgeContractAddress := networkInfo.Contracts.TokenBridge.Addr
+	tokenBridgeContract := getContractFromAddr(tokenBridgeContractAddress, jsonData)
 
 	// replace token bridge admin
 	contractInfo := tokenBridgeContract["contract_info"].(map[string]interface{})
@@ -602,14 +603,24 @@ func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo 
 }
 
 func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	almanacContract := getContractFromAddr(networkInfo.Contracts.Almanac.Addr, jsonData)
+	if networkInfo.Contracts == nil || networkInfo.Contracts.Almanac == nil {
+		return
+	}
+
+	almanacContractAddress := networkInfo.Contracts.Almanac.Addr
+	almanacContract := getContractFromAddr(almanacContractAddress, jsonData)
 
 	// empty the almanac contract state
 	almanacContract["contract_state"] = []interface{}{}
 }
 
 func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	anameContract := getContractFromAddr(networkInfo.Contracts.AName.Addr, jsonData)
+	if networkInfo.Contracts != nil && networkInfo.Contracts.AName != nil {
+		return
+	}
+
+	anameContractAddress := networkInfo.Contracts.AName.Addr
+	anameContract := getContractFromAddr(anameContractAddress, jsonData)
 
 	// empty the AName contract state
 	anameContract["contract_state"] = []interface{}{}
