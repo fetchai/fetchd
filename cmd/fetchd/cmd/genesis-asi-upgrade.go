@@ -274,6 +274,9 @@ func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 		panic(err)
 	}
 
+	// set to new address length
+	address1Len = len(address1)
+
 	var buffer bytes.Buffer
 	writer := bufio.NewWriter(&buffer)
 
