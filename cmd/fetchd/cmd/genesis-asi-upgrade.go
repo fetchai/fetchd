@@ -112,7 +112,7 @@ var networkInfos = map[string]NetworkConfig{
 			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
-		IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		//IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
 		Contracts: &Contracts{
 			Almanac: &Almanac{
 				StagingAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w", // testnet STAGING contract,
@@ -211,16 +211,10 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 
 			// withdraw balances from IBC channels
-			if err = ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest); err != nil {
-				return err
-			}
+			ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest)
 
 			// withdraw balances from reconciliation addresses
-			if networkConfig.ReconciliationTargetAddr != nil {
-				if err = ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest); err != nil {
-					return err
-				}
-			}
+			ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest)
 
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData, networkConfig)
@@ -625,7 +619,7 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 }
 
 func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	if networkInfo.Contracts != nil && networkInfo.Contracts.AName != nil {
+	if networkInfo.Contracts == nil || networkInfo.Contracts.AName == nil {
 		return
 	}
 
@@ -681,7 +675,11 @@ func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{},
 	})
 }
 
-func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
+func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkInfo.IbcTargetAddr == "" {
+		return
+	}
+
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	balanceMap := getGenesisBalancesMap(balances)
@@ -693,8 +691,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
-		fmt.Println("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
-		return nil
+		panic("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
 	}
 
 	ibc := jsonData[ibccore.ModuleName].(map[string]interface{})
@@ -712,7 +709,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
 		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
 		if err != nil {
-			return fmt.Errorf("failed to bech32ify address: %w", err)
+			panic(err)
 		}
 
 		balanceIdx, ok := (*balanceMap)[channelAddr]
@@ -733,8 +730,6 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 		// zero out the channel balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 	}
-
-	return nil
 }
 
 func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
@@ -764,7 +759,11 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) error {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkInfo.ReconciliationTargetAddr == nil {
+		return
+	}
+
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 	reconciliationWithdrawAddress := networkInfo.ReconciliationTargetAddr
@@ -784,7 +783,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 
 	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
 	if !ok {
-		return fmt.Errorf("no match in genesis for reconciliation address: %s", *reconciliationWithdrawAddress)
+		panic("no match in genesis for reconciliation withdraw address")
 	}
 
 	manifest.Reconciliation = &ASIUpgradeTransfers{
@@ -799,7 +798,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 
 		accSequence, ok := (*accountSequenceMap)[addr]
 		if !ok {
-			return fmt.Errorf("no match in genesis for reconciliation address: %s", addr)
+			panic("no match in genesis for reconciliation address")
 		}
 
 		balanceIdx, ok := (*balanceMap)[addr]
@@ -827,7 +826,6 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 	}
-	return nil
 }
 
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
