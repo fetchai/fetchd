@@ -17,9 +17,10 @@ from genesis_helpers import (
     remove_max_wasm_code_size,
     set_voting_period,
     update_chain_id,
-    to_bech32,
     get_local_key_data,
     hex_address_to_bech32,
+    get_account_address_by_name,
+    get_staking_validator_info,
 )
 
 DEFAULT_STAKING_DENOM = "afet"
@@ -82,9 +83,8 @@ def main():
         args.home_path, "config", "priv_validator_key.json"
     )
 
-    local_validator_json = load_json_file(local_validator_key_path)
-
     # extract the tendermint addresses
+    local_validator_json = load_json_file(local_validator_key_path)
     validator_hexaddr = local_validator_json["address"]
     validator_address = hex_address_to_bech32(validator_hexaddr, "fetchvalcons")
     validator_pubkey = local_validator_json["pub_key"]["value"]
@@ -139,17 +139,10 @@ def main():
     # Find the bonded and not bonded token pools
     print("Finding bonded and not bonded token pools...")
 
-    bonded_pool_address = None
-    not_bonded_pool_address = None
-    for account in genesis["app_state"]["auth"]["accounts"]:
-        if "name" in account:
-            if account["name"] == "bonded_tokens_pool":
-                bonded_pool_address = account["base_account"]["address"]
-            elif account["name"] == "not_bonded_tokens_pool":
-                not_bonded_pool_address = account["base_account"]["address"]
-
-            if bonded_pool_address and not_bonded_pool_address:
-                break
+    bonded_pool_address = get_account_address_by_name(genesis, "bonded_tokens_pool")
+    not_bonded_pool_address = get_account_address_by_name(
+        genesis, "not_bonded_tokens_pool"
+    )
 
     # Update bonded and not bonded pool values to make invariant checks happy
     print("Updating bonded and not bonded token pool values...")

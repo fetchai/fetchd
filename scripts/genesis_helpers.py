@@ -84,7 +84,7 @@ def get_unjailed_validator(genesis) -> dict:
             return val_info
 
 
-def get_validator_info(genesis, validator_pubkey) -> dict:
+def get_staking_validator_info(genesis, validator_pubkey) -> dict:
     for val_info in genesis["app_state"]["staking"]["validators"]:
         if val_info["consensus_pubkey"]["key"] == validator_pubkey:
             return val_info
@@ -119,14 +119,22 @@ def load_json_file(path) -> dict:
         return json.load(export_file)
 
 
-def replace_validator_from_key(
+def get_validator_info(genesis, validator_pubkey):
+    for val in genesis["validators"]:
+        if val["pub_key"]["value"] == validator_pubkey:
+            return val
+
+    assert True, "Validator not found in genesis"
+
+
+def replace_validator_from_pubkey(
     genesis,
     src_validator_pubkey,
     dest_validator_pubkey,
     dest_validator_hexaddr,
     dest_validator_operator_address,
 ):
-    val_info = get_validator_info(src_validator_pubkey)
+    val_info = get_staking_validator_info(src_validator_pubkey)
     replace_validator_with_info(
         genesis,
         val_info,
@@ -138,24 +146,19 @@ def replace_validator_from_key(
 
 def replace_validator_with_info(
     genesis,
-    val_info,
+    val_staking_info,
     dest_validator_pubkey,
     dest_validator_hexaddr,
     dest_validator_operator_address,
 ):
-    src_validator_pubkey = val_info["consensus_pubkey"]["key"]
+    src_validator_pubkey = val_staking_info["consensus_pubkey"]["key"]
 
-    src_operator_addr = val_info["operator_address"]
+    src_operator_addr = val_staking_info["operator_address"]
     print(f"Replacing validator {src_operator_addr}")
 
-    val_addr = None
-    val_info["consensus_pubkey"]["key"] = dest_validator_pubkey
-    for val in genesis["validators"]:
-        if val["pub_key"]["value"] == src_validator_pubkey:
-            val["pub_key"]["value"] = dest_validator_pubkey
-            val_addr = val["address"]
-            break
-    assert val_addr is not None, "Validator not found in genesis"
+    val_info = get_validator_info(genesis, src_validator_pubkey)
+    val_info["pub_key"]["value"] = dest_validator_pubkey
+    val_addr = val_info["address"]
 
     genesis_dump = json.dumps(genesis)
     genesis_dump = re.sub(val_addr, dest_validator_hexaddr, genesis_dump)
@@ -193,3 +196,10 @@ def get_local_key_data(home_path, validator_key_name) -> dict:
 def hex_address_to_bech32(hex_address, prefix="fetchvalcons") -> str:
     binary_address = bytes.fromhex(hex_address)
     return to_bech32(prefix, binary_address)
+
+
+def get_account_address_by_name(genesis, account_name) -> str:
+    for account in genesis["app_state"]["auth"]["accounts"]:
+        if "name" in account:
+            if account["name"] == account_name:
+                return account["base_account"]["address"]
