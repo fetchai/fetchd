@@ -6,16 +6,75 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path
-from typing import Any, Dict, List
+from genesis_helpers import (
+    get_balance,
+    get_path,
+    get_unjailed_validator,
+    set_balance,
+    ensure_account,
+    convert_to_valoper,
+    get_validator_info,
+)
 
-import bech32
 
 DEFAULT_STAKING_DENOM = "afet"
 DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
+
+
+def jail_validators(genesis, validator_operator_address: None):
+    for validator in genesis["app_state"]["staking"]["validators"]:
+        if validator["operator_address"] != validator_operator_address:
+            validator["status"] = "BOND_STATUS_UNBONDING"
+            validator["jailed"] = True
+
+
+def remove_max_wasm_code_size(genesis):
+    if "max_wasm_code_size" in genesis["app_state"]["wasm"]["params"]:
+        print("Removing max_wasm_code_size...")
+        del genesis["app_state"]["wasm"]["params"]["max_wasm_code_size"]
+
+
+def set_voting_period(genesis, voting_period):
+    print(f"Setting voting period to {voting_period}...")
+    genesis["app_state"]["gov"]["voting_params"]["voting_period"] = voting_period
+
+
+def update_chain_id(genesis, chain_id):
+    print(f"Updating chain id to {chain_id}...")
+    genesis["chain_id"] = chain_id
+
+
+def load_json_file(path) -> dict:
+    with open(path, "r") as export_file:
+        return json.load(export_file)
+
+
+def replace_validator_from_key(
+    genesis, src_validator_pubkey, dest_validator_pubkey
+) -> str:
+    val_info = get_validator_info(src_validator_pubkey)
+    return replace_validator_with_info(genesis, val_info, dest_validator_pubkey)
+
+
+def replace_validator_with_info(genesis, val_info, dest_validator_pubkey) -> str:
+    src_validator_pubkey = val_info["consensus_pubkey"]["key"]
+
+    src_operator_addr = val_info["operator_address"]
+    print(f"Replacing validator {src_operator_addr}")
+
+    val_addr = None
+    val_info["consensus_pubkey"]["key"] = dest_validator_pubkey
+    for val in genesis["validators"]:
+        if val["pub_key"]["value"] == src_validator_pubkey:
+            val["pub_key"]["value"] = dest_validator_pubkey
+            val_addr = val["address"]
+            break
+    assert val_addr is not None, "Validator not found in genesis"
+
+
 
 
 def parse_commandline():
@@ -34,7 +93,7 @@ the local chain to be started with:
 
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
-        "genesis_export", type=_path, help="The path to the genesis export"
+        "genesis_export", type=get_path, help="The path to the genesis export"
     )
     parser.add_argument(
         "--home_path",
@@ -57,78 +116,6 @@ the local chain to be started with:
     )
 
     return parser.parse_args()
-
-
-def _path(text: str) -> str:
-    return os.path.abspath(text)
-
-
-def _convert_to_valoper(address):
-    hrp, data = bech32.bech32_decode(address)
-    if hrp != "fetch":
-        print("Invalid address, expected normal fetch address")
-        sys.exit(1)
-
-    return bech32.bech32_encode("fetchvaloper", data)
-
-
-def _ensure_account(genesis, address):
-    for account in genesis["app_state"]["auth"]["accounts"]:
-        if "address" in account and account["address"] == address:
-            return
-
-    # Add new account to auth
-    last_account_number = int(
-        genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
-    )
-
-    # Ensure unique account number
-    new_account = {
-        "@type": "/cosmos.auth.v1beta1.BaseAccount",
-        "account_number": str(last_account_number + 1),
-        "address": address,
-        "pub_key": None,
-        "sequence": "0",
-    }
-    genesis["app_state"]["auth"]["accounts"].append(new_account)
-    return genesis
-
-
-def _set_balance(genesis, address, new_balance, denom):
-    account_found = False
-    for balance in genesis["app_state"]["bank"]["balances"]:
-        if balance["address"] == address:
-            for amount in balance["coins"]:
-                if amount["denom"] == denom:
-                    amount["amount"] = str(new_balance)
-                    account_found = True
-
-    if not account_found:
-        new_balance_entry = {
-            "address": address,
-            "coins": [{"amount": str(new_balance), "denom": denom}],
-        }
-        genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
-    return genesis
-
-
-def _get_balance(genesis, address, denom):
-    amount = 0
-    for balance in genesis["app_state"]["bank"]["balances"]:
-        if balance["address"] == address:
-            for amount in balance["coins"]:
-                if amount["denom"] == denom:
-                    amount = int(amount["amount"])
-                    break
-            if amount != 0:
-                break
-    return amount
-
-
-def _get_unjailed_validator(genesis):
-    for val_info in genesis["app_state"]["staking"]["validators"]:
-        if not val_info["jailed"]:
-            return val_info
 
 
 def main():
@@ -170,37 +157,27 @@ def main():
 
     # extract the local address and convert into a valid validator operator address
     validator_operator_base_address = key_data["address"]
-    validator_operator_address = _convert_to_valoper(validator_operator_base_address)
+    validator_operator_address = convert_to_valoper(validator_operator_base_address)
     print(f"       {validator_operator_base_address}")
     print(validator_operator_address)
 
     # load the genesis up
     print("reading genesis export...")
-    with open(args.genesis_export, "r") as export_file:
-        genesis = json.load(export_file)
+    genesis = load_json_file(args.genesis_export)
+
     print("reading genesis export...complete")
 
-    val_infos = _get_unjailed_validator(genesis)
-    if not val_infos:
+    val_info = get_unjailed_validator(genesis)
+    if not val_info:
         print("Genesis file does not contain any validators")
         sys.exit(1)
 
-    target_validator_operator_address = val_infos["operator_address"]
-    target_validator_public_key = val_infos["consensus_pubkey"]["key"]
-    val_tokens = int(val_infos["tokens"])
+    target_validator_operator_address = val_info["operator_address"]
+    val_tokens = int(val_info["tokens"])
     val_power = int(val_tokens / (10**18))
 
     # Replace selected validator by current node one
-    print(f"Replacing validator {target_validator_operator_address}...")
-
-    val_addr = None
-    val_infos["consensus_pubkey"]["key"] = validator_pubkey
-    for val in genesis["validators"]:
-        if val["pub_key"]["value"] == target_validator_public_key:
-            val["pub_key"]["value"] = validator_pubkey
-            val_addr = val["address"]
-            break
-    assert val_addr is not None, "Validator not found in genesis"
+    val_addr = replace_validator_with_info(genesis, val_info, validator_pubkey)
 
     genesis_dump = json.dumps(genesis)
     genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump)
@@ -244,16 +221,16 @@ def main():
     print("Updating bonded and not bonded token pool values...")
 
     # Get current bonded and not bonded tokens
-    bonded_tokens = _get_balance(genesis, bonded_pool_address, args.staking_denom)
-    not_bonded_tokens = _get_balance(
+    bonded_tokens = get_balance(genesis, bonded_pool_address, args.staking_denom)
+    not_bonded_tokens = get_balance(
         genesis, not_bonded_pool_address, args.staking_denom
     )
 
     new_not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
 
     # Update bonded pool and not bonded pool balances
-    _set_balance(genesis, bonded_pool_address, val_tokens, args.staking_denom)
-    _set_balance(
+    set_balance(genesis, bonded_pool_address, val_tokens, args.staking_denom)
+    set_balance(
         genesis, not_bonded_pool_address, new_not_bonded_tokens, args.staking_denom
     )
 
@@ -263,12 +240,12 @@ def main():
     )
 
     # Add new balance to bank
-    genesis = _set_balance(
+    genesis = set_balance(
         genesis, validator_operator_base_address, FUND_BALANCE, args.staking_denom
     )
 
     # Add new account to auth if not already there
-    genesis = _ensure_account(genesis, validator_operator_base_address)
+    genesis = ensure_account(genesis, validator_operator_base_address)
 
     # Update total supply of staking denom with new funds added
     for supply in genesis["app_state"]["bank"]["supply"]:
@@ -289,23 +266,16 @@ def main():
 
     # Jail everyone but our validator
     print("Jail other validators...")
-    for validator in genesis["app_state"]["staking"]["validators"]:
-        if validator["operator_address"] != validator_operator_address:
-            validator["status"] = "BOND_STATUS_UNBONDING"
-            validator["jailed"] = True
+    jail_validators(genesis, validator_operator_address)
 
-    if "max_wasm_code_size" in genesis["app_state"]["wasm"]["params"]:
-        print("Removing max_wasm_code_size...")
-        del genesis["app_state"]["wasm"]["params"]["max_wasm_code_size"]
+    remove_max_wasm_code_size(genesis)
 
     # Set voting period
-    print(f"Setting voting period to {args.voting_period}...")
-    genesis["app_state"]["gov"]["voting_params"]["voting_period"] = args.voting_period
+    set_voting_period(genesis, args.voting_period)
 
     # Update the chain id if provided
     if args.chain_id:
-        print(f"Updating chain id to {args.chain_id}...")
-        genesis["chain_id"] = args.chain_id
+        update_chain_id(genesis, args.chain_id)
 
     print("Writing new genesis file...")
     with open(f"{args.home_path}/config/genesis.json", "w") as f:
