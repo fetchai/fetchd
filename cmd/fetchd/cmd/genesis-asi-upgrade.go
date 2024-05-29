@@ -78,7 +78,7 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "afet",
 		},
 		SupplyInfo: SupplyInfo{
-			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			SupplyToMint:              "0",                                            // TODO(JS): likely amend this
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
@@ -101,7 +101,7 @@ var networkInfos = map[string]NetworkConfig{
 	},
 
 	"dorado-1": {
-		NewChainID:     "asi-1",          // TODO(JS): likely amend this
+		NewChainID:     "eridanus-1",
 		NewDescription: "Test ASI token", // TODO(JS): confirm this
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "testasi",
@@ -109,7 +109,7 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "atestfet",
 		},
 		SupplyInfo: SupplyInfo{
-			SupplyToMint:              "100000000000000000000000000",                  // TODO(JS): likely amend this
+			SupplyToMint:              "0",                                            // TODO(JS): likely amend this
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
 		},
 		//IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
@@ -125,10 +125,10 @@ var networkInfos = map[string]NetworkConfig{
 			MobixStaking: &MobixStaking{
 				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
 			},
-			TokenBridge: &TokenBridge{
-				Addr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
-				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
-			},
+			//TokenBridge: &TokenBridge{
+			//	Addr:     "",
+			//	NewAdmin: "",
+			//},
 			FccCw20: &FccCw20{
 				Addr: "fetch1s0p7pwtm8qhvh2sfpg0ajgl20hwtehr0vcztyeku0vkzzvg044xqx4t7pt",
 			},
@@ -836,7 +836,9 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 		panic("asi upgrade update supply: failed to convert new supply value to int")
 	}
 
-	if additionalSupply.LT(sdk.ZeroInt()) {
+	if additionalSupply.IsZero() {
+		return
+	} else if additionalSupply.LT(sdk.ZeroInt()) {
 		panic("asi upgrade update supply: additional supply value is negative")
 	}
 
