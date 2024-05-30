@@ -8,6 +8,7 @@ from genesis_helpers import (
     replace_validator_with_info,
     validator_pubkey_to_valcons_address,
     replace_validator_slashing,
+    validator_pubkey_to_hex_address,
 )
 
 
@@ -27,14 +28,15 @@ def parse_commandline():
         help="Destination validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=",
     )
     parser.add_argument(
-        "dest_validator_hexaddr",
+        "dest_validator_operator_address",
         type=str,
-        help="Destination validator hex address, f.e. 758F13BB838F48DEE6D6E611F5A90B66CBF8BDB7",
+        help="Destination validator operator address, f.e. fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
     )
+
     parser.add_argument(
-        "dest_validator_operator_address, f.e. fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
-        type=str,
-        help="Destination validator operator address",
+        "--output",
+        help="The path for modified genesis file",
+        default="modified_genesis.json",
     )
 
     return parser.parse_args()
@@ -46,7 +48,6 @@ def main():
     print("       Genesis Path:", args.genesis)
     print("Source Validator PK:", args.src_validator_pubkey)
     print("Destination Validator PK:", args.dest_validator_pubkey)
-    print("Destination Hex Address:", args.dest_validator_hexaddr)
     print("Destination Operator Address:", args.dest_validator_operator_address)
 
     # Load the genesis file
@@ -54,13 +55,16 @@ def main():
     genesis = load_json_file(args.genesis)
     print("Reading genesis file...complete")
 
-    target_val_info = get_staking_validator_info(args.src_validator_pubkey)
-
+    target_val_info = get_staking_validator_info(genesis, args.src_validator_pubkey)
     target_consensus_address = validator_pubkey_to_valcons_address(
         target_val_info["consensus_pubkey"]["key"]
     )
+
+    dest_validator_hex_addr = validator_pubkey_to_hex_address(
+        args.dest_validator_pubkey
+    )
     dest_consensus_address = validator_pubkey_to_valcons_address(
-        args.dest_validator_hexaddr
+        dest_validator_hex_addr
     )
 
     # Replace validator slashing module entry
@@ -73,15 +77,15 @@ def main():
         genesis,
         target_val_info,
         args.dest_validator_pubkey,
-        args.dest_validator_hexaddr,
+        dest_validator_hex_addr,
         args.dest_validator_operator_address,
     )
 
     # Save the modified genesis file
-    output_genesis_path = f"{os.path.dirname(args.genesis)}/modified_genesis.json"
+    output_genesis_path = args.output
     print(f"Writing modified genesis file to {output_genesis_path}...")
     with open(output_genesis_path, "w") as f:
-        json.dump(genesis, f, indent=2)
+        json.dump(genesis, f)
     print("Modified genesis file written successfully.")
 
 

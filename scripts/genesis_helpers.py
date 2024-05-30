@@ -131,11 +131,11 @@ def get_validator_info(genesis, validator_pubkey):
 
 
 def replace_validator_from_pubkey(
-        genesis,
-        src_validator_pubkey,
-        dest_validator_pubkey,
-        dest_validator_hexaddr,
-        dest_validator_operator_address,
+    genesis,
+    src_validator_pubkey,
+    dest_validator_pubkey,
+    dest_validator_hexaddr,
+    dest_validator_operator_address,
 ):
     val_info = get_staking_validator_info(src_validator_pubkey)
     replace_validator_with_info(
@@ -148,11 +148,11 @@ def replace_validator_from_pubkey(
 
 
 def replace_validator_with_info(
-        genesis,
-        val_staking_info,
-        dest_validator_pubkey,
-        dest_validator_hexaddr,
-        dest_validator_operator_address,
+    genesis,
+    val_staking_info,
+    dest_validator_pubkey,
+    dest_validator_hexaddr,
+    dest_validator_operator_address,
 ):
     src_validator_pubkey = val_staking_info["consensus_pubkey"]["key"]
 
@@ -208,8 +208,18 @@ def get_account_address_by_name(genesis, account_name) -> str:
                 return account["base_account"]["address"]
 
 
+def _validator_pubkey_to_binary_address(validator_pubkey):
+    return sha256(base64.b64decode(validator_pubkey))[:20]
+
+
 def validator_pubkey_to_valcons_address(validator_pubkey):
-    return to_bech32("fetchvalcons", sha256(base64.b64decode(validator_pubkey))[:20])
+    return to_bech32(
+        "fetchvalcons", _validator_pubkey_to_binary_address(validator_pubkey)
+    )
+
+
+def validator_pubkey_to_hex_address(validator_pubkey):
+    return _validator_pubkey_to_binary_address(validator_pubkey).hex().upper()
 
 
 def replace_validator_slashing(genesis, source_addr, dest_addr):

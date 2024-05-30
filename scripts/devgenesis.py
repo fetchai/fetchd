@@ -203,7 +203,7 @@ def main():
 
     print("Writing new genesis file...")
     with open(f"{args.home_path}/config/genesis.json", "w") as f:
-        json.dump(genesis, f, indent=2)
+        json.dump(genesis, f)
 
     print(f"Done! Wrote new genesis at {args.home_path}/config/genesis.json")
     print("You can now start the chain:")
