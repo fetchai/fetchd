@@ -12,6 +12,7 @@ from genesis_helpers import (
     convert_to_base,
     get_validator_info,
     get_account,
+    find_key_path,
 )
 
 
