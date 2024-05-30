@@ -20,7 +20,6 @@ from genesis_helpers import (
     get_local_key_data,
     hex_address_to_bech32,
     get_account_address_by_name,
-    get_staking_validator_info,
 )
 
 DEFAULT_STAKING_DENOM = "afet"
