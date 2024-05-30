@@ -7,7 +7,7 @@ import subprocess
 
 import bech32
 import sys
-from cosmpy.crypto.hashfuncs import sha256
+from cosmpy.crypto.hashfuncs import sha256, ripemd160
 
 
 def get_path(text: str) -> str:
@@ -28,6 +28,15 @@ def convert_to_valoper(address):
         sys.exit(1)
 
     return bech32.bech32_encode("fetchvaloper", data)
+
+
+def convert_to_base(address):
+    hrp, data = bech32.bech32_decode(address)
+    if hrp != "fetchvaloper":
+        print("Invalid address, expected fetchvaloper address")
+        sys.exit(1)
+
+    return bech32.bech32_encode("fetch", data)
 
 
 def ensure_account(genesis, address):
@@ -51,6 +60,12 @@ def ensure_account(genesis, address):
     genesis["app_state"]["auth"]["accounts"].append(new_account)
 
 
+def get_account(genesis, address):
+    for account in genesis["app_state"]["auth"]["accounts"]:
+        if "address" in account and account["address"] == address:
+            return account
+
+
 def set_balance(genesis, address, new_balance, denom):
     account_found = False
     for balance in genesis["app_state"]["bank"]["balances"]:
@@ -68,7 +83,7 @@ def set_balance(genesis, address, new_balance, denom):
         genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
 
 
-def get_balance(genesis, address, denom):
+def get_balance(genesis, address, denom, ensure=False):
     res_amount = 0
     for balance in genesis["app_state"]["bank"]["balances"]:
         if balance["address"] == address:
@@ -78,6 +93,9 @@ def get_balance(genesis, address, denom):
                     break
             if res_amount != 0:
                 break
+    if ensure and res_amount == 0:
+        print(f"Address {address} has no amount of {denom}")
+        sys.exit(1)
     return res_amount
 
 
@@ -127,7 +145,8 @@ def get_validator_info(genesis, validator_pubkey):
         if val["pub_key"]["value"] == validator_pubkey:
             return val
 
-    assert False, "Validator not found in genesis"
+    print("Validator not found in genesis")
+    sys.exit(1)
 
 
 def replace_validator_from_pubkey(
@@ -201,6 +220,12 @@ def hex_address_to_bech32(hex_address, prefix="fetchvalcons") -> str:
     return to_bech32(prefix, binary_address)
 
 
+def bech32_to_hex_address(address) -> str:
+    hrp, data = bech32.bech32_decode(address)
+    decoded_data = bytes(bech32.convertbits(data, 5, 8, False))
+    return decoded_data.hex().upper()
+
+
 def get_account_address_by_name(genesis, account_name) -> str:
     for account in genesis["app_state"]["auth"]["accounts"]:
         if "name" in account:
@@ -210,6 +235,14 @@ def get_account_address_by_name(genesis, account_name) -> str:
 
 def _validator_pubkey_to_binary_address(validator_pubkey):
     return sha256(base64.b64decode(validator_pubkey))[:20]
+
+
+def _pubkey_to_binary_address(pubkey):
+    return ripemd160(sha256(base64.b64decode(pubkey)))
+
+
+def pubkey_to_bech32_address(pubkey, prefix="fetch"):
+    return to_bech32(prefix, _pubkey_to_binary_address(pubkey))
 
 
 def validator_pubkey_to_valcons_address(validator_pubkey):

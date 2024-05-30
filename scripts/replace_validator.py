@@ -1,14 +1,18 @@
 import argparse
 import json
-import os
+import re
 
 from genesis_helpers import (
     load_json_file,
     get_staking_validator_info,
-    replace_validator_with_info,
     validator_pubkey_to_valcons_address,
-    replace_validator_slashing,
     validator_pubkey_to_hex_address,
+    pubkey_to_bech32_address,
+    convert_to_valoper,
+    convert_to_base,
+    get_validator_info,
+    get_account,
+    bech32_to_hex_address,
 )
 
 
@@ -28,9 +32,9 @@ def parse_commandline():
         help="Destination validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=",
     )
     parser.add_argument(
-        "dest_validator_operator_address",
+        "dest_validator_operator_pubkey",
         type=str,
-        help="Destination validator operator address, f.e. fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
+        help="Destination validator operator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=",
     )
 
     parser.add_argument(
@@ -48,38 +52,88 @@ def main():
     print("       Genesis Path:", args.genesis)
     print("Source Validator PK:", args.src_validator_pubkey)
     print("Destination Validator PK:", args.dest_validator_pubkey)
-    print("Destination Operator Address:", args.dest_validator_operator_address)
+    print("Destination Operator PK:", args.dest_validator_operator_pubkey)
 
     # Load the genesis file
     print("Reading genesis file...")
     genesis = load_json_file(args.genesis)
     print("Reading genesis file...complete")
 
-    target_val_info = get_staking_validator_info(genesis, args.src_validator_pubkey)
-    target_consensus_address = validator_pubkey_to_valcons_address(
-        target_val_info["consensus_pubkey"]["key"]
+    # Input values #
+    target_staking_val_info = get_staking_validator_info(
+        genesis, args.src_validator_pubkey
     )
+    target_val_info = get_validator_info(genesis, args.src_validator_pubkey)
 
+    target_val_pubkey = target_staking_val_info["consensus_pubkey"]["key"]
+    target_consensus_address = validator_pubkey_to_valcons_address(target_val_pubkey)
+    target_val_hex_addr = target_val_info["address"]
+
+    target_operator_address = target_staking_val_info["operator_address"]
+    target_operator_base_address = convert_to_base(target_operator_address)
+    target_operator_hex_address = bech32_to_hex_address(target_operator_address)
+
+    target_operator_pubkey = get_account(genesis, target_operator_base_address)[
+        "pub_key"
+    ]["key"]
+
+    # Output values #
     dest_validator_hex_addr = validator_pubkey_to_hex_address(
         args.dest_validator_pubkey
     )
     dest_consensus_address = validator_pubkey_to_valcons_address(
-        dest_validator_hex_addr
+        args.dest_validator_pubkey
     )
 
-    # Replace validator slashing module entry
-    replace_validator_slashing(
-        genesis, target_consensus_address, dest_consensus_address
+    dest_operator_base_address = pubkey_to_bech32_address(
+        args.dest_validator_operator_pubkey, "fetch"
+    )
+    dest_operator_valoper_address = convert_to_valoper(dest_operator_base_address)
+    dest_operator_hex_address = bech32_to_hex_address(dest_operator_base_address)
+
+    # Brute force replacement of all remaining occurrences
+    genesis_dump = json.dumps(genesis)
+
+    # Convert validator hexaddr
+    genesis_dump = re.sub(target_val_hex_addr, dest_validator_hex_addr, genesis_dump)
+
+    # Convert validator valcons address
+    genesis_dump = re.sub(
+        target_consensus_address, dest_consensus_address, genesis_dump
     )
 
-    # Replace the validator in the genesis file
-    replace_validator_with_info(
-        genesis,
-        target_val_info,
-        args.dest_validator_pubkey,
-        dest_validator_hex_addr,
-        args.dest_validator_operator_address,
+    # Convert validator PK:
+    genesis_dump = re.sub(target_val_pubkey, args.dest_validator_pubkey, genesis_dump)
+
+    # Convert operator valoper address
+    genesis_dump = re.sub(
+        target_operator_address,
+        dest_operator_valoper_address,
+        genesis_dump,
     )
+
+    # Convert operator base account address
+    genesis_dump = re.sub(
+        target_operator_base_address,
+        dest_operator_base_address,
+        genesis_dump,
+    )
+
+    # Convert operator hex address -> Might not be necessary
+    genesis_dump = re.sub(
+        target_operator_hex_address,
+        dest_operator_hex_address,
+        genesis_dump,
+    )
+
+    bech32_to_hex_address(dest_operator_base_address)
+
+    # Convert operator pubkey
+    genesis_dump = re.sub(
+        target_operator_pubkey, args.dest_validator_operator_pubkey, genesis_dump
+    )
+
+    genesis = json.loads(genesis_dump)
 
     # Save the modified genesis file
     output_genesis_path = args.output

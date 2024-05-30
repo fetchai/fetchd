@@ -22,7 +22,6 @@ from genesis_helpers import (
     get_account_address_by_name,
 )
 
-DEFAULT_STAKING_DENOM = "afet"
 DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
@@ -56,9 +55,6 @@ the local chain to be started with:
         "--validator_key_name",
         help="The name of the local key to use for the validator",
         default=DEFAULT_VALIDATOR_KEY_NAME,
-    )
-    parser.add_argument(
-        "--staking_denom", help="The staking denom", default=DEFAULT_STAKING_DENOM
     )
     parser.add_argument("--chain_id", help="New chain ID to be set", default=None)
     parser.add_argument(
@@ -99,6 +95,8 @@ def main():
     # load the genesis up
     print("reading genesis export...")
     genesis = load_json_file(args.genesis_export)
+
+    staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
 
     print("reading genesis export...complete")
 
@@ -147,18 +145,17 @@ def main():
     print("Updating bonded and not bonded token pool values...")
 
     # Get current bonded and not bonded tokens
-    bonded_tokens = get_balance(genesis, bonded_pool_address, args.staking_denom)
-    not_bonded_tokens = get_balance(
-        genesis, not_bonded_pool_address, args.staking_denom
-    )
+    bonded_tokens = get_balance(genesis, bonded_pool_address, staking_denom)
+    not_bonded_tokens = get_balance(genesis, not_bonded_pool_address, staking_denom)
 
     new_not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
+    if new_not_bonded_tokens < 0:
+        print(f"Invalid new_not_bonded_tokens amount: {new_not_bonded_tokens}")
+        sys.exit(1)
 
     # Update bonded pool and not bonded pool balances
-    set_balance(genesis, bonded_pool_address, val_tokens, args.staking_denom)
-    set_balance(
-        genesis, not_bonded_pool_address, new_not_bonded_tokens, args.staking_denom
-    )
+    set_balance(genesis, bonded_pool_address, val_tokens, staking_denom)
+    set_balance(genesis, not_bonded_pool_address, new_not_bonded_tokens, staking_denom)
 
     # Create new account and fund it
     print(
@@ -166,14 +163,14 @@ def main():
     )
 
     # Add new balance to bank
-    set_balance(genesis, local_validator_base_address, FUND_BALANCE, args.staking_denom)
+    set_balance(genesis, local_validator_base_address, FUND_BALANCE, staking_denom)
 
     # Add new account to auth if not already there
     ensure_account(genesis, local_validator_base_address)
 
     # Update total supply of staking denom with new funds added
     for supply in genesis["app_state"]["bank"]["supply"]:
-        if supply["denom"] == args.staking_denom:
+        if supply["denom"] == staking_denom:
             supply["amount"] = str(int(supply["amount"]) + FUND_BALANCE)
 
     # Remove all .validators but the one we work with
