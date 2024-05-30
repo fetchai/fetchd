@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 bech32 = "==1.2.0"
+cosmpy = "*"
 
 [dev-packages]
 

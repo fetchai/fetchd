@@ -1,7 +1,14 @@
 import argparse
 import json
 import os
-from genesis_helpers import load_json_file, replace_validator_from_pubkey
+
+from genesis_helpers import (
+    load_json_file,
+    get_staking_validator_info,
+    replace_validator_with_info,
+    validator_pubkey_to_valcons_address,
+    replace_validator_slashing,
+)
 
 
 def parse_commandline():
@@ -47,10 +54,24 @@ def main():
     genesis = load_json_file(args.genesis)
     print("Reading genesis file...complete")
 
+    target_val_info = get_staking_validator_info(args.src_validator_pubkey)
+
+    target_consensus_address = validator_pubkey_to_valcons_address(
+        target_val_info["consensus_pubkey"]["key"]
+    )
+    dest_consensus_address = validator_pubkey_to_valcons_address(
+        args.dest_validator_hexaddr
+    )
+
+    # Replace validator slashing module entry
+    replace_validator_slashing(
+        genesis, target_consensus_address, dest_consensus_address
+    )
+
     # Replace the validator in the genesis file
-    replace_validator_from_pubkey(
+    replace_validator_with_info(
         genesis,
-        args.src_validator_pubkey,
+        target_val_info,
         args.dest_validator_pubkey,
         args.dest_validator_hexaddr,
         args.dest_validator_operator_address,

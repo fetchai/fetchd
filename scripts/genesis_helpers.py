@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import os
 import re
@@ -5,6 +7,7 @@ import subprocess
 
 import bech32
 import sys
+from cosmpy.crypto.hashfuncs import sha256
 
 
 def get_path(text: str) -> str:
@@ -124,15 +127,15 @@ def get_validator_info(genesis, validator_pubkey):
         if val["pub_key"]["value"] == validator_pubkey:
             return val
 
-    assert True, "Validator not found in genesis"
+    assert False, "Validator not found in genesis"
 
 
 def replace_validator_from_pubkey(
-    genesis,
-    src_validator_pubkey,
-    dest_validator_pubkey,
-    dest_validator_hexaddr,
-    dest_validator_operator_address,
+        genesis,
+        src_validator_pubkey,
+        dest_validator_pubkey,
+        dest_validator_hexaddr,
+        dest_validator_operator_address,
 ):
     val_info = get_staking_validator_info(src_validator_pubkey)
     replace_validator_with_info(
@@ -145,11 +148,11 @@ def replace_validator_from_pubkey(
 
 
 def replace_validator_with_info(
-    genesis,
-    val_staking_info,
-    dest_validator_pubkey,
-    dest_validator_hexaddr,
-    dest_validator_operator_address,
+        genesis,
+        val_staking_info,
+        dest_validator_pubkey,
+        dest_validator_hexaddr,
+        dest_validator_operator_address,
 ):
     src_validator_pubkey = val_staking_info["consensus_pubkey"]["key"]
 
@@ -203,3 +206,49 @@ def get_account_address_by_name(genesis, account_name) -> str:
         if "name" in account:
             if account["name"] == account_name:
                 return account["base_account"]["address"]
+
+
+def validator_pubkey_to_valcons_address(validator_pubkey):
+    return to_bech32("fetchvalcons", sha256(base64.b64decode(validator_pubkey))[:20])
+
+
+def replace_validator_slashing(genesis, source_addr, dest_addr):
+    found = False
+    for info in genesis["app_state"]["slashing"]["signing_infos"]:
+        if info["address"] == source_addr:
+            info["address"] = dest_addr
+            info["validator_signing_info"]["address"] = dest_addr
+            found = True
+            break
+
+    if not found:
+        print("Validator not found in slashing")
+
+    # Brute force replacement of all remaining occurrences
+    genesis_dump = json.dumps(genesis)
+    genesis_dump = re.sub(source_addr, dest_addr, genesis_dump)
+
+    # Replace genesis
+    genesis.clear()
+    genesis.update(json.loads(genesis_dump))
+
+
+def find_key_path(json_dict, target):
+    paths = []
+
+    def _find_key_path(current, target, path):
+        if isinstance(current, dict):
+            for key, value in current.items():
+                new_path = path + [key]
+                _find_key_path(value, target, new_path)
+        elif isinstance(current, list):
+            for index, item in enumerate(current):
+                new_path = path + [index]
+                _find_key_path(item, target, new_path)
+        else:
+            if current == target:
+                paths.append(path)
+        return None
+
+    _find_key_path(json_dict, target, [])
+    return paths
