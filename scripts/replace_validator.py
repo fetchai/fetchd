@@ -10,16 +10,22 @@ def parse_commandline():
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("genesis", type=str, help="The path to the genesis file")
     parser.add_argument(
-        "src_validator_pubkey", type=str, help="Source validator public key"
+        "src_validator_pubkey",
+        type=str,
+        help="Source validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=",
     )
     parser.add_argument(
-        "dest_validator_pubkey", type=str, help="Destination validator public key"
+        "dest_validator_pubkey",
+        type=str,
+        help="Destination validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=",
     )
     parser.add_argument(
-        "dest_validator_hexaddr", type=str, help="Destination validator hex address"
+        "dest_validator_hexaddr",
+        type=str,
+        help="Destination validator hex address, f.e. 758F13BB838F48DEE6D6E611F5A90B66CBF8BDB7",
     )
     parser.add_argument(
-        "dest_validator_operator_address",
+        "dest_validator_operator_address, f.e. fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
         type=str,
         help="Destination validator operator address",
     )
