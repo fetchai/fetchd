@@ -102,6 +102,11 @@ def main():
             new_operator_has_account = True
             break
 
+    if new_operator_has_account:
+        print(
+            "New operator account already existed before - it is recommended to generate new operator key"
+        )
+
     # Replace operator account pubkey
     if not new_operator_has_account:
         for account in genesis["app_state"]["auth"]["accounts"]:
