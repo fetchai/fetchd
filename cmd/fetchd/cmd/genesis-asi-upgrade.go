@@ -23,7 +23,6 @@ import (
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -68,30 +67,39 @@ var (
 
 var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
 
+//go:embed reconciliation_data.csv
+var reconciliationData []byte
+
+//go:embed reconciliation_data_testnet.csv
+var reconciliationDataTestnet []byte
+
 var networkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
 		NewChainID:     "asi-1",
-		NewDescription: "ASI token", // TODO(JS): confirm this
+		NewDescription: "ASI token",
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "asi",
 			NewDenom:     "aasi",
 			OldDenom:     "afet",
 		},
 		SupplyInfo: SupplyInfo{
-			SupplyToMint:              "0",                                            // TODO(JS): likely amend this
-			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+			SupplyToMint:              "0",
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 		},
-		IbcTargetAddr:            "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
-		ReconciliationTargetAddr: &ReconciliationTargetAddr,                      // TODO(JS): amend this
+		IbcTargetAddr: "fetch1zydegef0z6lz4gamamzlnu52ethe8xnm0xe5fkyrgwumsh9pplus5he63f",
+		Reconciliation: &Reconciliation{
+			TargetAddress:   "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
+			InputCSVRecords: readInputReconciliationData(reconciliationData),
+		},
 		Contracts: &Contracts{
 			Almanac: &Almanac{
-				StagingAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y", // mainnet STAGING contract,
+				StagingAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
 			},
 			AName: &AName{
-				StagingAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q", // mainnet STAGING contract,
+				StagingAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
 			},
 			MobixStaking: &MobixStaking{
-				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e", // TODO(JS): amend this
+				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
 			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
@@ -109,10 +117,14 @@ var networkInfos = map[string]NetworkConfig{
 			OldDenom:     "atestfet",
 		},
 		SupplyInfo: SupplyInfo{
-			SupplyToMint:              "0",                                            // TODO(JS): likely amend this
-			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // TODO(JS): likely amend this
+			SupplyToMint:              "0",
+			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 		},
-		//IbcTargetAddr: "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x", // TODO(JS): amend this
+		IbcTargetAddr: "fetch18rlg4hs2p03yuvvdu389pe65qa789asmyqsfftdxsh2qjfwmt94qmrf7g0",
+		Reconciliation: &Reconciliation{
+			TargetAddress:   "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
+			InputCSVRecords: readInputReconciliationData(reconciliationDataTestnet),
+		},
 		Contracts: &Contracts{
 			Almanac: &Almanac{
 				StagingAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w", // testnet STAGING contract,
@@ -138,9 +150,6 @@ var networkInfos = map[string]NetworkConfig{
 		},
 	},
 }
-
-//go:embed reconciliation_data.csv
-var reconciliationData []byte
 
 // ASIGenesisUpgradeCmd returns replace-genesis-values cobra Command.
 func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
@@ -760,13 +769,13 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 }
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
-	if networkInfo.ReconciliationTargetAddr == nil {
+	if networkInfo.Reconciliation == nil {
 		return
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
-	reconciliationWithdrawAddress := networkInfo.ReconciliationTargetAddr
+	reconciliationWithdrawAddress := networkInfo.Reconciliation.TargetAddress
 
 	balanceMap := getGenesisBalancesMap(balances)
 
@@ -774,27 +783,18 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	accounts := auth["accounts"].([]interface{})
 	accountSequenceMap := getGenesisAccountSequenceMap(accounts)
 
-	fileData := reconciliationData
-	r := csv.NewReader(bytes.NewReader(fileData))
-	items, err := r.ReadAll()
-	if err != nil {
-		log.Fatalf("Error reading reconciliation data: %s", err)
-	}
-
-	reconciliationBalanceIdx, ok := (*balanceMap)[*reconciliationWithdrawAddress]
+	reconciliationBalanceIdx, ok := (*balanceMap)[reconciliationWithdrawAddress]
 	if !ok {
 		panic("no match in genesis for reconciliation withdraw address")
 	}
 
 	manifest.Reconciliation = &ASIUpgradeTransfers{
 		Transfer: []ASIUpgradeTransfer{},
-		To:       *reconciliationWithdrawAddress,
+		To:       reconciliationWithdrawAddress,
 	}
 
-	for _, row := range items {
+	for _, row := range networkInfo.Reconciliation.InputCSVRecords {
 		addr := row[2]
-
-		//_ = row[3] balance from CSV
 
 		accSequence, ok := (*accountSequenceMap)[addr]
 		if !ok {
@@ -965,14 +965,28 @@ func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
 	return balance
 }
 
+func readInputReconciliationData(csvData []byte) [][]string {
+	r := csv.NewReader(bytes.NewReader(csvData))
+	records, err := r.ReadAll()
+	if err != nil {
+		panic(fmt.Sprintf("error reading reconciliation data: %v", err))
+	}
+	return records
+}
+
 type NetworkConfig struct {
-	NewChainID               string
-	NewDescription           string
-	IbcTargetAddr            string
-	ReconciliationTargetAddr *string
-	SupplyInfo               SupplyInfo
-	DenomInfo                DenomInfo
-	Contracts                *Contracts
+	NewChainID     string
+	NewDescription string
+	IbcTargetAddr  string
+	Reconciliation *Reconciliation
+	SupplyInfo     SupplyInfo
+	DenomInfo      DenomInfo
+	Contracts      *Contracts
+}
+
+type Reconciliation struct {
+	TargetAddress   string
+	InputCSVRecords [][]string
 }
 
 type SupplyInfo struct {
