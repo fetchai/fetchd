@@ -12,7 +12,6 @@ from genesis_helpers import (
     convert_to_base,
     get_validator_info,
     get_account,
-    bech32_to_hex_address,
 )
 
 
@@ -67,11 +66,9 @@ def main():
 
     target_val_pubkey = target_staking_val_info["consensus_pubkey"]["key"]
     target_consensus_address = validator_pubkey_to_valcons_address(target_val_pubkey)
-    target_val_hex_addr = target_val_info["address"]
 
     target_operator_address = target_staking_val_info["operator_address"]
     target_operator_base_address = convert_to_base(target_operator_address)
-    target_operator_hex_address = bech32_to_hex_address(target_operator_address)
 
     target_operator_pubkey = get_account(genesis, target_operator_base_address)[
         "pub_key"
@@ -89,21 +86,39 @@ def main():
         args.dest_validator_operator_pubkey, "fetch"
     )
     dest_operator_valoper_address = convert_to_valoper(dest_operator_base_address)
-    dest_operator_hex_address = bech32_to_hex_address(dest_operator_base_address)
+
+    # Replacements
+
+    # Replace validator hex address and pubkey
+    target_val_info["address"] = dest_validator_hex_addr
+    target_val_info["pub_key"]["value"] = args.dest_validator_pubkey
+    target_staking_val_info["consensus_pubkey"]["key"] = args.dest_validator_pubkey
+
+    # Ensure that operator is not already registered in auth module:
+    new_operator_has_account = False
+    for account in genesis["app_state"]["auth"]["accounts"]:
+        if "address" in account and account["address"] == dest_operator_base_address:
+            new_operator_has_account = True
+            break
+
+    # Replace operator account pubkey
+    if not new_operator_has_account:
+        for account in genesis["app_state"]["auth"]["accounts"]:
+            if (
+                "pub_key" in account
+                and account["pub_key"]
+                and "key" in account["pub_key"]
+                and account["pub_key"]["key"] == target_operator_pubkey
+            ):
+                account["pub_key"]["key"] = args.dest_validator_operator_pubkey
 
     # Brute force replacement of all remaining occurrences
     genesis_dump = json.dumps(genesis)
-
-    # Convert validator hexaddr
-    genesis_dump = re.sub(target_val_hex_addr, dest_validator_hex_addr, genesis_dump)
 
     # Convert validator valcons address
     genesis_dump = re.sub(
         target_consensus_address, dest_consensus_address, genesis_dump
     )
-
-    # Convert validator PK:
-    genesis_dump = re.sub(target_val_pubkey, args.dest_validator_pubkey, genesis_dump)
 
     # Convert operator valoper address
     genesis_dump = re.sub(
@@ -117,20 +132,6 @@ def main():
         target_operator_base_address,
         dest_operator_base_address,
         genesis_dump,
-    )
-
-    # Convert operator hex address -> Might not be necessary
-    genesis_dump = re.sub(
-        target_operator_hex_address,
-        dest_operator_hex_address,
-        genesis_dump,
-    )
-
-    bech32_to_hex_address(dest_operator_base_address)
-
-    # Convert operator pubkey
-    genesis_dump = re.sub(
-        target_operator_pubkey, args.dest_validator_operator_pubkey, genesis_dump
     )
 
     genesis = json.loads(genesis_dump)
