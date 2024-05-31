@@ -175,16 +175,20 @@ def replace_validator_with_info(
     dest_validator_operator_address,
 ):
     src_validator_pubkey = val_staking_info["consensus_pubkey"]["key"]
-
     src_operator_addr = val_staking_info["operator_address"]
     print(f"Replacing validator {src_operator_addr}")
 
+    # Update genesis["validators"] data
     val_info = get_validator_info(genesis, src_validator_pubkey)
     val_info["pub_key"]["value"] = dest_validator_pubkey
-    val_addr = val_info["address"]
+    val_info["address"] = dest_validator_hexaddr
 
+    # Update staking module data
+    val_staking_info["consensus_pubkey"]["key"] = dest_validator_pubkey
+
+    # Search and replace addresses
     genesis_dump = json.dumps(genesis)
-    genesis_dump = re.sub(val_addr, dest_validator_hexaddr, genesis_dump)
+
     genesis_dump = re.sub(
         src_operator_addr,
         dest_validator_operator_address,
