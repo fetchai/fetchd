@@ -103,6 +103,9 @@ var networkInfos = map[string]NetworkConfig{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
+			Reconciliation: &Reconciliation{
+				Addr: "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
+			},
 		},
 	},
 
