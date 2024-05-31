@@ -106,6 +106,12 @@ var networkInfos = map[string]NetworkConfig{
 			Reconciliation: &Reconciliation{
 				Addr: "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 			},
+			FccCw20: &FccCw20{
+				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
+			},
+			//FccIssuance: &FccIssuance{
+			//	Addr: "",
+			//},
 		},
 	},
 
