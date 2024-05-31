@@ -97,7 +97,7 @@ var networkInfos = map[string]NetworkConfig{
 				StagingAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
 			},
 			MobixStaking: &MobixStaking{
-				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
+				Addresses: []string{"fetch174kgn5rtw4kf6f938wm7kwh70h2v4vcfcnfkl0", "fetch1sh36qn08g4cqg685cfzmyxqv2952q6r8actxru"},
 			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
@@ -139,7 +139,7 @@ var networkInfos = map[string]NetworkConfig{
 				StagingAddr: "fetch1mxz8kn3l5ksaftx8a9pj9a6prpzk2uhxnqdkwuqvuh37tw80xu6qges77l", // testnet STAGING contract,
 			},
 			MobixStaking: &MobixStaking{
-				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
+				Addresses: []string{"fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e"},
 			},
 			FccCw20: &FccCw20{
 				Addr: "fetch1s0p7pwtm8qhvh2sfpg0ajgl20hwtehr0vcztyeku0vkzzvg044xqx4t7pt",
@@ -425,45 +425,47 @@ func ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData map[string]interface{},
 }
 
 func ASIGenesisUpgradeUpdateMobixStakingContract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	if networkInfo.Contracts == nil || networkInfo.Contracts.MobixStaking == nil {
+	if networkInfo.Contracts == nil || networkInfo.Contracts.MobixStaking == nil || len(networkInfo.Contracts.MobixStaking.Addresses) < 1 {
 		return
 	}
-	mobixStakingContractAddress := networkInfo.Contracts.MobixStaking.Addr
-	mobixStakingContract := getContractFromAddr(mobixStakingContractAddress, jsonData)
 
-	re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
-	states := mobixStakingContract["contract_state"].([]interface{})
-	for i, val := range states {
-		state := val.(map[string]interface{})
-		hexKey := state["key"].(string)
-		b64Value := state["value"].(string)
+	for _, mobixStakingContractAddress := range networkInfo.Contracts.MobixStaking.Addresses {
+		mobixStakingContract := getContractFromAddr(mobixStakingContractAddress, jsonData)
 
-		valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
-		if err != nil {
-			panic(err)
-		}
+		re := regexp.MustCompile(fmt.Sprintf(`%s%s1([%s]{%d,%d})$`, OldAddrPrefix, "", Bech32Chars, AddrDataLength+AddrChecksumLength, MaxAddrDataLength))
+		states := mobixStakingContract["contract_state"].([]interface{})
+		for i, val := range states {
+			state := val.(map[string]interface{})
+			hexKey := state["key"].(string)
+			b64Value := state["value"].(string)
 
-		updatedKey := hexKey
-		updatedValue := b64Value
+			valueBytes, err := base64.StdEncoding.DecodeString(b64Value)
+			if err != nil {
+				panic(err)
+			}
 
-		keyBytes, err := hex.DecodeString(hexKey)
-		if err != nil {
-			panic(err)
-		}
+			updatedKey := hexKey
+			updatedValue := b64Value
 
-		_keyBytes := Bytes(keyBytes)
-		switch {
-		case _keyBytes.StartsWith(stakesKey):
-			updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
-		case _keyBytes.StartsWith(unbondEntriesKey):
-			updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
-		case _keyBytes.StartsWith(configKey):
-			updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
-		}
+			keyBytes, err := hex.DecodeString(hexKey)
+			if err != nil {
+				panic(err)
+			}
 
-		states[i] = map[string]interface{}{
-			"key":   updatedKey,
-			"value": updatedValue,
+			_keyBytes := Bytes(keyBytes)
+			switch {
+			case _keyBytes.StartsWith(stakesKey):
+				updatedKey = replaceAddressInContractStateKey(keyBytes, stakesKey)
+			case _keyBytes.StartsWith(unbondEntriesKey):
+				updatedKey = replaceAddressInContractStateKey(keyBytes, unbondEntriesKey)
+			case _keyBytes.StartsWith(configKey):
+				updatedValue = replaceAddressInContractStateValue(re, string(valueBytes))
+			}
+
+			states[i] = map[string]interface{}{
+				"key":   updatedKey,
+				"value": updatedValue,
+			}
 		}
 	}
 }
@@ -1041,7 +1043,7 @@ type AName struct {
 }
 
 type MobixStaking struct {
-	Addr string
+	Addresses []string
 }
 
 type FccCw20 struct {
