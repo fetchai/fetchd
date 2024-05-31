@@ -105,14 +105,8 @@ def main():
 
     # Replace operator account pubkey
     if not new_operator_has_account:
-        for account in genesis["app_state"]["auth"]["accounts"]:
-            if (
-                "pub_key" in account
-                and account["pub_key"]
-                and "key" in account["pub_key"]
-                and account["pub_key"]["key"] == target_operator_pubkey
-            ):
-                account["pub_key"]["key"] = args.dest_validator_operator_pubkey
+        target_operator_account = get_account(genesis, target_operator_base_address)
+        target_operator_account["pub_key"]["key"] = args.dest_validator_operator_pubkey
 
     # Brute force replacement of all remaining occurrences
     genesis_dump = json.dumps(genesis)
