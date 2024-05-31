@@ -65,8 +65,6 @@ var (
 	balanceKey          = prefixStringWithLength("balance")
 )
 
-var ReconciliationTargetAddr = "fetch1rhrlzsx9z865dqen8t4v47r99dw6y4va4uph0x"
-
 //go:embed reconciliation_data.csv
 var reconciliationData []byte
 
@@ -76,7 +74,7 @@ var reconciliationDataTestnet []byte
 var networkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
 		NewChainID:     "asi-1",
-		NewDescription: "ASI token",
+		NewDescription: "ASI Network token",
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "asi",
 			NewDenom:     "aasi",
@@ -87,7 +85,7 @@ var networkInfos = map[string]NetworkConfig{
 			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 		},
 		IbcTargetAddr: "fetch1zydegef0z6lz4gamamzlnu52ethe8xnm0xe5fkyrgwumsh9pplus5he63f",
-		Reconciliation: &Reconciliation{
+		ReconciliationInfo: &ReconciliationInfo{
 			TargetAddress:   "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 			InputCSVRecords: readInputReconciliationData(reconciliationData),
 		},
@@ -105,12 +103,18 @@ var networkInfos = map[string]NetworkConfig{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
+			Reconciliation: &Reconciliation{
+				Addr: "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
+			},
+			FccCw20: &FccCw20{
+				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
+			},
 		},
 	},
 
 	"dorado-1": {
 		NewChainID:     "eridanus-1",
-		NewDescription: "Test ASI token", // TODO(JS): confirm this
+		NewDescription: "ASI Network testnet token",
 		DenomInfo: DenomInfo{
 			NewBaseDenom: "testasi",
 			NewDenom:     "atestasi",
@@ -118,10 +122,10 @@ var networkInfos = map[string]NetworkConfig{
 		},
 		SupplyInfo: SupplyInfo{
 			SupplyToMint:              "0",
-			UpdatedSupplyOverflowAddr: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+			UpdatedSupplyOverflowAddr: "fetch1faucet4p2h432pxlh9ez8jfcl9jyr2ndlx2992",
 		},
 		IbcTargetAddr: "fetch18rlg4hs2p03yuvvdu389pe65qa789asmyqsfftdxsh2qjfwmt94qmrf7g0",
-		Reconciliation: &Reconciliation{
+		ReconciliationInfo: &ReconciliationInfo{
 			TargetAddress:   "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 			InputCSVRecords: readInputReconciliationData(reconciliationDataTestnet),
 		},
@@ -137,15 +141,14 @@ var networkInfos = map[string]NetworkConfig{
 			MobixStaking: &MobixStaking{
 				Addr: "fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e",
 			},
-			//TokenBridge: &TokenBridge{
-			//	Addr:     "",
-			//	NewAdmin: "",
-			//},
 			FccCw20: &FccCw20{
 				Addr: "fetch1s0p7pwtm8qhvh2sfpg0ajgl20hwtehr0vcztyeku0vkzzvg044xqx4t7pt",
 			},
 			FccIssuance: &FccIssuance{
 				Addr: "fetch17z773v8ree3e75s5sme38vvenlcyavcfs2ct3y6w77rwa5ag3srslelug5",
+			},
+			Reconciliation: &Reconciliation{
+				Addr: "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 			},
 		},
 	},
@@ -218,6 +221,9 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// update fcc issuance contract
 			ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
+
+			// replace reconciliation contract state
+			ASIGenesisUpgradeReplaceReconciliationState(jsonData, networkConfig)
 
 			// withdraw balances from IBC channels
 			ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest)
@@ -627,6 +633,15 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 	}
 }
 
+func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, config NetworkConfig) {
+	if config.Contracts == nil || config.Contracts.Reconciliation == nil {
+		return
+	}
+
+	reconciliationContract := getContractFromAddr(config.Contracts.Reconciliation.Addr, jsonData)
+	reconciliationContract["contract_state"] = []interface{}{}
+}
+
 func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	if networkInfo.Contracts == nil || networkInfo.Contracts.AName == nil {
 		return
@@ -700,7 +715,7 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
-		panic("failed to find ibc withdrawal address in genesis balances - have addresses already been converted?")
+		panic("failed to find ibc withdrawal address in genesis balances")
 	}
 
 	ibc := jsonData[ibccore.ModuleName].(map[string]interface{})
@@ -769,13 +784,13 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 }
 
 func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
-	if networkInfo.Reconciliation == nil {
+	if networkInfo.ReconciliationInfo == nil {
 		return
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
-	reconciliationWithdrawAddress := networkInfo.Reconciliation.TargetAddress
+	reconciliationWithdrawAddress := networkInfo.ReconciliationInfo.TargetAddress
 
 	balanceMap := getGenesisBalancesMap(balances)
 
@@ -793,7 +808,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		To:       reconciliationWithdrawAddress,
 	}
 
-	for _, row := range networkInfo.Reconciliation.InputCSVRecords {
+	for _, row := range networkInfo.ReconciliationInfo.InputCSVRecords {
 		addr := row[2]
 
 		accSequence, ok := (*accountSequenceMap)[addr]
@@ -975,16 +990,16 @@ func readInputReconciliationData(csvData []byte) [][]string {
 }
 
 type NetworkConfig struct {
-	NewChainID     string
-	NewDescription string
-	IbcTargetAddr  string
-	Reconciliation *Reconciliation
-	SupplyInfo     SupplyInfo
-	DenomInfo      DenomInfo
-	Contracts      *Contracts
+	NewChainID         string
+	NewDescription     string
+	IbcTargetAddr      string
+	ReconciliationInfo *ReconciliationInfo
+	SupplyInfo         SupplyInfo
+	DenomInfo          DenomInfo
+	Contracts          *Contracts
 }
 
-type Reconciliation struct {
+type ReconciliationInfo struct {
 	TargetAddress   string
 	InputCSVRecords [][]string
 }
@@ -1001,12 +1016,13 @@ type DenomInfo struct {
 }
 
 type Contracts struct {
-	TokenBridge  *TokenBridge
-	Almanac      *Almanac
-	AName        *AName
-	MobixStaking *MobixStaking
-	FccIssuance  *FccIssuance
-	FccCw20      *FccCw20
+	TokenBridge    *TokenBridge
+	Almanac        *Almanac
+	AName          *AName
+	MobixStaking   *MobixStaking
+	FccIssuance    *FccIssuance
+	FccCw20        *FccCw20
+	Reconciliation *Reconciliation
 }
 
 type TokenBridge struct {
@@ -1033,5 +1049,9 @@ type FccCw20 struct {
 }
 
 type FccIssuance struct {
+	Addr string
+}
+
+type Reconciliation struct {
 	Addr string
 }
