@@ -102,11 +102,13 @@ def main():
     # Replace operator account pubkey
     if not new_operator_has_account:
         target_operator_account = get_account(genesis, target_operator_base_address)
-        new_pubkey = {
-            "@type": "/cosmos.crypto.secp256k1.PubKey",
-            "key": args.dest_validator_operator_pubkey,
-        }
-        target_operator_account["pub_key"] = new_pubkey
+        # Replace pubkey if present
+        if target_operator_account["pub_key"]:
+            new_pubkey = {
+                "@type": "/cosmos.crypto.secp256k1.PubKey",
+                "key": args.dest_validator_operator_pubkey,
+            }
+            target_operator_account["pub_key"] = new_pubkey
 
     # Brute force replacement of all remaining occurrences
     genesis_dump = json.dumps(genesis)
