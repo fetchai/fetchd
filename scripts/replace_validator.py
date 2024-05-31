@@ -96,11 +96,7 @@ def main():
     target_staking_val_info["consensus_pubkey"]["key"] = args.dest_validator_pubkey
 
     # Ensure that operator is not already registered in auth module:
-    new_operator_has_account = False
-    for account in genesis["app_state"]["auth"]["accounts"]:
-        if "address" in account and account["address"] == dest_operator_base_address:
-            new_operator_has_account = True
-            break
+    new_operator_has_account = get_account(genesis, dest_operator_base_address)
 
     if new_operator_has_account:
         print(

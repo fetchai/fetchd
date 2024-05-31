@@ -60,10 +60,11 @@ def ensure_account(genesis, address):
     genesis["app_state"]["auth"]["accounts"].append(new_account)
 
 
-def get_account(genesis, address):
+def get_account(genesis, address) -> dict:
     for account in genesis["app_state"]["auth"]["accounts"]:
         if "address" in account and account["address"] == address:
             return account
+    return None
 
 
 def set_balance(genesis, address, new_balance, denom):
