@@ -71,10 +71,6 @@ def main():
     target_operator_address = target_staking_val_info["operator_address"]
     target_operator_base_address = convert_to_base(target_operator_address)
 
-    target_operator_pubkey = get_account(genesis, target_operator_base_address)[
-        "pub_key"
-    ]["key"]
-
     # Output values #
     dest_validator_hex_addr = validator_pubkey_to_hex_address(
         args.dest_validator_pubkey
@@ -106,7 +102,11 @@ def main():
     # Replace operator account pubkey
     if not new_operator_has_account:
         target_operator_account = get_account(genesis, target_operator_base_address)
-        target_operator_account["pub_key"]["key"] = args.dest_validator_operator_pubkey
+        new_pubkey = {
+            "@type": "/cosmos.crypto.secp256k1.PubKey",
+            "key": args.dest_validator_operator_pubkey,
+        }
+        target_operator_account["pub_key"] = new_pubkey
 
     # Brute force replacement of all remaining occurrences
     genesis_dump = json.dumps(genesis)
