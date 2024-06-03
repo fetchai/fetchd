@@ -10,6 +10,37 @@ Validators and their delegators will earn FET as block provisions and tokens as 
 
 If validators double sign, are frequently offline or do not participate in governance, their staked FET (including FET of users that delegated to them) can be slashed. The penalty depends on the severity of the violation.
 
+## Validator benefits
+
+Validators will produce blocks on the Fetch.ai mainnet, in exchange for rewards, but also experience a number of other benefits:
+
+- Greater say in the future direction of the protocol through their role in governance.
+- Reputation as a valued member of the community.
+- Faster submission of transactions and direct access to the network operation.
+- Access to more and faster information on the current state of the network.
+- Access to other business models (as they emerge, including oracles or hosted agent applications).
+
+## Validator Revenue
+
+Similarly to most other Proof-of-Stake blockchains, the Fetch ledger provides revenue to validators in the form of block rewards and transaction fees. Smaller holders of FET tokens are able to delegate their stake to validators in exchange for a share of the rewards, as determined by the validator.
+
+- **Block rewards (FET)**: Rewards are provided for every block that is produced by a validator. The inflation rate is set at an annual rate of 3% during the first three years of the networks’ operation.
+
+- **Transaction Fees**: All transactions that are submitted to the chain are charged a transaction fee denominated in FET. This is payable for simple transfers, smart contract deployments, contract calls, governance and any other type of transaction. The usage of state and computational resources involves a fee proportional to the quantity of resources used.
+
+- **Agent and ML services**: Validators also an opportunity to support AI and agent-based services on the Fetch.ai blockchain. These include hosting datasets for machine learning applications, operating agent search-and-discovery services and operating agent networks that provide oracle services.
+
+## Who typically acts as a validator in a network?
+
+- Community members who are enthusiastic about the Fetch.ai protocol.
+- Those wishing to take part directly in governance or network operations.
+- Professional staking operations.
+- Blockchain founders and developers.
+
+## What are the costs?
+
+It costs time and money to operate a node. If your node is offline (unavailable) some of its stake will be slashed (i.e. deducted).
+
 ## Hardware
 
 The hardware resources for running a validator node largely depend on the network load. As a recommended configuration we suggest the following requirements
