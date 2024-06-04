@@ -104,7 +104,8 @@ var networkInfos = map[string]NetworkConfig{
 				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
 			Reconciliation: &Reconciliation{
-				Addr: "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
+				Addr:     "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
+				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
 			},
 			FccCw20: &FccCw20{
 				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
@@ -1055,5 +1056,6 @@ type FccIssuance struct {
 }
 
 type Reconciliation struct {
-	Addr string
+	Addr     string
+	NewAdmin string
 }
