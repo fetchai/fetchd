@@ -23,9 +23,11 @@ import (
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
+	tmtime "github.com/tendermint/tendermint/types/time"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -154,6 +156,8 @@ var networkInfos = map[string]NetworkConfig{
 	},
 }
 
+const flagGenesisTime = "genesis-time"
+
 // ASIGenesisUpgradeCmd returns replace-genesis-values cobra Command.
 func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
@@ -183,6 +187,19 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+			}
+
+			genesisTimeStr, err := cmd.Flags().GetString(flagGenesisTime)
+			if err != nil {
+				return err
+			}
+
+			if genesisTimeStr != "" {
+				genesisTime, err := time.Parse(time.RFC3339Nano, genesisTimeStr)
+				if err != nil {
+					return err
+				}
+				genDoc.GenesisTime = tmtime.Canonical(genesisTime)
 			}
 
 			// fetch the network config using chain-id
@@ -257,6 +274,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String(flagGenesisTime, "", "The timestamp to replace 'genesis_time' with in the genesis.json file")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring backend (os|file|kwallet|pass|test)")
 	flags.AddQueryFlagsToCmd(cmd)
