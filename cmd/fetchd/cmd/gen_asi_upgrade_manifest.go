@@ -44,7 +44,7 @@ type ASIUpgradeReconciliationContractState struct {
 }
 
 func NewASIUpgradeReconciliationContractState() *ASIUpgradeReconciliationContractState {
-	return &ASIUpgradeReconciliationContractState{AggregatedBalancesAmount: types.Int{}}
+	return &ASIUpgradeReconciliationContractState{AggregatedBalancesAmount: types.ZeroInt()}
 }
 
 type ASIUpgradeReconciliation struct {
