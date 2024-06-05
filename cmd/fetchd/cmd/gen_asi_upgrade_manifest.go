@@ -43,8 +43,8 @@ type ASIUpgradeReconciliationContractState struct {
 	NumberOfBalanceRecords   int                                                  `json:"number_of_balance_records"`
 }
 type ASIUpgradeReconciliation struct {
-	Transfers     ASIUpgradeReconciliationTransfers     `json:"transfers"`
-	ContractState ASIUpgradeReconciliationContractState `json:"contract_state"`
+	Transfers     ASIUpgradeReconciliationTransfers      `json:"transfers"`
+	ContractState *ASIUpgradeReconciliationContractState `json:"contract_state"`
 }
 
 type ASIUpgradeSupply struct {

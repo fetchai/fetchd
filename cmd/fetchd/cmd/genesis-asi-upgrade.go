@@ -229,9 +229,6 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// update fcc issuance contract
 			ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 
-			// replace reconciliation contract state
-			ASIGenesisUpgradeReplaceReconciliationState(jsonData, networkConfig)
-
 			// withdraw balances from IBC channels
 			ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest)
 
@@ -712,15 +709,25 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 	}
 }
 
-func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, config NetworkConfig) {
-	if config.Contracts == nil || config.Contracts.Reconciliation == nil {
+func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkConfig.Contracts == nil || networkConfig.Contracts.Reconciliation == nil || networkConfig.Contracts.Reconciliation.Addr != "" || len(manifest.Reconciliation.Transfers.Transfers) < 1 {
 		return
 	}
 
-	reconciliationContract := getContractFromAddr(config.Contracts.Reconciliation.Addr, jsonData)
-	reconciliationContract["contract_state"] = []interface{}{}
+	reconciliationContract := getContractFromAddr(networkConfig.Contracts.Reconciliation.Addr, jsonData)
+	var reconciliationContractState []interface{}
 
-	replaceContractAdmin(reconciliationContract, config.Contracts.Reconciliation.NewAdmin)
+	contractStateManifest := ASIUpgradeReconciliationContractState{}
+	manifest.Reconciliation.ContractState = &contractStateManifest
+
+	replaceContractAdmin(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin)
+
+	for _, transfer := range manifest.Reconciliation.Transfers.Transfers {
+		addReconciliationContractStateBalancesRecord(&reconciliationContractState, transfer.EthAddr, transfer.Amount, &networkConfig, manifest)
+	}
+
+	addReconciliationContractState(&reconciliationContractState, &networkConfig, manifest)
+	reconciliationContract["contract_state"] = reconciliationContractState
 }
 
 func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -864,14 +871,14 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
-	if networkInfo.ReconciliationInfo == nil {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkConfig.ReconciliationInfo == nil {
 		return
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
-	reconciliationWithdrawAddress := networkInfo.ReconciliationInfo.TargetAddress
+	reconciliationWithdrawAddress := networkConfig.ReconciliationInfo.TargetAddress
 
 	balanceMap := getGenesisBalancesMap(balances)
 
@@ -884,17 +891,13 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		panic("no match in genesis for reconciliation withdraw address")
 	}
 
-	reconciliationContract := getContractFromAddr(reconciliationWithdrawAddress, jsonData)
-	var reconciliationContractState []interface{}
-
 	manifest.Reconciliation = &ASIUpgradeReconciliation{
 		Transfers: ASIUpgradeReconciliationTransfers{
 			To: reconciliationWithdrawAddress,
 		},
-		ContractState: ASIUpgradeReconciliationContractState{},
 	}
 
-	for _, row := range networkInfo.ReconciliationInfo.InputCSVRecords {
+	for _, row := range networkConfig.ReconciliationInfo.InputCSVRecords {
 		ethAddr := row[0]
 		addr := row[2]
 
@@ -930,12 +933,9 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
 		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
 		manifest.Reconciliation.Transfers.AggregatedBalancesAmount = manifest.Reconciliation.Transfers.AggregatedBalancesAmount.Add(accBalanceCoins...)
-
-		addReconciliationContractStateBalancesRecord(&reconciliationContractState, ethAddr, accBalanceCoins, &networkInfo, manifest)
 	}
 
-	addReconciliationContractState(&reconciliationContractState, &networkInfo, manifest)
-	reconciliationContract["contract_state"] = reconciliationContractState
+	ASIGenesisUpgradeReplaceReconciliationState(jsonData, networkConfig, manifest)
 }
 
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
