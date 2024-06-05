@@ -710,7 +710,7 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 }
 
 func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
-	if networkConfig.Contracts == nil || networkConfig.Contracts.Reconciliation == nil || networkConfig.Contracts.Reconciliation.Addr != "" || len(manifest.Reconciliation.Transfers.Transfers) < 1 {
+	if networkConfig.Contracts == nil || networkConfig.Contracts.Reconciliation == nil || networkConfig.Contracts.Reconciliation.Addr == "" || len(manifest.Reconciliation.Transfers.Transfers) < 1 {
 		return
 	}
 
