@@ -91,21 +91,21 @@ var networkInfos = map[string]NetworkConfig{
 		},
 		Contracts: &Contracts{
 			Almanac: &Almanac{
-				StagingAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
+				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
 			},
 			AName: &AName{
-				StagingAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
+				ProdAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
 			},
 			MobixStaking: &MobixStaking{
 				Addresses: []string{"fetch174kgn5rtw4kf6f938wm7kwh70h2v4vcfcnfkl0", "fetch1sh36qn08g4cqg685cfzmyxqv2952q6r8actxru"},
 			},
 			TokenBridge: &TokenBridge{
 				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
-				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 			},
 			Reconciliation: &Reconciliation{
 				Addr:     "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
-				NewAdmin: "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 			},
 			FccCw20: &FccCw20{
 				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
@@ -132,12 +132,12 @@ var networkInfos = map[string]NetworkConfig{
 		},
 		Contracts: &Contracts{
 			Almanac: &Almanac{
-				StagingAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w", // testnet STAGING contract,
-				DevAddr:     "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp", // testnet DEVELOPMENT contract,
+				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
+				DevAddr:  "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp",
 			},
 			AName: &AName{
-				DevAddr:     "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn", // testnet DEVELOPMENT contract,
-				StagingAddr: "fetch1mxz8kn3l5ksaftx8a9pj9a6prpzk2uhxnqdkwuqvuh37tw80xu6qges77l", // testnet STAGING contract,
+				ProdAddr: "fetch1mxz8kn3l5ksaftx8a9pj9a6prpzk2uhxnqdkwuqvuh37tw80xu6qges77l",
+				DevAddr:  "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 			},
 			MobixStaking: &MobixStaking{
 				Addresses: []string{"fetch1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3szdul6e"},
@@ -590,17 +590,14 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo 
 }
 
 func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
-	if networkInfo.Contracts == nil || networkInfo.Contracts.TokenBridge == nil || networkInfo.Contracts.TokenBridge.NewAdmin == "" {
+	if networkInfo.Contracts == nil || networkInfo.Contracts.TokenBridge == nil {
 		return
 	}
 
 	tokenBridgeContractAddress := networkInfo.Contracts.TokenBridge.Addr
 	tokenBridgeContract := getContractFromAddr(tokenBridgeContractAddress, jsonData)
 
-	// replace token bridge admin
-	contractInfo := tokenBridgeContract["contract_info"].(map[string]interface{})
-	contractInfo["admin"] = networkInfo.Contracts.TokenBridge.NewAdmin
-	return
+	replaceContractAdmin(tokenBridgeContract, networkInfo.Contracts.TokenBridge.NewAdmin)
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -624,7 +621,7 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 		return
 	}
 
-	for _, addr := range []string{networkInfo.Contracts.Almanac.StagingAddr, networkInfo.Contracts.Almanac.DevAddr} {
+	for _, addr := range []string{networkInfo.Contracts.Almanac.ProdAddr, networkInfo.Contracts.Almanac.DevAddr} {
 		if addr == "" {
 			continue
 		}
@@ -643,6 +640,8 @@ func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}
 
 	reconciliationContract := getContractFromAddr(config.Contracts.Reconciliation.Addr, jsonData)
 	reconciliationContract["contract_state"] = []interface{}{}
+
+	replaceContractAdmin(reconciliationContract, config.Contracts.Reconciliation.NewAdmin)
 }
 
 func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -650,7 +649,7 @@ func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, network
 		return
 	}
 
-	for _, addr := range []string{networkInfo.Contracts.AName.StagingAddr, networkInfo.Contracts.AName.DevAddr} {
+	for _, addr := range []string{networkInfo.Contracts.AName.ProdAddr, networkInfo.Contracts.AName.DevAddr} {
 		if addr == "" {
 			continue
 		}
@@ -923,6 +922,15 @@ func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	return newAddress, nil
 }
 
+func replaceContractAdmin(genesisContractStruct map[string]interface{}, newAdmin *string) {
+	if newAdmin == nil {
+		return
+	}
+
+	contractInfo := genesisContractStruct["contract_info"].(map[string]interface{})
+	contractInfo["admin"] = newAdmin
+}
+
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
 	switch val := value.(type) {
 	case string:
@@ -992,6 +1000,10 @@ func readInputReconciliationData(csvData []byte) [][]string {
 	return records
 }
 
+func getStringPtr(val string) *string {
+	return &val
+}
+
 type NetworkConfig struct {
 	NewChainID         string
 	NewDescription     string
@@ -1030,17 +1042,17 @@ type Contracts struct {
 
 type TokenBridge struct {
 	Addr     string
-	NewAdmin string
+	NewAdmin *string
 }
 
 type Almanac struct {
-	DevAddr     string
-	StagingAddr string
+	DevAddr  string
+	ProdAddr string
 }
 
 type AName struct {
-	DevAddr     string
-	StagingAddr string
+	DevAddr  string
+	ProdAddr string
 }
 
 type MobixStaking struct {
@@ -1057,5 +1069,5 @@ type FccIssuance struct {
 
 type Reconciliation struct {
 	Addr     string
-	NewAdmin string
+	NewAdmin *string
 }
