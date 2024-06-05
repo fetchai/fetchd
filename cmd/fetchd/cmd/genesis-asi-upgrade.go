@@ -528,10 +528,10 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	return hex.EncodeToString(key)
 }
 
-func reconciliationStateBalancesRecord(ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig) *map[string]string {
+func reconciliationContractStateBalancesRecord(ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Int) {
 	amount := coins.AmountOfNoDenomValidation(networkConfig.DenomInfo.OldDenom)
 	if amount.IsZero() {
-		return nil
+		return nil, amount
 	}
 	if amount.IsNegative() {
 		panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddr))
@@ -555,7 +555,17 @@ func reconciliationStateBalancesRecord(ethAddr string, coins sdk.Coins, networkC
 		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", amount.String()))),
 	}
 
-	return &balanceRecord
+	return &balanceRecord, amount
+}
+
+func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interface{}, ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
+	newContractStateBalancesRecord, amount := reconciliationContractStateBalancesRecord(ethAddr, coins, networkConfig)
+	if newContractStateBalancesRecord != nil {
+		*contractStateRecords = append(*contractStateRecords, *newContractStateBalancesRecord)
+		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, ASIUpgradeReconciliationContractStateBalanceRecord{EthAddr: ethAddr, Amount: amount})
+		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(amount)
+		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
+	}
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -842,9 +852,11 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 	reconciliationContract := getContractFromAddr(reconciliationWithdrawAddress, jsonData)
 	var reconciliationContractState []interface{}
 
-	manifest.Reconciliation = &ASIUpgradeReconciliationTransfers{
-		Transfer: []ASIUpgradeReconciliationTransfer{},
-		To:       reconciliationWithdrawAddress,
+	manifest.Reconciliation = &ASIUpgradeReconciliation{
+		Transfers: ASIUpgradeReconciliationTransfers{
+			To: reconciliationWithdrawAddress,
+		},
+		ContractState: ASIUpgradeReconciliationContractState{},
 	}
 
 	for _, row := range networkInfo.ReconciliationInfo.InputCSVRecords {
@@ -862,7 +874,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		}
 
 		accBalance := balances[balanceIdx]
-		// Function below sanitise returned coins = removes zero balances & sorts coins based on denom
+		// Function below sanitises returned coins = removes zero balances & sorts coins based on denom
 		accBalanceCoins := getCoinsFromInterfaceSlice(accBalance)
 
 		reconciliationBalance := balances[reconciliationBalanceIdx]
@@ -880,12 +892,11 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
 
-		newContractStateBalancesRecord := reconciliationStateBalancesRecord(ethAddr, accBalanceCoins, &networkInfo)
-		if newContractStateBalancesRecord != nil {
-			reconciliationContractState = append(reconciliationContractState, *newContractStateBalancesRecord)
-		}
+		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
+		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
+		manifest.Reconciliation.Transfers.AggregatedBalancesAmount = manifest.Reconciliation.Transfers.AggregatedBalancesAmount.Add(accBalanceCoins...)
 
-		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
+		addReconciliationContractStateBalancesRecord(&reconciliationContractState, ethAddr, accBalanceCoins, &networkInfo, manifest)
 	}
 
 	reconciliationContract["contract_state"] = reconciliationContractState

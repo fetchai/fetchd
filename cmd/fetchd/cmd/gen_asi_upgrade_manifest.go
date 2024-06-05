@@ -26,8 +26,25 @@ type ASIUpgradeReconciliationTransfer struct {
 }
 
 type ASIUpgradeReconciliationTransfers struct {
-	Transfer []ASIUpgradeReconciliationTransfer `json:"transfer"`
-	To       string                             `json:"to"`
+	Transfers                []ASIUpgradeReconciliationTransfer `json:"transfers"`
+	To                       string                             `json:"to"`
+	AggregatedBalancesAmount types.Coins                        `json:"aggregated_transferred_amount"`
+	NumberOfTransfers        int                                `json:"number_of_transfers"`
+}
+
+type ASIUpgradeReconciliationContractStateBalanceRecord struct {
+	EthAddr string    `json:"eth_addr"`
+	Amount  types.Int `json:"amount"`
+}
+
+type ASIUpgradeReconciliationContractState struct {
+	Balances                 []ASIUpgradeReconciliationContractStateBalanceRecord `json:"balances"`
+	AggregatedBalancesAmount types.Int                                            `json:"aggregated_balances_amount"`
+	NumberOfBalanceRecords   int                                                  `json:"number_of_balance_records"`
+}
+type ASIUpgradeReconciliation struct {
+	Transfers     ASIUpgradeReconciliationTransfers     `json:"transfers"`
+	ContractState ASIUpgradeReconciliationContractState `json:"contract_state"`
 }
 
 type ASIUpgradeSupply struct {
@@ -37,9 +54,9 @@ type ASIUpgradeSupply struct {
 }
 
 type ASIUpgradeManifest struct {
-	Supply         *ASIUpgradeSupply                  `json:"supply,omitempty"`
-	IBC            *ASIUpgradeTransfers               `json:"ibc,omitempty"`
-	Reconciliation *ASIUpgradeReconciliationTransfers `json:"reconciliation,omitempty"`
+	Supply         *ASIUpgradeSupply         `json:"supply,omitempty"`
+	IBC            *ASIUpgradeTransfers      `json:"ibc,omitempty"`
+	Reconciliation *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
 }
 
 func SaveASIManifest(manifest *ASIUpgradeManifest, config *config2.Config) error {
