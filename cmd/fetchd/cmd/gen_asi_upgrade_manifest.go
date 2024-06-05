@@ -9,14 +9,17 @@ import (
 	"path"
 )
 
-type ASIUpgradeTransfer struct {
-	From   string      `json:"from"`
-	Amount types.Coins `json:"amount"`
+type ASIUpgradeIBCTransfer struct {
+	From      string      `json:"from"`
+	ChannelID string      `json:"channel_id"`
+	Amount    types.Coins `json:"amount"`
 }
 
-type ASIUpgradeTransfers struct {
-	Transfer []ASIUpgradeTransfer `json:"transfer"`
-	To       string               `json:"to"`
+type ASIUpgradeIBCTransfers struct {
+	Transfers                   []ASIUpgradeIBCTransfer `json:"transfer"`
+	To                          string                  `json:"to"`
+	AggregatedTransferredAmount types.Coins             `json:"aggregated_transferred_amount"`
+	NumberOfTransfers           int                     `json:"number_of_transfers"`
 }
 
 type ASIUpgradeReconciliationTransfer struct {
@@ -26,10 +29,10 @@ type ASIUpgradeReconciliationTransfer struct {
 }
 
 type ASIUpgradeReconciliationTransfers struct {
-	Transfers                []ASIUpgradeReconciliationTransfer `json:"transfers"`
-	To                       string                             `json:"to"`
-	AggregatedBalancesAmount types.Coins                        `json:"aggregated_transferred_amount"`
-	NumberOfTransfers        int                                `json:"number_of_transfers"`
+	Transfers                   []ASIUpgradeReconciliationTransfer `json:"transfers"`
+	To                          string                             `json:"to"`
+	AggregatedTransferredAmount types.Coins                        `json:"aggregated_transferred_amount"`
+	NumberOfTransfers           int                                `json:"number_of_transfers"`
 }
 
 type ASIUpgradeReconciliationContractStateBalanceRecord struct {
@@ -60,7 +63,7 @@ type ASIUpgradeSupply struct {
 
 type ASIUpgradeManifest struct {
 	Supply         *ASIUpgradeSupply         `json:"supply,omitempty"`
-	IBC            *ASIUpgradeTransfers      `json:"ibc,omitempty"`
+	IBC            *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
 	Reconciliation *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
 }
 

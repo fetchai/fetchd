@@ -797,9 +797,8 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	balanceMap := getGenesisBalancesMap(balances)
 	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
-	manifest.IBC = &ASIUpgradeTransfers{
-		Transfer: []ASIUpgradeTransfer{},
-		To:       ibcWithdrawalAddress,
+	manifest.IBC = &ASIUpgradeIBCTransfers{
+		To: ibcWithdrawalAddress,
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
@@ -833,14 +832,16 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
 		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
 
-		manifest.IBC.Transfer = append(manifest.IBC.Transfer, ASIUpgradeTransfer{From: channelAddr, Amount: channelBalanceCoins})
-
 		// add channel balance to withdrawal balance
 		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
 		balances[withdrawalBalanceIdx].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newWithdrawalBalanceCoins)
 
 		// zero out the channel balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
+
+		manifest.IBC.Transfers = append(manifest.IBC.Transfers, ASIUpgradeIBCTransfer{From: channelAddr, ChannelID: fmt.Sprintf("%s/%s", portId, channelId), Amount: channelBalanceCoins})
+		manifest.IBC.AggregatedTransferredAmount = manifest.IBC.AggregatedTransferredAmount.Add(channelBalanceCoins...)
+		manifest.IBC.NumberOfTransfers += 1
 	}
 }
 
@@ -932,7 +933,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 
 		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
 		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
-		manifest.Reconciliation.Transfers.AggregatedBalancesAmount = manifest.Reconciliation.Transfers.AggregatedBalancesAmount.Add(accBalanceCoins...)
+		manifest.Reconciliation.Transfers.AggregatedTransferredAmount = manifest.Reconciliation.Transfers.AggregatedTransferredAmount.Add(accBalanceCoins...)
 	}
 
 	ASIGenesisUpgradeReplaceReconciliationContractState(jsonData, networkConfig, manifest)
