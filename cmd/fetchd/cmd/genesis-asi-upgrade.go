@@ -529,39 +529,33 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 }
 
 func reconciliationStateBalancesRecord(ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig) *map[string]string {
-	for _, coin := range coins {
-		if coin.Denom != networkConfig.DenomInfo.OldDenom {
-			continue
-		}
-
-		var buffer bytes.Buffer
-		writer := bufio.NewWriter(&buffer)
-
-		if _, err := writer.Write(reconciliationBalancesKey); err != nil {
-			panic(err)
-		}
-		if _, err := writer.WriteString(ethAddr); err != nil {
-			panic(err)
-		}
-		if err := writer.Flush(); err != nil {
-			panic(err)
-		}
-
-		amount := coin.Amount
-
-		if amount.IsNegative() {
-			panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddr))
-		}
-
-		balanceRecord := map[string]string{
-			"key":   hex.EncodeToString(buffer.Bytes()),
-			"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", amount.String()))),
-		}
-
-		return &balanceRecord
+	amount := coins.AmountOfNoDenomValidation(networkConfig.DenomInfo.OldDenom)
+	if amount.IsZero() {
+		return nil
+	}
+	if amount.IsNegative() {
+		panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddr))
 	}
 
-	return nil
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
+
+	if _, err := writer.Write(reconciliationBalancesKey); err != nil {
+		panic(err)
+	}
+	if _, err := writer.WriteString(ethAddr); err != nil {
+		panic(err)
+	}
+	if err := writer.Flush(); err != nil {
+		panic(err)
+	}
+
+	balanceRecord := map[string]string{
+		"key":   hex.EncodeToString(buffer.Bytes()),
+		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", amount.String()))),
+	}
+
+	return &balanceRecord
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
