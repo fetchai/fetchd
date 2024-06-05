@@ -44,6 +44,8 @@ const (
 )
 
 var (
+	// Reconciliation balances contract state key
+	reconciliationBalancesKey = prefixStringWithLength("balances")
 	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
 	unbondEntriesKey = prefixStringWithLength("unbond_entries")
@@ -515,6 +517,7 @@ func prefixStringWithLength(val string) []byte {
 
 	return buffer.Bytes()
 }
+
 func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
 	if err != nil {
@@ -523,6 +526,42 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	key := append(prefix, []byte(newAddr)...)
 
 	return hex.EncodeToString(key)
+}
+
+func reconciliationStateBalancesRecord(ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig) *map[string]string {
+	for _, coin := range coins {
+		if coin.Denom != networkConfig.DenomInfo.OldDenom {
+			continue
+		}
+
+		var buffer bytes.Buffer
+		writer := bufio.NewWriter(&buffer)
+
+		if _, err := writer.Write(reconciliationBalancesKey); err != nil {
+			panic(err)
+		}
+		if _, err := writer.WriteString(ethAddr); err != nil {
+			panic(err)
+		}
+		if err := writer.Flush(); err != nil {
+			panic(err)
+		}
+
+		amount := coin.Amount
+
+		if amount.IsNegative() {
+			panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddr))
+		}
+
+		balanceRecord := map[string]string{
+			"key":   hex.EncodeToString(buffer.Bytes()),
+			"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", amount.String()))),
+		}
+
+		return &balanceRecord
+	}
+
+	return nil
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -806,12 +845,16 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		panic("no match in genesis for reconciliation withdraw address")
 	}
 
-	manifest.Reconciliation = &ASIUpgradeTransfers{
-		Transfer: []ASIUpgradeTransfer{},
+	reconciliationContract := getContractFromAddr(reconciliationWithdrawAddress, jsonData)
+	var reconciliationContractState []interface{}
+
+	manifest.Reconciliation = &ASIUpgradeReconciliationTransfers{
+		Transfer: []ASIUpgradeReconciliationTransfer{},
 		To:       reconciliationWithdrawAddress,
 	}
 
 	for _, row := range networkInfo.ReconciliationInfo.InputCSVRecords {
+		ethAddr := row[0]
 		addr := row[2]
 
 		accSequence, ok := (*accountSequenceMap)[addr]
@@ -825,6 +868,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		}
 
 		accBalance := balances[balanceIdx]
+		// Function below sanitise returned coins = removes zero balances & sorts coins based on denom
 		accBalanceCoins := getCoinsFromInterfaceSlice(accBalance)
 
 		reconciliationBalance := balances[reconciliationBalanceIdx]
@@ -839,11 +883,18 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		newReconciliationBalanceCoins := reconciliationBalanceCoins.Add(accBalanceCoins...)
 		reconciliationBalance.(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newReconciliationBalanceCoins)
 
-		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeTransfer{From: addr, Amount: accBalanceCoins})
-
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
+
+		newContractStateBalancesRecord := reconciliationStateBalancesRecord(ethAddr, accBalanceCoins, &networkInfo)
+		if newContractStateBalancesRecord != nil {
+			reconciliationContractState = append(reconciliationContractState, *newContractStateBalancesRecord)
+		}
+
+		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
 	}
+
+	reconciliationContract["contract_state"] = reconciliationContractState
 }
 
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
@@ -969,6 +1020,8 @@ func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
 		}
 		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
 	}
+
+	balanceCoins = sdk.NewCoins(balanceCoins...)
 	return balanceCoins
 }
 
