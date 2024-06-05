@@ -112,6 +112,7 @@ var networkInfos = map[string]NetworkConfig{
 			Reconciliation: &Reconciliation{
 				Addr:     "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
+				NewLabel: getStringPtr("reconciliation-contract"),
 			},
 			FccCw20: &FccCw20{
 				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
@@ -673,7 +674,7 @@ func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networ
 	tokenBridgeContractAddress := networkInfo.Contracts.TokenBridge.Addr
 	tokenBridgeContract := getContractFromAddr(tokenBridgeContractAddress, jsonData)
 
-	replaceContractAdmin(tokenBridgeContract, networkInfo.Contracts.TokenBridge.NewAdmin)
+	replaceContractAdminAndLabel(tokenBridgeContract, networkInfo.Contracts.TokenBridge.NewAdmin, nil)
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -709,7 +710,7 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 	}
 }
 
-func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+func ASIGenesisUpgradeReplaceReconciliationContractState(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
 	if networkConfig.Contracts == nil || networkConfig.Contracts.Reconciliation == nil || networkConfig.Contracts.Reconciliation.Addr == "" || len(manifest.Reconciliation.Transfers.Transfers) < 1 {
 		return
 	}
@@ -719,7 +720,7 @@ func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}
 
 	manifest.Reconciliation.ContractState = NewASIUpgradeReconciliationContractState()
 
-	replaceContractAdmin(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin)
+	replaceContractAdminAndLabel(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin, networkConfig.Contracts.Reconciliation.NewLabel)
 
 	for _, transfer := range manifest.Reconciliation.Transfers.Transfers {
 		addReconciliationContractStateBalancesRecord(&reconciliationContractState, transfer.EthAddr, transfer.Amount, &networkConfig, manifest)
@@ -934,7 +935,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		manifest.Reconciliation.Transfers.AggregatedBalancesAmount = manifest.Reconciliation.Transfers.AggregatedBalancesAmount.Add(accBalanceCoins...)
 	}
 
-	ASIGenesisUpgradeReplaceReconciliationState(jsonData, networkConfig, manifest)
+	ASIGenesisUpgradeReplaceReconciliationContractState(jsonData, networkConfig, manifest)
 }
 
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
@@ -1014,13 +1015,14 @@ func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	return newAddress, nil
 }
 
-func replaceContractAdmin(genesisContractStruct map[string]interface{}, newAdmin *string) {
-	if newAdmin == nil {
-		return
-	}
-
+func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, newAdmin *string, newLabel *string) {
 	contractInfo := genesisContractStruct["contract_info"].(map[string]interface{})
-	contractInfo["admin"] = newAdmin
+	if newAdmin != nil {
+		contractInfo["admin"] = *newAdmin
+	}
+	if newLabel != nil {
+		contractInfo["label"] = *newLabel
+	}
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
@@ -1164,6 +1166,7 @@ type FccIssuance struct {
 type Reconciliation struct {
 	Addr     string
 	NewAdmin *string
+	NewLabel *string
 }
 
 type ReconciliationContractStateRecord struct {
