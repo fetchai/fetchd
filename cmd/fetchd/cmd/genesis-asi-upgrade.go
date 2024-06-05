@@ -717,8 +717,7 @@ func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}
 	reconciliationContract := getContractFromAddr(networkConfig.Contracts.Reconciliation.Addr, jsonData)
 	var reconciliationContractState []interface{}
 
-	contractStateManifest := ASIUpgradeReconciliationContractState{}
-	manifest.Reconciliation.ContractState = &contractStateManifest
+	manifest.Reconciliation.ContractState = NewASIUpgradeReconciliationContractState()
 
 	replaceContractAdmin(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin)
 
