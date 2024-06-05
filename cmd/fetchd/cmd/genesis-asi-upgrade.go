@@ -588,7 +588,7 @@ func addReconciliationContractState(contractStateRecords *[]interface{}, network
 	var err error
 	var stateRecordJSONStr []byte
 	stateRecordJSONStr, err = json.Marshal(stateRecord)
-	if err == nil {
+	if err != nil {
 		panic(err)
 	}
 	stateRecordEnc := map[string]string{
