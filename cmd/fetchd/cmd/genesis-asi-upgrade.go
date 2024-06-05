@@ -45,7 +45,11 @@ const (
 
 var (
 	// Reconciliation balances contract state key
-	reconciliationBalancesKey = prefixStringWithLength("balances")
+	reconciliationBalancesKey              = prefixStringWithLength("balances")
+	reconciliationTotalBalanceKey          = []byte("total_balance")
+	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
+	reconciliationStatesKey                = []byte("state")
+
 	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
 	unbondEntriesKey = prefixStringWithLength("unbond_entries")
@@ -568,6 +572,38 @@ func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interf
 	}
 }
 
+func addReconciliationContractState(contractStateRecords *[]interface{}, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
+	totalBalanceRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationTotalBalanceKey),
+		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", manifest.Reconciliation.ContractState.AggregatedBalancesAmount.String()))),
+	}
+
+	nOutstandingAddressesRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationNOutstandingAddressesKey),
+		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", manifest.Reconciliation.ContractState.NumberOfBalanceRecords))),
+	}
+
+	stateRecord := ReconciliationContractStateRecord{
+		Denom:  networkConfig.DenomInfo.NewDenom,
+		Paused: true,
+	}
+
+	var err error
+	var stateRecordJSONStr []byte
+	stateRecordJSONStr, err = json.Marshal(stateRecord)
+	if err == nil {
+		panic(err)
+	}
+	stateRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationStatesKey),
+		"value": base64.StdEncoding.EncodeToString(stateRecordJSONStr),
+	}
+
+	*contractStateRecords = append(*contractStateRecords, totalBalanceRecordEnc)
+	*contractStateRecords = append(*contractStateRecords, nOutstandingAddressesRecordEnc)
+	*contractStateRecords = append(*contractStateRecords, stateRecordEnc)
+}
+
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
 	type jsonMap map[string]interface{}
 
@@ -899,6 +935,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		addReconciliationContractStateBalancesRecord(&reconciliationContractState, ethAddr, accBalanceCoins, &networkInfo, manifest)
 	}
 
+	addReconciliationContractState(&reconciliationContractState, &networkInfo, manifest)
 	reconciliationContract["contract_state"] = reconciliationContractState
 }
 
@@ -1116,4 +1153,9 @@ type FccIssuance struct {
 type Reconciliation struct {
 	Addr     string
 	NewAdmin string
+}
+
+type ReconciliationContractStateRecord struct {
+	Denom  string `json:"denom"`
+	Paused bool   `json:"paused"`
 }
