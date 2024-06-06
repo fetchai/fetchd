@@ -61,10 +61,19 @@ type ASIUpgradeSupply struct {
 	ResultingSupplyTotal types.Coins `json:"resulting_supply_total"`
 }
 
+type ContractValueUpdate struct {
+	Address string `json:"address"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+}
+
 type ASIUpgradeManifest struct {
-	Supply         *ASIUpgradeSupply         `json:"supply,omitempty"`
-	IBC            *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
-	Reconciliation *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
+	Supply                *ASIUpgradeSupply         `json:"supply,omitempty"`
+	IBC                   *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
+	Reconciliation        *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
+	ContractsStateCleaned []string                  `json:"contracts_state_cleaned,omitempty"`
+	ContractsAdminUpdated []ContractValueUpdate     `json:"contracts_admin_updated,omitempty"`
+	ContractsLabelUpdated []ContractValueUpdate     `json:"contracts_label_updated,omitempty"`
 }
 
 func SaveASIManifest(manifest *ASIUpgradeManifest, config *config2.Config) error {
