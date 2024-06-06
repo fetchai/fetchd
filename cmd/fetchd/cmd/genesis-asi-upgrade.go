@@ -928,7 +928,7 @@ func replaceContractAdmin(genesisContractStruct map[string]interface{}, newAdmin
 	}
 
 	contractInfo := genesisContractStruct["contract_info"].(map[string]interface{})
-   contractInfo["admin"] = *newAdmin
+	contractInfo["admin"] = *newAdmin
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
