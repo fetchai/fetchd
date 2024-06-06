@@ -287,6 +287,22 @@ func (a Bytes) StartsWith(with []byte) bool {
 	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
 }
 
+func DropHexPrefix(hexEncodedData string) string {
+	if len(hexEncodedData) < 2 {
+		return hexEncodedData
+	}
+
+	if strings.ToLower(string(hexEncodedData[:2])) == "0x" {
+		return hexEncodedData[2:]
+	}
+
+	if strings.ToLower(string(hexEncodedData[:1])) == "x" {
+		return hexEncodedData[1:]
+	}
+
+	return hexEncodedData
+}
+
 func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 	address1StartIdx := len(prefix) + 2
 	address1Len := int(binary.BigEndian.Uint16(keyBytes[len(prefix):address1StartIdx]))
@@ -552,14 +568,16 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	return hex.EncodeToString(key)
 }
 
-func reconciliationContractStateBalancesRecord(ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Int) {
+func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Int) {
 	amount := coins.AmountOfNoDenomValidation(networkConfig.DenomInfo.OldDenom)
 	if amount.IsZero() {
 		return nil, amount
 	}
 	if amount.IsNegative() {
-		panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddr))
+		panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddrHex))
 	}
+
+	ethAddrHexNoPrefix := DropHexPrefix(ethAddrHex)
 
 	var buffer bytes.Buffer
 	writer := bufio.NewWriter(&buffer)
@@ -568,12 +586,12 @@ func reconciliationContractStateBalancesRecord(ethAddr string, coins sdk.Coins, 
 		panic(err)
 	}
 
-	if ethAddrRaw, err := hex.DecodeString(ethAddr); err != nil {
+	if ethAddrRaw, err := hex.DecodeString(ethAddrHexNoPrefix); err != nil {
+		panic(err)
+	} else {
 		if _, err := writer.Write(ethAddrRaw); err != nil {
 			panic(err)
 		}
-	} else {
-		panic(err)
 	}
 
 	if err := writer.Flush(); err != nil {
