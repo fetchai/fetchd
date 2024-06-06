@@ -189,18 +189,12 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-			genesisTimeStr, err := cmd.Flags().GetString(flagGenesisTime)
+			newGenesisTimeStr, err := cmd.Flags().GetString(flagGenesisTime)
 			if err != nil {
 				return err
 			}
 
-			if genesisTimeStr != "" {
-				genesisTime, err := time.Parse(time.RFC3339Nano, genesisTimeStr)
-				if err != nil {
-					return err
-				}
-				genDoc.GenesisTime = tmtime.Canonical(genesisTime)
-			}
+			ASIGenesisUpgradeUpdateGenesisTime(genDoc, newGenesisTimeStr)
 
 			// fetch the network config using chain-id
 			var ok bool
@@ -329,6 +323,16 @@ func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 	}
 
 	return hex.EncodeToString(buffer.Bytes())
+}
+
+func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTimeStr string) {
+	if newGenesisTimeStr != "" {
+		genesisTime, err := time.Parse(time.RFC3339Nano, newGenesisTimeStr)
+		if err != nil {
+			panic(err)
+		}
+		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
+	}
 }
 
 func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
