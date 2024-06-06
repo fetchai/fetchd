@@ -19,40 +19,67 @@ body:
           required: true
         - label: I checked the [existing issues](https://github.com/fetchai/fetchd/issues) to make sure my problem has not already been reported.
           required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Select the category that best describes the bug.
+      options:
+        - Bug (unexpected behavior)
+        - Documentation Issue (error or unclear information in docs)
+        - Other
+    validations:
+      required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected Behavior
-      description: Describe the behavior you are expecting
+      description: Describe the behavior you are expecting.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: actual
     attributes:
-      label: Current Behavior
-      description: Describe the current behavior
+      label: Observed Behavior
+      description: Describe the behavior you are observing.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
       label: To Reproduce
-      description: Detailed steps for reproducing the issue
+      description: Provide steps to reproduce the issue.
     validations:
       required: false
-  - type: textarea
-    id: context
+  - type: input
+    id: version
     attributes:
-      label: Context
-      description: Any relevant information about your setup (this is important in case the issue is not reproducible except for under certain conditions)
-      placeholder: |
-        Operating system [e.g. MacOS], Go version [e.g. 1.18.2], fetchd version [e.g. v0.10.4], ...
+      label: Fetchd Version
+      description: Which version of fetchd were you using? Please enter the version number here.
+      placeholder: ex. v0.1.0
     validations:
       required: true
   - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details (Optional)
+      description: Provide any relevant information about your environment, such as operating system, Python version, and any other libraries used.
+      render: markdown
+    validations:
+      required: false
+  - type: textarea
     id: logs
     attributes:
-      label: Failure Logs
-      description: Include any relevant log snippets or files here
+      label: Failure Logs (Optional)
+      description: Include any relevant log snippets or files here. You can paste directly or drag and drop files into this area.
+      render: shell
+    validations:
+        required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information (Optional)
+      description: Include any screenshots, code snippets, or other relevant details that might help us understand the bug.
+      render: markdown
     validations:
       required: false
