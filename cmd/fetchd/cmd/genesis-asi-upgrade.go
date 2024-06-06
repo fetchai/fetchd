@@ -43,6 +43,8 @@ const (
 
 	NewAddrPrefix = "asi"
 	OldAddrPrefix = "fetch"
+
+	FlagGenesisTime = "genesis-time"
 )
 
 var (
@@ -156,8 +158,6 @@ var networkInfos = map[string]NetworkConfig{
 	},
 }
 
-const flagGenesisTime = "genesis-time"
-
 // ASIGenesisUpgradeCmd returns replace-genesis-values cobra Command.
 func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
@@ -189,7 +189,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-			newGenesisTimeStr, err := cmd.Flags().GetString(flagGenesisTime)
+			newGenesisTimeStr, err := cmd.Flags().GetString(FlagGenesisTime)
 			if err != nil {
 				return err
 			}
@@ -268,7 +268,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String(flagGenesisTime, "", "The timestamp to replace 'genesis_time' with in the genesis.json file")
+	cmd.Flags().String(FlagGenesisTime, "", "The timestamp to replace 'genesis_time' in the genesis.json file, must be RFC3339 formatted")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring backend (os|file|kwallet|pass|test)")
 	flags.AddQueryFlagsToCmd(cmd)
