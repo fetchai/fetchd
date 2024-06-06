@@ -943,8 +943,8 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 
 	if additionalSupply.IsZero() {
 		return
-	} else if additionalSupply.LT(sdk.ZeroInt()) {
-		panic("asi upgrade update supply: additional supply value is negative")
+	} else if additionalSupply.IsNegative() {
+		panic("asi upgrade update supply: new supply amount for minting is negative")
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
@@ -982,7 +982,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 	supplyRecord := ASIUpgradeSupply{
 		LandingAddress:       supplyInfo.UpdatedSupplyOverflowAddr,
 		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
-		ResultingSupplyTotal: sdk.NewCoins(newSupplyCoins),
+		ResultingTotalSupply: sdk.NewCoins(newSupplyCoins),
 	}
 	manifest.Supply = &supplyRecord
 

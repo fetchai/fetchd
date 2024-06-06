@@ -58,7 +58,7 @@ type ASIUpgradeReconciliation struct {
 type ASIUpgradeSupply struct {
 	LandingAddress       string      `json:"landing_address"`
 	MintedAmount         types.Coins `json:"minted_amount"`
-	ResultingSupplyTotal types.Coins `json:"resulting_supply_total"`
+	ResultingTotalSupply types.Coins `json:"resulting_total_supply"`
 }
 
 type ContractValueUpdate struct {
