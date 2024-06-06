@@ -233,8 +233,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// withdraw balances from IBC channels
 			ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest)
 
-			// withdraw balances from reconciliation addresses
-			ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest)
+			// handles reconciliation
+			ASIGenesisUpgradeReconciliation(jsonData, networkConfig, &manifest)
 
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData, networkConfig)
@@ -929,7 +929,10 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
 		manifest.Reconciliation.Transfers.AggregatedTransferredAmount = manifest.Reconciliation.Transfers.AggregatedTransferredAmount.Add(accBalanceCoins...)
 	}
+}
 
+func ASIGenesisUpgradeReconciliation(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, manifest)
 	ASIGenesisUpgradeReplaceReconciliationContractState(jsonData, networkConfig, manifest)
 }
 
