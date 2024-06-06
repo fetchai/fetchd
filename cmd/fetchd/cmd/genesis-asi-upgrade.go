@@ -567,9 +567,15 @@ func reconciliationContractStateBalancesRecord(ethAddr string, coins sdk.Coins, 
 	if _, err := writer.Write(reconciliationBalancesKey); err != nil {
 		panic(err)
 	}
-	if _, err := writer.WriteString(ethAddr); err != nil {
+
+	if ethAddrRaw, err := hex.DecodeString(ethAddr); err != nil {
+		if _, err := writer.Write(ethAddrRaw); err != nil {
+			panic(err)
+		}
+	} else {
 		panic(err)
 	}
+
 	if err := writer.Flush(); err != nil {
 		panic(err)
 	}
