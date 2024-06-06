@@ -23,9 +23,11 @@ import (
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
+	tmtime "github.com/tendermint/tendermint/types/time"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -41,6 +43,8 @@ const (
 
 	NewAddrPrefix = "asi"
 	OldAddrPrefix = "fetch"
+
+	FlagGenesisTime = "genesis-time"
 )
 
 var (
@@ -185,6 +189,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
+			newGenesisTimeStr, err := cmd.Flags().GetString(FlagGenesisTime)
+			if err != nil {
+				return err
+			}
+
+			ASIGenesisUpgradeUpdateGenesisTime(genDoc, newGenesisTimeStr)
+
 			// fetch the network config using chain-id
 			var ok bool
 			var networkConfig NetworkConfig
@@ -257,6 +268,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String(FlagGenesisTime, "", "The timestamp to replace 'genesis_time' in the genesis.json file, must be RFC3339 formatted")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring backend (os|file|kwallet|pass|test)")
 	flags.AddQueryFlagsToCmd(cmd)
@@ -311,6 +323,16 @@ func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 	}
 
 	return hex.EncodeToString(buffer.Bytes())
+}
+
+func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTimeStr string) {
+	if newGenesisTimeStr != "" {
+		genesisTime, err := time.Parse(time.RFC3339Nano, newGenesisTimeStr)
+		if err != nil {
+			panic(err)
+		}
+		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
+	}
 }
 
 func ASIGenesisUpgradeUpdateFccCw20Contract(jsonData map[string]interface{}, networkInfo NetworkConfig) {
