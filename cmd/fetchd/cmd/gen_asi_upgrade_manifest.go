@@ -25,8 +25,20 @@ type ASIUpgradeSupply struct {
 	ResultingSupplyTotal types.Coins `json:"resulting_supply_total"`
 }
 
+type ValueUpdate struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type MainParams struct {
+	GenesisTime   *ValueUpdate      `json:"genesis_time,omitempty"`
+	ChainID       *ValueUpdate      `json:"chain_id,omitempty"`
+	AddressPrefix *ValueUpdate      `json:"address_prefix,omitempty"`
+	Supply        *ASIUpgradeSupply `json:"supply,omitempty"`
+}
+
 type ASIUpgradeManifest struct {
-	Supply         *ASIUpgradeSupply    `json:"supply,omitempty"`
+	Main           *MainParams          `json:"main,omitempty"`
 	IBC            *ASIUpgradeTransfers `json:"ibc,omitempty"`
 	Reconciliation *ASIUpgradeTransfers `json:"reconciliation,omitempty"`
 }

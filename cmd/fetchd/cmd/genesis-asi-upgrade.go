@@ -185,6 +185,11 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			genFile := config.GenesisFile()
 
+			// create a new manifest
+			manifest := ASIUpgradeManifest{
+				Main: &MainParams{},
+			}
+
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
@@ -195,13 +200,13 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return err
 			}
 
-			ASIGenesisUpgradeUpdateGenesisTime(genDoc, newGenesisTimeStr)
+			ASIGenesisUpgradeUpdateGenesisTime(genDoc, newGenesisTimeStr, &manifest)
 
 			// fetch the network config using chain-id
 			var ok bool
 			var networkConfig NetworkConfig
 			if networkConfig, ok = networkInfos[genDoc.ChainID]; !ok {
-				return fmt.Errorf("network not found, no match for Chain-ID in genesis file")
+				return fmt.Errorf("network not found, no match for Chain-ID in genesis file: %s", genDoc.ChainID)
 			}
 
 			// unmarshal the app state
@@ -210,11 +215,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal app state: %w", err)
 			}
 
-			// create a new manifest
-			manifest := ASIUpgradeManifest{}
-
 			// replace chain-id
-			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig)
+			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig, &manifest)
 
 			// replace bridge contract admin
 			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
@@ -253,7 +255,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeASISupply(jsonData, networkConfig, &manifest)
 
 			// replace addresses across the genesis file
-			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig)
+			ASIGenesisUpgradeReplaceAddresses(jsonData, networkConfig, &manifest)
 
 			if err = SaveASIManifest(&manifest, config); err != nil {
 				return err
@@ -326,13 +328,18 @@ func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
 	return hex.EncodeToString(buffer.Bytes())
 }
 
-func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTimeStr string) {
+func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTimeStr string, manifest *ASIUpgradeManifest) {
+	oldGenesisTime := genDoc.GenesisTime
 	if newGenesisTimeStr != "" {
 		genesisTime, err := time.Parse(time.RFC3339Nano, newGenesisTimeStr)
 		if err != nil {
 			panic(err)
 		}
 		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
+		manifest.Main.GenesisTime = &ValueUpdate{
+			From: oldGenesisTime.String(),
+			To:   genDoc.GenesisTime.String(),
+		}
 	}
 }
 
@@ -607,8 +614,13 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, netw
 	}
 }
 
-func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
+	oldChainID := genesisData.ChainID
 	genesisData.ChainID = networkInfo.NewChainID
+	manifest.Main.ChainID = &ValueUpdate{
+		From: oldChainID,
+		To:   genesisData.ChainID,
+	}
 }
 
 func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -693,7 +705,7 @@ func getContractFromAddr(addr string, jsonData map[string]interface{}) map[strin
 	panic("failed to find contract using provided address")
 }
 
-func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	// account addresses
 	replaceAddresses(AccAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// validator addresses
@@ -702,6 +714,11 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkI
 	replaceAddresses(ConsAddressPrefix, jsonData, AddrDataLength+AddrChecksumLength)
 	// contract addresses
 	replaceAddresses(AccAddressPrefix, jsonData, WasmAddrDataLength+AddrChecksumLength)
+
+	manifest.Main.AddressPrefix = &ValueUpdate{
+		From: OldAddrPrefix,
+		To:   NewAddrPrefix,
+	}
 }
 
 func replaceAddresses(addressTypePrefix string, jsonData map[string]interface{}, dataLength int) {
@@ -918,7 +935,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
 		ResultingSupplyTotal: sdk.NewCoins(newSupplyCoins),
 	}
-	manifest.Supply = &supplyRecord
+	manifest.Main.Supply = &supplyRecord
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
