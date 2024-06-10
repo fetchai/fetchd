@@ -52,7 +52,7 @@ var (
 	reconciliationBalancesKey              = prefixStringWithLength("balances")
 	reconciliationTotalBalanceKey          = []byte("total_balance")
 	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
-	reconciliationStatesKey                = []byte("state")
+	reconciliationStateKey                 = []byte("state")
 
 	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
@@ -634,9 +634,14 @@ func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interf
 }
 
 func addReconciliationContractState(contractStateRecords *[]interface{}, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
+	var totalBalanceRecord []byte
+	var err error
+	if totalBalanceRecord, err = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.MarshalJSON(); err != nil {
+		panic(err)
+	}
 	totalBalanceRecordEnc := map[string]string{
 		"key":   hex.EncodeToString(reconciliationTotalBalanceKey),
-		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", manifest.Reconciliation.ContractState.AggregatedBalancesAmount.String()))),
+		"value": base64.StdEncoding.EncodeToString(totalBalanceRecord),
 	}
 
 	nOutstandingAddressesRecordEnc := map[string]string{
@@ -648,14 +653,13 @@ func addReconciliationContractState(contractStateRecords *[]interface{}, network
 		Paused: true,
 	}
 
-	var err error
 	var stateRecordJSONStr []byte
 	stateRecordJSONStr, err = json.Marshal(stateRecord)
 	if err != nil {
 		panic(err)
 	}
 	stateRecordEnc := map[string]string{
-		"key":   hex.EncodeToString(reconciliationStatesKey),
+		"key":   hex.EncodeToString(reconciliationStateKey),
 		"value": base64.StdEncoding.EncodeToString(stateRecordJSONStr),
 	}
 
@@ -782,7 +786,7 @@ func ASIGenesisUpgradeReplaceReconciliationContractState(jsonData map[string]int
 	reconciliationContract := getContractFromAddr(networkConfig.Contracts.Reconciliation.Addr, jsonData)
 	var reconciliationContractState []interface{}
 
-	manifest.Reconciliation.ContractState = &ASIUpgradeReconciliationContractState{}
+	manifest.Reconciliation.ContractState = NewASIUpgradeReconciliationContractState()
 
 	replaceContractAdminAndLabel(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin, networkConfig.Contracts.Reconciliation.NewLabel, manifest)
 

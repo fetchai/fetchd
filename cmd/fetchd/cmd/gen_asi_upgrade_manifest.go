@@ -46,6 +46,12 @@ type ASIUpgradeReconciliationContractState struct {
 	NumberOfBalanceRecords   int                                                  `json:"number_of_balance_records"`
 }
 
+func NewASIUpgradeReconciliationContractState() *ASIUpgradeReconciliationContractState {
+	return &ASIUpgradeReconciliationContractState{
+		Balances: make([]ASIUpgradeReconciliationContractStateBalanceRecord, 0),
+	}
+}
+
 type ASIUpgradeReconciliation struct {
 	Transfers     ASIUpgradeReconciliationTransfers      `json:"transfers"`
 	ContractState *ASIUpgradeReconciliationContractState `json:"contract_state"`
