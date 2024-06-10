@@ -619,8 +619,6 @@ func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coin
 		}
 		return &balanceRecord, resCoins
 	}
-
-	//	return nil, sdk.Coins{}
 }
 
 func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interface{}, ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
