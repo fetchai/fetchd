@@ -645,7 +645,6 @@ func addReconciliationContractState(contractStateRecords *[]interface{}, network
 	}
 
 	stateRecord := ReconciliationContractStateRecord{
-		Denom:  networkConfig.DenomInfo.NewDenom,
 		Paused: true,
 	}
 
@@ -1252,6 +1251,5 @@ type Reconciliation struct {
 }
 
 type ReconciliationContractStateRecord struct {
-	Denom  string `json:"denom"`
-	Paused bool   `json:"paused"`
+	Paused bool `json:"paused"`
 }
