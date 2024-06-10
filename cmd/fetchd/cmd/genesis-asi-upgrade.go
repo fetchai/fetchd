@@ -579,7 +579,7 @@ func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coin
 	resCoins := sdk.Coins{}
 	for _, coin := range coins {
 		if coin.IsPositive() {
-			resCoins.Add(coin)
+			resCoins = resCoins.Add(coin)
 		}
 	}
 
@@ -620,7 +620,7 @@ func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coin
 		panic(err)
 	}
 
-	return nil, sdk.Coins{}
+	//	return nil, sdk.Coins{}
 }
 
 func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interface{}, ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
