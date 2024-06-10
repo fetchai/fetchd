@@ -6,6 +6,9 @@ Contributions to the μAgents library are welcome. As a contributor, here are th
 - [Question or Problem?](#question)
 - [Issues and Bugs](#issue)
 - [Feature Requests](#feature)
+- [Documentation Setup](#documentation)
+  - [Prerequisites](#prerequisites)
+  - [Updating the docs](#updatedocs)
 - [Submission Guidelines](#submit)
 - [Coding Rules](#rules)
 - [Commit Message Guidelines](#commit)
@@ -14,13 +17,13 @@ Contributions to the μAgents library are welcome. As a contributor, here are th
 ## <a name="coc"></a> Code of Conduct
 
 <!-- markdown-link-check-disable -->
-Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+Please read and follow our [Code of Conduct](/CODE_OF_CONDUCT.md).
 <!-- markdown-link-check-enable -->
 
 ## <a name="question"></a> Question or Problem?
 
 <!-- markdown-link-check-disable -->
-Please use [GitHub Discussions](https://github.com/fetchai/uAgents/discussions) for support related questions and general discussions. Do NOT open issues as they are for bug reports and feature requests. This is because:
+Please use [GitHub Discussions](https://github.com/fetchai/fetchd/discussions) for support related questions and general discussions. Do NOT open issues as they are for bug reports and feature requests. This is because:
 <!-- markdown-link-check-enable -->
 
 - Questions and answers stay available for public viewing so your question/answer might help someone else.
@@ -39,36 +42,68 @@ If you would like to *implement* a new feature:
 - For a **Major Feature**, first [open an issue](#submit-issue) and outline your proposal so that it can be discussed.
 - **Small Features** can be crafted and directly [submitted as a Pull Request](#submit-pr).
 
+## <a name="documentation"></a> Documentation Setup
+
+### <a name="prerequisites"></a> Prerequisites
+
+Make sure that you have pipenv installed on your system:
+
+    pip3 install pipenv
+
+Once installed navigate to this folder in the project
+
+    cd fetchd/docs
+
+Make sure all the dependencies are installed
+
+    pipenv install -d
+
+## <a name="updatedocs"></a> Updating the docs
+
+Once the dependencies are setup you must activate the environment with the following commands:
+
+    pipenv shell
+
+This step should update your terminal prompt and you will be able to see that the command `mkdocs` is installed in your path:
+
+    which mkdocs
+
+Finally, to start the development server run the following command:
+
+    mkdocs serve
+
+This will listen for changes on the filesystem and automatically update the documentation.
+
 ## <a name="submit"></a> Submission Guidelines
 
 ### <a name="submit-issue"></a> Submitting an Issue
 
 <!-- markdown-link-check-disable -->
-Before you submit an issue, please search the [issue tracker](https://github.com/fetchai/uAgents/issues). An issue for your problem might already exist and the discussion might inform you of workarounds readily available.
+Before you submit an issue, please search the [issue tracker](https://github.com/fetchai/fetchd/issues). An issue for your problem might already exist and the discussion might inform you of workarounds readily available.
 
 For bug reports, it is important that we can reproduce and confirm it. For this, we need you to provide a minimal reproduction instruction (this is part of the bug report issue template).
 
-You can file new issues by selecting from our [new issue templates](https://github.com/fetchai/uAgents/issues/new/choose) and filling out the issue template.
+You can file new issues by selecting from our [new issue templates](https://github.com/fetchai/fetchd/issues/new/choose) and filling out the issue template.
 <!-- markdown-link-check-enable -->
 
 ### <a name="submit-pr"></a> Submitting a Pull Request (PR)
 
 Before you submit your Pull Request (PR) consider the following guidelines:
 
-1. All Pull Requests should be based off of and opened against the `main` branch.
+1. All Pull Requests should be based off of and opened against the `master` branch.
 
     <!-- markdown-link-check-disable -->
-2. Search [Existing PRs](https://github.com/fetchai/uAgents/pulls) for an open or closed PR that relates to your submission.
+2. Search [Existing PRs](https://github.com/fetchai/fetchd/pulls) for an open or closed PR that relates to your submission.
    You don't want to duplicate existing efforts.
     <!-- markdown-link-check-enable -->
 
 3. Be sure that an issue exists describing the problem you're fixing, or the design for the feature you'd like to add.
 
     <!-- markdown-link-check-disable -->
-4. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) the [repository](https://github.com/fetchai/uAgents).
+4. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) the [repository](https://github.com/fetchai/fetchd).
     <!-- markdown-link-check-enable -->
 
-5. In your forked repository, make your changes in a new git branch created off of the `main` branch.
+5. In your forked repository, make your changes in a new git branch created off of the `master` branch.
 
 6. Make your changes, **including test cases and documentation updates where appropriate**.
 
@@ -82,7 +117,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 
 10. Push your branch to GitHub.
 
-11. In GitHub, send a pull request to `fetchai:main`.
+11. In GitHub, send a pull request to `fetchai:master`.
 
 #### Reviewing a Pull Request
 
