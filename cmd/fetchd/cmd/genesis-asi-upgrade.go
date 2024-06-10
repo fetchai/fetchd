@@ -575,14 +575,19 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	return hex.EncodeToString(key)
 }
 
-func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Int) {
-	amount := coins.AmountOfNoDenomValidation(networkConfig.DenomInfo.OldDenom)
-	if amount.IsZero() {
-		return nil, amount
+func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Coins) {
+	resCoins := sdk.Coins{}
+	for _, coin := range coins {
+		if coin.IsPositive() {
+			resCoins.Add(coin)
+		}
 	}
-	if amount.IsNegative() {
-		panic(fmt.Errorf("netgative amount value for ethereum '%s' address", ethAddrHex))
+
+	if resCoins.Empty() {
+		return nil, resCoins
 	}
+
+	resCoins.Sort()
 
 	ethAddrHexNoPrefix := DropHexPrefix(ethAddrHex)
 
@@ -605,20 +610,25 @@ func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coin
 		panic(err)
 	}
 
-	balanceRecord := map[string]string{
-		"key":   hex.EncodeToString(buffer.Bytes()),
-		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("\"%s\"", amount.String()))),
+	if value, err := resCoins.MarshalJSON(); err != nil {
+		balanceRecord := map[string]string{
+			"key":   hex.EncodeToString(buffer.Bytes()),
+			"value": base64.StdEncoding.EncodeToString(value),
+		}
+		return &balanceRecord, resCoins
+	} else {
+		panic(err)
 	}
 
-	return &balanceRecord, amount
+	return nil, sdk.Coins{}
 }
 
 func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interface{}, ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
-	newContractStateBalancesRecord, amount := reconciliationContractStateBalancesRecord(ethAddr, coins, networkConfig)
+	newContractStateBalancesRecord, coins := reconciliationContractStateBalancesRecord(ethAddr, coins, networkConfig)
 	if newContractStateBalancesRecord != nil {
 		*contractStateRecords = append(*contractStateRecords, *newContractStateBalancesRecord)
-		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, ASIUpgradeReconciliationContractStateBalanceRecord{EthAddr: ethAddr, Amount: amount})
-		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(amount)
+		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, ASIUpgradeReconciliationContractStateBalanceRecord{EthAddr: ethAddr, Balances: coins})
+		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(coins...)
 		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
 	}
 }
@@ -773,7 +783,7 @@ func ASIGenesisUpgradeReplaceReconciliationContractState(jsonData map[string]int
 	reconciliationContract := getContractFromAddr(networkConfig.Contracts.Reconciliation.Addr, jsonData)
 	var reconciliationContractState []interface{}
 
-	manifest.Reconciliation.ContractState = NewASIUpgradeReconciliationContractState()
+	manifest.Reconciliation.ContractState = &ASIUpgradeReconciliationContractState{}
 
 	replaceContractAdminAndLabel(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin, networkConfig.Contracts.Reconciliation.NewLabel, manifest)
 

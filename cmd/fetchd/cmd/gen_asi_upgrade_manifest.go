@@ -36,18 +36,14 @@ type ASIUpgradeReconciliationTransfers struct {
 }
 
 type ASIUpgradeReconciliationContractStateBalanceRecord struct {
-	EthAddr string    `json:"eth_addr"`
-	Amount  types.Int `json:"amount"`
+	EthAddr  string      `json:"eth_addr"`
+	Balances types.Coins `json:"balances"`
 }
 
 type ASIUpgradeReconciliationContractState struct {
 	Balances                 []ASIUpgradeReconciliationContractStateBalanceRecord `json:"balances"`
-	AggregatedBalancesAmount types.Int                                            `json:"aggregated_balances_amount"`
+	AggregatedBalancesAmount types.Coins                                          `json:"aggregated_balances_amount"`
 	NumberOfBalanceRecords   int                                                  `json:"number_of_balance_records"`
-}
-
-func NewASIUpgradeReconciliationContractState() *ASIUpgradeReconciliationContractState {
-	return &ASIUpgradeReconciliationContractState{AggregatedBalancesAmount: types.ZeroInt()}
 }
 
 type ASIUpgradeReconciliation struct {
@@ -80,7 +76,7 @@ type MainParams struct {
 }
 
 type ASIUpgradeManifest struct {
-	Main           *MainParams          `json:"main,omitempty"`
+	Main                  *MainParams               `json:"main,omitempty"`
 	IBC                   *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
 	Reconciliation        *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
 	ContractsStateCleaned []string                  `json:"contracts_state_cleaned,omitempty"`
