@@ -611,13 +611,13 @@ func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coin
 	}
 
 	if value, err := resCoins.MarshalJSON(); err != nil {
+		panic(err)
+	} else {
 		balanceRecord := map[string]string{
 			"key":   hex.EncodeToString(buffer.Bytes()),
 			"value": base64.StdEncoding.EncodeToString(value),
 		}
 		return &balanceRecord, resCoins
-	} else {
-		panic(err)
 	}
 
 	//	return nil, sdk.Coins{}
