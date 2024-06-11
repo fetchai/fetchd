@@ -95,10 +95,10 @@ def main():
     # load the genesis up
     print("reading genesis export...")
     genesis = load_json_file(args.genesis_export)
+    print("reading genesis export...complete")
 
     staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
-
-    print("reading genesis export...complete")
+    print(f"Staking denom: {staking_denom}")
 
     target_val_info = get_unjailed_validator(genesis)
     if not target_val_info:
