@@ -290,15 +290,21 @@ func (a Bytes) StartsWith(with []byte) bool {
 }
 
 func DropHexPrefix(hexEncodedData string) string {
-	if len(hexEncodedData) < 2 {
+	strLen := len(hexEncodedData)
+	if strLen < 1 {
 		return hexEncodedData
 	}
 
-	if strings.ToLower(string(hexEncodedData[:2])) == "0x" {
-		return hexEncodedData[2:]
+	prefixEstimateLen := 1
+	if strLen > 1 {
+		prefixEstimateLen = 2
 	}
 
-	if strings.ToLower(string(hexEncodedData[:1])) == "x" {
+	prefixEstimate := strings.ToLower(hexEncodedData[:prefixEstimateLen])
+
+	if strings.HasPrefix(prefixEstimate, "0x") {
+		return hexEncodedData[2:]
+	} else if strings.HasPrefix(prefixEstimate, "x") {
 		return hexEncodedData[1:]
 	}
 
