@@ -9,7 +9,6 @@ authors = ["Jiří Vestfál <jiri.vestfal@fetch.ai>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 bech32 = "1.2.0"
-cosmpy = "0.9.2"
 
 [build-system]
 requires = ["poetry-core"]
