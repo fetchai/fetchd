@@ -48,6 +48,12 @@ const (
 )
 
 var (
+	// Reconciliation balances contract state key
+	reconciliationBalancesKey              = prefixStringWithLength("balances")
+	reconciliationTotalBalanceKey          = []byte("total_balance")
+	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
+	reconciliationStateKey                 = []byte("state")
+
 	// Mobix staking contract keys
 	stakesKey        = prefixStringWithLength("stakes")
 	unbondEntriesKey = prefixStringWithLength("unbond_entries")
@@ -110,6 +116,7 @@ var networkInfos = map[string]NetworkConfig{
 			Reconciliation: &Reconciliation{
 				Addr:     "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
+				NewLabel: getStringPtr("reconciliation-contract"),
 			},
 			FccCw20: &FccCw20{
 				Addr: "fetch1vsarnyag5d2c72k86yh2aq4l5jxhwz8fms6yralxqggxzmmwnq4q0avxv7",
@@ -219,7 +226,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeReplaceChainID(genDoc, networkConfig, &manifest)
 
 			// replace bridge contract admin
-			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig)
+			ASIGenesisUpgradeReplaceBridgeAdmin(jsonData, networkConfig, &manifest)
 
 			// update mobix staking contract
 			ASIGenesisUpgradeUpdateMobixStakingContract(jsonData, networkConfig)
@@ -228,22 +235,19 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			ASIGenesisUpgradeUpdateFccCw20Contract(jsonData, networkConfig)
 
 			// replace almanac contract state
-			ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig)
+			ASIGenesisUpgradeReplaceAlmanacState(jsonData, networkConfig, &manifest)
 
 			// replace aname contract state
-			ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig)
+			ASIGenesisUpgradeReplaceANameState(jsonData, networkConfig, &manifest)
 
 			// update fcc issuance contract
 			ASIGenesisUpgradeUpdateFccIssuanceContract(jsonData, networkConfig)
 
-			// replace reconciliation contract state
-			ASIGenesisUpgradeReplaceReconciliationState(jsonData, networkConfig)
-
 			// withdraw balances from IBC channels
 			ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData, networkConfig, &manifest)
 
-			// withdraw balances from reconciliation addresses
-			ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, &manifest)
+			// handles reconciliation
+			ASIGenesisUpgradeReconciliation(jsonData, networkConfig, &manifest)
 
 			// set denom metadata in bank module
 			ASIGenesisUpgradeReplaceDenomMetadata(jsonData, networkConfig)
@@ -283,6 +287,28 @@ type Bytes []byte
 
 func (a Bytes) StartsWith(with []byte) bool {
 	return len(a) >= len(with) && bytes.Compare(a[0:len(with)], with) == 0
+}
+
+func DropHexPrefix(hexEncodedData string) string {
+	strLen := len(hexEncodedData)
+	if strLen < 1 {
+		return hexEncodedData
+	}
+
+	prefixEstimateLen := 1
+	if strLen > 1 {
+		prefixEstimateLen = 2
+	}
+
+	prefixEstimate := strings.ToLower(hexEncodedData[:prefixEstimateLen])
+
+	if strings.HasPrefix(prefixEstimate, "0x") {
+		return hexEncodedData[2:]
+	} else if strings.HasPrefix(prefixEstimate, "x") {
+		return hexEncodedData[1:]
+	}
+
+	return hexEncodedData
 }
 
 func replaceAddressInContractStateKey2(keyBytes []byte, prefix []byte) string {
@@ -544,6 +570,7 @@ func prefixStringWithLength(val string) []byte {
 
 	return buffer.Bytes()
 }
+
 func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	newAddr, err := convertAddressToASI(string(keyBytes[len(prefix):]), AccAddressPrefix)
 	if err != nil {
@@ -552,6 +579,97 @@ func replaceAddressInContractStateKey(keyBytes []byte, prefix []byte) string {
 	key := append(prefix, []byte(newAddr)...)
 
 	return hex.EncodeToString(key)
+}
+
+func reconciliationContractStateBalancesRecord(ethAddrHex string, coins sdk.Coins, networkConfig *NetworkConfig) (*map[string]string, sdk.Coins) {
+	resCoins := sdk.Coins{}
+	for _, coin := range coins {
+		if coin.IsPositive() {
+			resCoins = resCoins.Add(coin)
+		}
+	}
+
+	if resCoins.Empty() {
+		return nil, resCoins
+	}
+
+	resCoins.Sort()
+
+	ethAddrHexNoPrefix := DropHexPrefix(ethAddrHex)
+
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
+
+	if _, err := writer.Write(reconciliationBalancesKey); err != nil {
+		panic(err)
+	}
+
+	if ethAddrRaw, err := hex.DecodeString(ethAddrHexNoPrefix); err != nil {
+		panic(err)
+	} else {
+		if _, err := writer.Write(ethAddrRaw); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		panic(err)
+	}
+
+	if value, err := resCoins.MarshalJSON(); err != nil {
+		panic(err)
+	} else {
+		balanceRecord := map[string]string{
+			"key":   hex.EncodeToString(buffer.Bytes()),
+			"value": base64.StdEncoding.EncodeToString(value),
+		}
+		return &balanceRecord, resCoins
+	}
+}
+
+func addReconciliationContractStateBalancesRecord(contractStateRecords *[]interface{}, ethAddr string, coins sdk.Coins, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
+	newContractStateBalancesRecord, coins := reconciliationContractStateBalancesRecord(ethAddr, coins, networkConfig)
+	if newContractStateBalancesRecord != nil {
+		*contractStateRecords = append(*contractStateRecords, *newContractStateBalancesRecord)
+		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, ASIUpgradeReconciliationContractStateBalanceRecord{EthAddr: ethAddr, Balances: coins})
+		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(coins...)
+		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
+	}
+}
+
+func addReconciliationContractState(contractStateRecords *[]interface{}, networkConfig *NetworkConfig, manifest *ASIUpgradeManifest) {
+	var totalBalanceRecord []byte
+	var err error
+	if totalBalanceRecord, err = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.MarshalJSON(); err != nil {
+		panic(err)
+	}
+	totalBalanceRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationTotalBalanceKey),
+		"value": base64.StdEncoding.EncodeToString(totalBalanceRecord),
+	}
+
+	nOutstandingAddressesRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationNOutstandingAddressesKey),
+		"value": base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", manifest.Reconciliation.ContractState.NumberOfBalanceRecords))),
+	}
+
+	stateRecord := ReconciliationContractStateRecord{
+		Paused: true,
+	}
+
+	var stateRecordJSONStr []byte
+	stateRecordJSONStr, err = json.Marshal(stateRecord)
+	if err != nil {
+		panic(err)
+	}
+	stateRecordEnc := map[string]string{
+		"key":   hex.EncodeToString(reconciliationStateKey),
+		"value": base64.StdEncoding.EncodeToString(stateRecordJSONStr),
+	}
+
+	*contractStateRecords = append(*contractStateRecords, totalBalanceRecordEnc)
+	*contractStateRecords = append(*contractStateRecords, nOutstandingAddressesRecordEnc)
+	*contractStateRecords = append(*contractStateRecords, stateRecordEnc)
 }
 
 func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -623,7 +741,7 @@ func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo 
 	}
 }
 
-func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	if networkInfo.Contracts == nil || networkInfo.Contracts.TokenBridge == nil {
 		return
 	}
@@ -631,7 +749,7 @@ func ASIGenesisUpgradeReplaceBridgeAdmin(jsonData map[string]interface{}, networ
 	tokenBridgeContractAddress := networkInfo.Contracts.TokenBridge.Addr
 	tokenBridgeContract := getContractFromAddr(tokenBridgeContractAddress, jsonData)
 
-	replaceContractAdmin(tokenBridgeContract, networkInfo.Contracts.TokenBridge.NewAdmin)
+	replaceContractAdminAndLabel(tokenBridgeContract, networkInfo.Contracts.TokenBridge.NewAdmin, nil, manifest)
 }
 
 func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo NetworkConfig) {
@@ -650,7 +768,7 @@ func ASIGenesisUpgradeReplaceDenom(jsonData map[string]interface{}, networkInfo 
 	})
 }
 
-func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	if networkInfo.Contracts == nil || networkInfo.Contracts.Almanac == nil {
 		return
 	}
@@ -660,25 +778,31 @@ func ASIGenesisUpgradeReplaceAlmanacState(jsonData map[string]interface{}, netwo
 			continue
 		}
 
-		almanacContract := getContractFromAddr(addr, jsonData)
-
-		// empty the almanac contract state
-		almanacContract["contract_state"] = []interface{}{}
+		deleteContractState(getContractFromAddr(addr, jsonData), manifest)
 	}
 }
 
-func ASIGenesisUpgradeReplaceReconciliationState(jsonData map[string]interface{}, config NetworkConfig) {
-	if config.Contracts == nil || config.Contracts.Reconciliation == nil {
+func ASIGenesisUpgradeReplaceReconciliationContractState(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkConfig.Contracts == nil || networkConfig.Contracts.Reconciliation == nil || networkConfig.Contracts.Reconciliation.Addr == "" || len(manifest.Reconciliation.Transfers.Transfers) < 1 {
 		return
 	}
 
-	reconciliationContract := getContractFromAddr(config.Contracts.Reconciliation.Addr, jsonData)
-	reconciliationContract["contract_state"] = []interface{}{}
+	reconciliationContract := getContractFromAddr(networkConfig.Contracts.Reconciliation.Addr, jsonData)
+	var reconciliationContractState []interface{}
 
-	replaceContractAdmin(reconciliationContract, config.Contracts.Reconciliation.NewAdmin)
+	manifest.Reconciliation.ContractState = NewASIUpgradeReconciliationContractState()
+
+	replaceContractAdminAndLabel(reconciliationContract, networkConfig.Contracts.Reconciliation.NewAdmin, networkConfig.Contracts.Reconciliation.NewLabel, manifest)
+
+	for _, transfer := range manifest.Reconciliation.Transfers.Transfers {
+		addReconciliationContractStateBalancesRecord(&reconciliationContractState, transfer.EthAddr, transfer.Amount, &networkConfig, manifest)
+	}
+
+	addReconciliationContractState(&reconciliationContractState, &networkConfig, manifest)
+	reconciliationContract["contract_state"] = reconciliationContractState
 }
 
-func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig) {
+func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	if networkInfo.Contracts == nil || networkInfo.Contracts.AName == nil {
 		return
 	}
@@ -688,10 +812,7 @@ func ASIGenesisUpgradeReplaceANameState(jsonData map[string]interface{}, network
 			continue
 		}
 
-		anameContract := getContractFromAddr(addr, jsonData)
-
-		// empty the AName contract state
-		anameContract["contract_state"] = []interface{}{}
+		deleteContractState(getContractFromAddr(addr, jsonData), manifest)
 	}
 }
 
@@ -750,9 +871,8 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 	balanceMap := getGenesisBalancesMap(balances)
 	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
-	manifest.IBC = &ASIUpgradeTransfers{
-		Transfer: []ASIUpgradeTransfer{},
-		To:       ibcWithdrawalAddress,
+	manifest.IBC = &ASIUpgradeIBCTransfers{
+		To: ibcWithdrawalAddress,
 	}
 	withdrawalBalanceIdx, ok := (*balanceMap)[ibcWithdrawalAddress]
 	if !ok {
@@ -786,14 +906,16 @@ func ASIGenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{
 		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
 		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
 
-		manifest.IBC.Transfer = append(manifest.IBC.Transfer, ASIUpgradeTransfer{From: channelAddr, Amount: channelBalanceCoins})
-
 		// add channel balance to withdrawal balance
 		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
 		balances[withdrawalBalanceIdx].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newWithdrawalBalanceCoins)
 
 		// zero out the channel balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
+
+		manifest.IBC.Transfers = append(manifest.IBC.Transfers, ASIUpgradeIBCTransfer{From: channelAddr, ChannelID: fmt.Sprintf("%s/%s", portId, channelId), Amount: channelBalanceCoins})
+		manifest.IBC.AggregatedTransferredAmount = manifest.IBC.AggregatedTransferredAmount.Add(channelBalanceCoins...)
+		manifest.IBC.NumberOfTransfers += 1
 	}
 }
 
@@ -824,14 +946,14 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 	return &accountMap
 }
 
-func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
-	if networkInfo.ReconciliationInfo == nil {
+func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	if networkConfig.ReconciliationInfo == nil {
 		return
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
-	reconciliationWithdrawAddress := networkInfo.ReconciliationInfo.TargetAddress
+	reconciliationWithdrawAddress := networkConfig.ReconciliationInfo.TargetAddress
 
 	balanceMap := getGenesisBalancesMap(balances)
 
@@ -844,12 +966,14 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		panic("no match in genesis for reconciliation withdraw address")
 	}
 
-	manifest.Reconciliation = &ASIUpgradeTransfers{
-		Transfer: []ASIUpgradeTransfer{},
-		To:       reconciliationWithdrawAddress,
+	manifest.Reconciliation = &ASIUpgradeReconciliation{
+		Transfers: ASIUpgradeReconciliationTransfers{
+			To: reconciliationWithdrawAddress,
+		},
 	}
 
-	for _, row := range networkInfo.ReconciliationInfo.InputCSVRecords {
+	for _, row := range networkConfig.ReconciliationInfo.InputCSVRecords {
+		ethAddr := row[0]
 		addr := row[2]
 
 		accSequence, ok := (*accountSequenceMap)[addr]
@@ -863,6 +987,7 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		}
 
 		accBalance := balances[balanceIdx]
+		// Function below sanitises returned coins = removes zero balances & sorts coins based on denom
 		accBalanceCoins := getCoinsFromInterfaceSlice(accBalance)
 
 		reconciliationBalance := balances[reconciliationBalanceIdx]
@@ -877,11 +1002,18 @@ func ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData map[string]interfa
 		newReconciliationBalanceCoins := reconciliationBalanceCoins.Add(accBalanceCoins...)
 		reconciliationBalance.(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newReconciliationBalanceCoins)
 
-		manifest.Reconciliation.Transfer = append(manifest.Reconciliation.Transfer, ASIUpgradeTransfer{From: addr, Amount: accBalanceCoins})
-
 		// zero out the reconciliation account balance
 		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
+
+		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, ASIUpgradeReconciliationTransfer{From: addr, EthAddr: ethAddr, Amount: accBalanceCoins})
+		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
+		manifest.Reconciliation.Transfers.AggregatedTransferredAmount = manifest.Reconciliation.Transfers.AggregatedTransferredAmount.Add(accBalanceCoins...)
 	}
+}
+
+func ASIGenesisUpgradeReconciliation(jsonData map[string]interface{}, networkConfig NetworkConfig, manifest *ASIUpgradeManifest) {
+	ASIGenesisUpgradeWithdrawReconciliationBalances(jsonData, networkConfig, manifest)
+	ASIGenesisUpgradeReplaceReconciliationContractState(jsonData, networkConfig, manifest)
 }
 
 func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
@@ -894,8 +1026,8 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 
 	if additionalSupply.IsZero() {
 		return
-	} else if additionalSupply.LT(sdk.ZeroInt()) {
-		panic("asi upgrade update supply: additional supply value is negative")
+	} else if additionalSupply.IsNegative() {
+		panic("asi upgrade update supply: new supply amount for minting is negative")
 	}
 
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
@@ -933,7 +1065,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 	supplyRecord := ASIUpgradeSupply{
 		LandingAddress:       supplyInfo.UpdatedSupplyOverflowAddr,
 		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
-		ResultingSupplyTotal: sdk.NewCoins(newSupplyCoins),
+		ResultingTotalSupply: sdk.NewCoins(newSupplyCoins),
 	}
 	manifest.Main.Supply = &supplyRecord
 
@@ -961,13 +1093,25 @@ func convertAddressToASI(addr string, addressPrefix string) (string, error) {
 	return newAddress, nil
 }
 
-func replaceContractAdmin(genesisContractStruct map[string]interface{}, newAdmin *string) {
-	if newAdmin == nil {
-		return
-	}
-
+func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, newAdmin *string, newLabel *string, manifest *ASIUpgradeManifest) {
+	contractAddress := genesisContractStruct["contract_address"].(string)
 	contractInfo := genesisContractStruct["contract_info"].(map[string]interface{})
-	contractInfo["admin"] = *newAdmin
+	if newAdmin != nil {
+		oldAdmin := contractInfo["admin"].(string)
+		contractInfo["admin"] = *newAdmin
+		manifest.ContractsAdminUpdated = append(manifest.ContractsAdminUpdated, ContractValueUpdate{Address: contractAddress, From: oldAdmin, To: *newAdmin})
+	}
+	if newLabel != nil {
+		oldLabel := contractInfo["label"].(string)
+		contractInfo["label"] = *newLabel
+		manifest.ContractsLabelUpdated = append(manifest.ContractsLabelUpdated, ContractValueUpdate{Address: contractAddress, From: oldLabel, To: *newLabel})
+	}
+}
+
+func deleteContractState(genesisContractStruct map[string]interface{}, manifest *ASIUpgradeManifest) {
+	contractAddress := genesisContractStruct["contract_address"].(string)
+	genesisContractStruct["contract_state"] = []interface{}{}
+	manifest.ContractsStateCleaned = append(manifest.ContractsStateCleaned, contractAddress)
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
@@ -1016,6 +1160,8 @@ func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
 		}
 		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
 	}
+
+	balanceCoins = sdk.NewCoins(balanceCoins...)
 	return balanceCoins
 }
 
@@ -1109,4 +1255,9 @@ type FccIssuance struct {
 type Reconciliation struct {
 	Addr     string
 	NewAdmin *string
+	NewLabel *string
+}
+
+type ReconciliationContractStateRecord struct {
+	Paused bool `json:"paused"`
 }
