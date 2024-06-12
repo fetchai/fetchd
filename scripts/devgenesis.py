@@ -42,7 +42,7 @@ It is not recommended to use this CLI for production grade deployments.""")
     parser.set_defaults(func=lambda *args: parser.print_help())
 
     parser.add_argument(
-        "--home_path",
+        "--home",
         help="The path to the local node data i.e. ~/.fetchd",
         default=DEFAULT_HOME_PATH,
     )
@@ -105,7 +105,7 @@ the local chain to be started with."""
 
 
 def reset_to_single_validator(args: ap.Namespace):
-    print("    Genesis Export:", args.genesis_export)
+    print("    Genesis Export:", args.genesis)
     print("  Fetchd Home Path:", args.home_path)
     print("Validator Key Name:", args.validator_key_name)
 
@@ -130,7 +130,7 @@ def reset_to_single_validator(args: ap.Namespace):
 
     # load the genesis up
     print("reading genesis export...")
-    genesis = load_json_file(args.genesis_export)
+    genesis = load_json_file(args.genesis)
     print("reading genesis export...complete")
 
     staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
