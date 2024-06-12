@@ -6,7 +6,6 @@ import os
 import sys
 from genesis_helpers import (
     get_balance,
-    get_path,
     get_unjailed_validator,
     set_balance,
     ensure_account,
@@ -22,12 +21,13 @@ from genesis_helpers import (
     get_account_address_by_name,
     get_account,
     pubkey_to_bech32_address,
+    ExpandPath,
 )
-from replace_validator import replace_validator_keys_recur
+from replace_validator import replace_validator_keys_recursive
 from typing import Tuple
 
 
-DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
+DEFAULT_HOME_PATH = os.path.expanduser("~/.fetchd")
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
@@ -45,8 +45,8 @@ It is not recommended to use this CLI for production grade deployments.""")
         "--home",
         help="The path to the local node data i.e. ~/.fetchd",
         default=DEFAULT_HOME_PATH,
-    )
-    parser.add_argument("genesis_file_path", type=str, help="The path to the genesis file")
+        action=ExpandPath)
+    parser.add_argument("genesis_file_path", type=str, help="The path to the genesis file", action=ExpandPath)
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -65,7 +65,6 @@ this folder must exists and contains the files created by the "fetchd init" comm
 The updated genesis will be written under node_home_dir/config/genesis.json, allowing
 the local chain to be started with."""
     )
-    #parser_single_validator.add_argument("genesis", type=get_path, help="The path to the genesis file",)
     parser_single_validator.add_argument(
         "--validator_key_name",
         help="The name of the local key to use for the validator",
@@ -82,7 +81,6 @@ the local chain to be started with."""
         'replace_validator_keys',
         help='Replace consensus and operator keys of given validator',
         description="This script replaces a validator in the genesis file based on provided public keys and addresses.")
-    #parser_replace_validator_keys.add_argument("genesis", type=str, help="The path to the genesis file")
     parser_replace_validator_keys.add_argument(
         "src_validator_pubkey",
         type=str,
@@ -269,7 +267,7 @@ def replace_validator_keys(args: ap.Namespace):
             "New operator account already existed before - it is recommended to generate new operator key"
         )
 
-    replace_validator_keys_recur(
+    replace_validator_keys_recursive(
         genesis=genesis,
         src_validator_pubkey=args.src_validator_pubkey,
         dest_validator_pubkey=args.dest_validator_pubkey,

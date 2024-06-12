@@ -7,6 +7,13 @@ import subprocess
 import bech32
 import sys
 from Crypto.Hash import RIPEMD160  # type: ignore # nosec
+from argparse import Action
+
+
+class ExpandPath(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        path = os.path.abspath(os.path.expanduser(values))
+        setattr(namespace, self.dest, path)
 
 
 def sha256(contents: bytes) -> bytes:
