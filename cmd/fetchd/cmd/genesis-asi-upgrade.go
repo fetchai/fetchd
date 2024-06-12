@@ -194,7 +194,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// create a new manifest
 			manifest := ASIUpgradeManifest{
-				Main: &MainParams{},
+				Network:           &NetworkParams{},
+				ContractsManifest: &ContractsManifest{},
 			}
 
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -362,7 +363,7 @@ func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTime
 			panic(err)
 		}
 		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
-		manifest.Main.GenesisTime = &ValueUpdate{
+		manifest.Network.GenesisTime = &ValueUpdate{
 			From: oldGenesisTime.String(),
 			To:   genDoc.GenesisTime.String(),
 		}
@@ -735,7 +736,7 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, netw
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	oldChainID := genesisData.ChainID
 	genesisData.ChainID = networkInfo.NewChainID
-	manifest.Main.ChainID = &ValueUpdate{
+	manifest.Network.ChainID = &ValueUpdate{
 		From: oldChainID,
 		To:   genesisData.ChainID,
 	}
@@ -836,7 +837,7 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkI
 	// contract addresses
 	replaceAddresses(AccAddressPrefix, jsonData, WasmAddrDataLength+AddrChecksumLength)
 
-	manifest.Main.AddressPrefix = &ValueUpdate{
+	manifest.Network.AddressPrefix = &ValueUpdate{
 		From: OldAddrPrefix,
 		To:   NewAddrPrefix,
 	}
@@ -1067,7 +1068,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
 		ResultingTotalSupply: sdk.NewCoins(newSupplyCoins),
 	}
-	manifest.Main.Supply = &supplyRecord
+	manifest.Network.Supply = &supplyRecord
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
@@ -1099,19 +1100,19 @@ func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, 
 	if newAdmin != nil {
 		oldAdmin := contractInfo["admin"].(string)
 		contractInfo["admin"] = *newAdmin
-		manifest.ContractsAdminUpdated = append(manifest.ContractsAdminUpdated, ContractValueUpdate{Address: contractAddress, From: oldAdmin, To: *newAdmin})
+		manifest.ContractsManifest.AdminUpdated = append(manifest.ContractsManifest.AdminUpdated, ContractValueUpdate{Address: contractAddress, ValueUpdate: ValueUpdate{oldAdmin, *newAdmin}})
 	}
 	if newLabel != nil {
 		oldLabel := contractInfo["label"].(string)
 		contractInfo["label"] = *newLabel
-		manifest.ContractsLabelUpdated = append(manifest.ContractsLabelUpdated, ContractValueUpdate{Address: contractAddress, From: oldLabel, To: *newLabel})
+		manifest.ContractsManifest.LabelUpdated = append(manifest.ContractsManifest.LabelUpdated, ContractValueUpdate{Address: contractAddress, ValueUpdate: ValueUpdate{oldLabel, *newLabel}})
 	}
 }
 
 func deleteContractState(genesisContractStruct map[string]interface{}, manifest *ASIUpgradeManifest) {
 	contractAddress := genesisContractStruct["contract_address"].(string)
 	genesisContractStruct["contract_state"] = []interface{}{}
-	manifest.ContractsStateCleaned = append(manifest.ContractsStateCleaned, contractAddress)
+	manifest.ContractsManifest.StateCleaned = append(manifest.ContractsManifest.StateCleaned, contractAddress)
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {

@@ -64,9 +64,8 @@ type ASIUpgradeSupply struct {
 }
 
 type ContractValueUpdate struct {
-	Address string `json:"address"`
-	From    string `json:"from"`
-	To      string `json:"to"`
+	Address     string      `json:"address"`
+	ValueUpdate ValueUpdate `json:"value_update"`
 }
 
 type ValueUpdate struct {
@@ -74,20 +73,24 @@ type ValueUpdate struct {
 	To   string `json:"to"`
 }
 
-type MainParams struct {
+type NetworkParams struct {
 	GenesisTime   *ValueUpdate      `json:"genesis_time,omitempty"`
 	ChainID       *ValueUpdate      `json:"chain_id,omitempty"`
 	AddressPrefix *ValueUpdate      `json:"address_prefix,omitempty"`
 	Supply        *ASIUpgradeSupply `json:"supply,omitempty"`
 }
 
+type ContractsManifest struct {
+	StateCleaned []string              `json:"contracts_state_cleaned,omitempty"`
+	AdminUpdated []ContractValueUpdate `json:"contracts_admin_updated,omitempty"`
+	LabelUpdated []ContractValueUpdate `json:"contracts_label_updated,omitempty"`
+}
+
 type ASIUpgradeManifest struct {
-	Main                  *MainParams               `json:"main,omitempty"`
-	IBC                   *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
-	Reconciliation        *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
-	ContractsStateCleaned []string                  `json:"contracts_state_cleaned,omitempty"`
-	ContractsAdminUpdated []ContractValueUpdate     `json:"contracts_admin_updated,omitempty"`
-	ContractsLabelUpdated []ContractValueUpdate     `json:"contracts_label_updated,omitempty"`
+	Network           *NetworkParams            `json:"network,omitempty"`
+	IBC               *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
+	Reconciliation    *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
+	ContractsManifest *ContractsManifest        `json:"contracts,omitempty"`
 }
 
 func SaveASIManifest(manifest *ASIUpgradeManifest, config *config2.Config) error {
