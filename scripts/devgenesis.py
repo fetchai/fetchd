@@ -46,7 +46,7 @@ It is not recommended to use this CLI for production grade deployments.""")
         help="The path to the local node data i.e. ~/.fetchd",
         default=DEFAULT_HOME_PATH,
     )
-    parser.add_argument("genesis", type=str, help="The path to the genesis file")
+    parser.add_argument("genesis_file_path", type=str, help="The path to the genesis file")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -105,13 +105,13 @@ the local chain to be started with."""
 
 
 def reset_to_single_validator(args: ap.Namespace):
-    print("    Genesis Export:", args.genesis)
-    print("  Fetchd Home Path:", args.home_path)
+    print("    Genesis Export:", args.genesis_file_path)
+    print("  Fetchd Home Path:", args.home)
     print("Validator Key Name:", args.validator_key_name)
 
     # load up the local validator key
     local_validator_key_path = os.path.join(
-        args.home_path, "config", "priv_validator_key.json"
+        args.home, "config", "priv_validator_key.json"
     )
 
     # extract the tendermint addresses
@@ -121,7 +121,7 @@ def reset_to_single_validator(args: ap.Namespace):
     validator_pubkey = local_validator_json["pub_key"]["value"]
 
     # extract the address for the local validator key
-    local_key_data = get_local_key_data(args.home_path, args.validator_key_name)
+    local_key_data = get_local_key_data(args.home, args.validator_key_name)
 
     # extract the local address and convert into a valid validator operator address
     local_validator_base_address = local_key_data["address"]
@@ -130,7 +130,7 @@ def reset_to_single_validator(args: ap.Namespace):
 
     # load the genesis up
     print("reading genesis export...")
-    genesis = load_json_file(args.genesis)
+    genesis = load_json_file(args.genesis_file_path)
     print("reading genesis export...complete")
 
     staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
@@ -235,27 +235,27 @@ def reset_to_single_validator(args: ap.Namespace):
         update_chain_id(genesis, args.chain_id)
 
     print("Writing new genesis file...")
-    with open(f"{args.home_path}/config/genesis.json", "w") as f:
+    with open(f"{args.home}/config/genesis.json", "w") as f:
         json.dump(genesis, f)
 
-    print(f"Done! Wrote new genesis at {args.home_path}/config/genesis.json")
+    print(f"Done! Wrote new genesis at {args.home}/config/genesis.json")
     print("You can now start the chain:")
     print()
     print(
-        f"fetchd --home {args.home_path} tendermint unsafe-reset-all && fetchd --home {args.home_path} start"
+        f"fetchd --home {args.home} tendermint unsafe-reset-all && fetchd --home {args.home} start"
     )
     print()
 
 
 def replace_validator_keys(args: ap.Namespace):
-    print("       Genesis Path:", args.genesis)
+    print("       Genesis Path:", args.genesis_file_path)
     print("Source Validator PK:", args.src_validator_pubkey)
     print("Destination Validator PK:", args.dest_validator_pubkey)
     print("Destination Operator PK:", args.dest_validator_operator_pubkey)
 
     # Load the genesis file
     print("Reading genesis file...")
-    genesis = load_json_file(args.genesis)
+    genesis = load_json_file(args.genesis_file_path)
     print("Reading genesis file...complete")
 
     # TODO(pb): Whole this check can be dropped, since it does not have any effect (code will continue disregard):
