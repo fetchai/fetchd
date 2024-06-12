@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
+import argparse as ap
 import json
 import os
 import sys
@@ -20,7 +20,12 @@ from genesis_helpers import (
     get_local_key_data,
     hex_address_to_bech32,
     get_account_address_by_name,
+    get_account,
+    pubkey_to_bech32_address,
 )
+from replace_validator import replace_validator_keys_recur
+from typing import Tuple
+
 
 DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
@@ -28,8 +33,27 @@ FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
 
 
-def parse_commandline():
-    description = """This script updates an exported genesis from a running chain
+def parse_commandline() -> Tuple[ap.Namespace, ap.ArgumentParser]:
+
+    parser = ap.ArgumentParser(description="""
+CLI for post-processing of `genesis.json` file to achieve desired changes.
+The primary purpose of this CLI is for *testing* blockchain deployments.
+It is not recommended to use this CLI for production grade deployments.""")
+    parser.set_defaults(func=lambda *args: parser.print_help())
+
+    parser.add_argument(
+        "--home_path",
+        help="The path to the local node data i.e. ~/.fetchd",
+        default=DEFAULT_HOME_PATH,
+    )
+    parser.add_argument("genesis", type=str, help="The path to the genesis file")
+
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser_single_validator = subparsers.add_parser(
+        'reset_to_single_validator',
+        help='Reset to single validator',
+        description="""This script updates an exported genesis from a running chain
 to be used to run on a single validator local node.
 It will take the first validator and jail all the others
 and replace the validator pubkey and the nodekey with the one 
@@ -39,36 +63,48 @@ if unspecified, node_home_dir default to the ~/.fetchd/ folder.
 this folder must exists and contains the files created by the "fetchd init" command.
 
 The updated genesis will be written under node_home_dir/config/genesis.json, allowing
-the local chain to be started with:
-    """
-
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument(
-        "genesis_export", type=get_path, help="The path to the genesis export"
+the local chain to be started with."""
     )
-    parser.add_argument(
-        "--home_path",
-        help="The path to the local node data i.e. ~/.fetchd",
-        default=DEFAULT_HOME_PATH,
-    )
-    parser.add_argument(
+    #parser_single_validator.add_argument("genesis", type=get_path, help="The path to the genesis file",)
+    parser_single_validator.add_argument(
         "--validator_key_name",
         help="The name of the local key to use for the validator",
-        default=DEFAULT_VALIDATOR_KEY_NAME,
-    )
-    parser.add_argument("--chain_id", help="New chain ID to be set", default=None)
-    parser.add_argument(
+        default=DEFAULT_VALIDATOR_KEY_NAME)
+    parser_single_validator.add_argument("--chain_id", help="New chain ID to be set", default=None)
+    parser_single_validator.add_argument(
         "--voting_period",
         help="The new voting period to be set",
-        default=DEFAULT_VOTING_PERIOD,
-    )
-
-    return parser.parse_args()
+        default=DEFAULT_VOTING_PERIOD)
+    parser_single_validator.set_defaults(func=reset_to_single_validator)
 
 
-def main():
-    args = parse_commandline()
+    parser_replace_validator_keys = subparsers.add_parser(
+        'replace_validator_keys',
+        help='Replace consensus and operator keys of given validator',
+        description="This script replaces a validator in the genesis file based on provided public keys and addresses.")
+    #parser_replace_validator_keys.add_argument("genesis", type=str, help="The path to the genesis file")
+    parser_replace_validator_keys.add_argument(
+        "src_validator_pubkey",
+        type=str,
+        help="Source validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+    parser_replace_validator_keys.add_argument(
+        "dest_validator_pubkey",
+        type=str,
+        help="Destination validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+    parser_replace_validator_keys.add_argument(
+        "dest_validator_operator_pubkey",
+        type=str,
+        help="Destination validator operator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+    parser_replace_validator_keys.add_argument(
+        "--output",
+        help="The path for modified genesis file",
+        default="modified_genesis.json")
+    parser_replace_validator_keys.set_defaults(func=replace_validator_keys)
 
+    return parser.parse_args(), parser
+
+
+def reset_to_single_validator(args: ap.Namespace):
     print("    Genesis Export:", args.genesis_export)
     print("  Fetchd Home Path:", args.home_path)
     print("Validator Key Name:", args.validator_key_name)
@@ -209,6 +245,46 @@ def main():
         f"fetchd --home {args.home_path} tendermint unsafe-reset-all && fetchd --home {args.home_path} start"
     )
     print()
+
+
+def replace_validator_keys(args: ap.Namespace):
+    print("       Genesis Path:", args.genesis)
+    print("Source Validator PK:", args.src_validator_pubkey)
+    print("Destination Validator PK:", args.dest_validator_pubkey)
+    print("Destination Operator PK:", args.dest_validator_operator_pubkey)
+
+    # Load the genesis file
+    print("Reading genesis file...")
+    genesis = load_json_file(args.genesis)
+    print("Reading genesis file...complete")
+
+    # TODO(pb): Whole this check can be dropped, since it does not have any effect (code will continue disregard):
+    # Ensure that operator is not already registered in auth module:
+    dest_operator_base_address = pubkey_to_bech32_address(
+        args.dest_validator_operator_pubkey, "fetch"
+    )
+    new_operator_has_account = get_account(genesis, dest_operator_base_address)
+    if new_operator_has_account:
+        print(
+            "New operator account already existed before - it is recommended to generate new operator key"
+        )
+
+    replace_validator_keys_recur(
+        genesis=genesis,
+        src_validator_pubkey=args.src_validator_pubkey,
+        dest_validator_pubkey=args.dest_validator_pubkey,
+        dest_validator_operator_pubkey=args.dest_validator_operator_pubkey)
+
+    # Save the modified genesis file
+    output_genesis_path = args.output
+    print(f"Writing modified genesis file to {output_genesis_path}...")
+    with open(output_genesis_path, "w") as f:
+        json.dump(genesis, f)
+    print("Modified genesis file written successfully.")
+
+
+def main():
+    args = parse_commandline()
 
 
 if __name__ == "__main__":
