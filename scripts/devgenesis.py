@@ -284,7 +284,8 @@ def replace_validator_keys(args: ap.Namespace):
 
 
 def main():
-    args = parse_commandline()
+    args, _ = parse_commandline()
+    args.func(args)
 
 
 if __name__ == "__main__":
