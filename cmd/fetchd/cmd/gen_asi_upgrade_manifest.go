@@ -88,10 +88,10 @@ type Contracts struct {
 }
 
 type ASIUpgradeManifest struct {
-	Network           *NetworkParams            `json:"network,omitempty"`
-	IBC               *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
-	Reconciliation    *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
-	ContractsManifest *Contracts                `json:"contracts,omitempty"`
+	Network        *NetworkParams            `json:"network,omitempty"`
+	IBC            *ASIUpgradeIBCTransfers   `json:"ibc,omitempty"`
+	Reconciliation *ASIUpgradeReconciliation `json:"reconciliation,omitempty"`
+	Contracts      *Contracts                `json:"contracts,omitempty"`
 }
 
 func SaveASIManifest(manifest *ASIUpgradeManifest, config *config2.Config) error {

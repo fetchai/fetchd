@@ -194,8 +194,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// create a new manifest
 			manifest := ASIUpgradeManifest{
-				Network:           &NetworkParams{},
-				ContractsManifest: &Contracts{},
+				Network:   &NetworkParams{},
+				Contracts: &Contracts{},
 			}
 
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -1100,19 +1100,19 @@ func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, 
 	if newAdmin != nil {
 		oldAdmin := contractInfo["admin"].(string)
 		contractInfo["admin"] = *newAdmin
-		manifest.ContractsManifest.AdminUpdated = append(manifest.ContractsManifest.AdminUpdated, ContractValueUpdate{contractAddress, oldAdmin, *newAdmin})
+		manifest.Contracts.AdminUpdated = append(manifest.Contracts.AdminUpdated, ContractValueUpdate{contractAddress, oldAdmin, *newAdmin})
 	}
 	if newLabel != nil {
 		oldLabel := contractInfo["label"].(string)
 		contractInfo["label"] = *newLabel
-		manifest.ContractsManifest.LabelUpdated = append(manifest.ContractsManifest.LabelUpdated, ContractValueUpdate{contractAddress, oldLabel, *newLabel})
+		manifest.Contracts.LabelUpdated = append(manifest.Contracts.LabelUpdated, ContractValueUpdate{contractAddress, oldLabel, *newLabel})
 	}
 }
 
 func deleteContractState(genesisContractStruct map[string]interface{}, manifest *ASIUpgradeManifest) {
 	contractAddress := genesisContractStruct["contract_address"].(string)
 	genesisContractStruct["contract_state"] = []interface{}{}
-	manifest.ContractsManifest.StateCleaned = append(manifest.ContractsManifest.StateCleaned, contractAddress)
+	manifest.Contracts.StateCleaned = append(manifest.Contracts.StateCleaned, contractAddress)
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
