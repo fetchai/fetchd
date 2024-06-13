@@ -99,7 +99,7 @@ var networkInfos = map[string]NetworkConfig{
 			TargetAddress:   "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 			InputCSVRecords: readInputReconciliationData(reconciliationData),
 		},
-		Contracts: &Contracts{
+		Contracts: &ContractSet{
 			Almanac: &Almanac{
 				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
 			},
@@ -141,7 +141,7 @@ var networkInfos = map[string]NetworkConfig{
 			TargetAddress:   "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 			InputCSVRecords: readInputReconciliationData(reconciliationDataTestnet),
 		},
-		Contracts: &Contracts{
+		Contracts: &ContractSet{
 			Almanac: &Almanac{
 				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
 				DevAddr:  "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp",
@@ -195,7 +195,7 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 			// create a new manifest
 			manifest := ASIUpgradeManifest{
 				Network:           &NetworkParams{},
-				ContractsManifest: &ContractsManifest{},
+				ContractsManifest: &Contracts{},
 			}
 
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -1100,12 +1100,12 @@ func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, 
 	if newAdmin != nil {
 		oldAdmin := contractInfo["admin"].(string)
 		contractInfo["admin"] = *newAdmin
-		manifest.ContractsManifest.AdminUpdated = append(manifest.ContractsManifest.AdminUpdated, ContractValueUpdate{Address: contractAddress, ValueUpdate: ValueUpdate{oldAdmin, *newAdmin}})
+		manifest.ContractsManifest.AdminUpdated = append(manifest.ContractsManifest.AdminUpdated, ContractValueUpdate{contractAddress, oldAdmin, *newAdmin})
 	}
 	if newLabel != nil {
 		oldLabel := contractInfo["label"].(string)
 		contractInfo["label"] = *newLabel
-		manifest.ContractsManifest.LabelUpdated = append(manifest.ContractsManifest.LabelUpdated, ContractValueUpdate{Address: contractAddress, ValueUpdate: ValueUpdate{oldLabel, *newLabel}})
+		manifest.ContractsManifest.LabelUpdated = append(manifest.ContractsManifest.LabelUpdated, ContractValueUpdate{contractAddress, oldLabel, *newLabel})
 	}
 }
 
@@ -1197,7 +1197,7 @@ type NetworkConfig struct {
 	ReconciliationInfo *ReconciliationInfo
 	SupplyInfo         SupplyInfo
 	DenomInfo          DenomInfo
-	Contracts          *Contracts
+	Contracts          *ContractSet
 }
 
 type ReconciliationInfo struct {
@@ -1216,7 +1216,7 @@ type DenomInfo struct {
 	OldDenom     string
 }
 
-type Contracts struct {
+type ContractSet struct {
 	TokenBridge    *TokenBridge
 	Almanac        *Almanac
 	AName          *AName
