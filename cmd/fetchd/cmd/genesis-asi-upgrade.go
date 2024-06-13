@@ -99,7 +99,7 @@ var networkInfos = map[string]NetworkConfig{
 			TargetAddress:   "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 			InputCSVRecords: readInputReconciliationData(reconciliationData),
 		},
-		Contracts: &Contracts{
+		Contracts: &ContractSet{
 			Almanac: &Almanac{
 				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
 			},
@@ -141,7 +141,7 @@ var networkInfos = map[string]NetworkConfig{
 			TargetAddress:   "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 			InputCSVRecords: readInputReconciliationData(reconciliationDataTestnet),
 		},
-		Contracts: &Contracts{
+		Contracts: &ContractSet{
 			Almanac: &Almanac{
 				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
 				DevAddr:  "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp",
@@ -194,7 +194,8 @@ func ASIGenesisUpgradeCmd(defaultNodeHome string) *cobra.Command {
 
 			// create a new manifest
 			manifest := ASIUpgradeManifest{
-				Main: &MainParams{},
+				Network:   &NetworkParams{},
+				Contracts: &Contracts{},
 			}
 
 			_, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -362,7 +363,7 @@ func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTime
 			panic(err)
 		}
 		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
-		manifest.Main.GenesisTime = &ValueUpdate{
+		manifest.Network.GenesisTime = &ValueUpdate{
 			From: oldGenesisTime.String(),
 			To:   genDoc.GenesisTime.String(),
 		}
@@ -735,7 +736,7 @@ func ASIGenesisUpgradeReplaceDenomMetadata(jsonData map[string]interface{}, netw
 func ASIGenesisUpgradeReplaceChainID(genesisData *types.GenesisDoc, networkInfo NetworkConfig, manifest *ASIUpgradeManifest) {
 	oldChainID := genesisData.ChainID
 	genesisData.ChainID = networkInfo.NewChainID
-	manifest.Main.ChainID = &ValueUpdate{
+	manifest.Network.ChainID = &ValueUpdate{
 		From: oldChainID,
 		To:   genesisData.ChainID,
 	}
@@ -836,7 +837,7 @@ func ASIGenesisUpgradeReplaceAddresses(jsonData map[string]interface{}, networkI
 	// contract addresses
 	replaceAddresses(AccAddressPrefix, jsonData, WasmAddrDataLength+AddrChecksumLength)
 
-	manifest.Main.AddressPrefix = &ValueUpdate{
+	manifest.Network.AddressPrefix = &ValueUpdate{
 		From: OldAddrPrefix,
 		To:   NewAddrPrefix,
 	}
@@ -1067,7 +1068,7 @@ func ASIGenesisUpgradeASISupply(jsonData map[string]interface{}, networkInfo Net
 		MintedAmount:         sdk.NewCoins(additionalSupplyCoin),
 		ResultingTotalSupply: sdk.NewCoins(newSupplyCoins),
 	}
-	manifest.Main.Supply = &supplyRecord
+	manifest.Network.Supply = &supplyRecord
 
 	// update the supply in the bank module
 	supply[curSupplyIdx].(map[string]interface{})["amount"] = newSupplyCoins.Amount.String()
@@ -1099,19 +1100,19 @@ func replaceContractAdminAndLabel(genesisContractStruct map[string]interface{}, 
 	if newAdmin != nil {
 		oldAdmin := contractInfo["admin"].(string)
 		contractInfo["admin"] = *newAdmin
-		manifest.ContractsAdminUpdated = append(manifest.ContractsAdminUpdated, ContractValueUpdate{Address: contractAddress, From: oldAdmin, To: *newAdmin})
+		manifest.Contracts.AdminUpdated = append(manifest.Contracts.AdminUpdated, ContractValueUpdate{contractAddress, oldAdmin, *newAdmin})
 	}
 	if newLabel != nil {
 		oldLabel := contractInfo["label"].(string)
 		contractInfo["label"] = *newLabel
-		manifest.ContractsLabelUpdated = append(manifest.ContractsLabelUpdated, ContractValueUpdate{Address: contractAddress, From: oldLabel, To: *newLabel})
+		manifest.Contracts.LabelUpdated = append(manifest.Contracts.LabelUpdated, ContractValueUpdate{contractAddress, oldLabel, *newLabel})
 	}
 }
 
 func deleteContractState(genesisContractStruct map[string]interface{}, manifest *ASIUpgradeManifest) {
 	contractAddress := genesisContractStruct["contract_address"].(string)
 	genesisContractStruct["contract_state"] = []interface{}{}
-	manifest.ContractsStateCleaned = append(manifest.ContractsStateCleaned, contractAddress)
+	manifest.Contracts.StateCleaned = append(manifest.Contracts.StateCleaned, contractAddress)
 }
 
 func crawlJson(key string, value interface{}, idx int, strHandler func(string, interface{}, int) interface{}) interface{} {
@@ -1196,7 +1197,7 @@ type NetworkConfig struct {
 	ReconciliationInfo *ReconciliationInfo
 	SupplyInfo         SupplyInfo
 	DenomInfo          DenomInfo
-	Contracts          *Contracts
+	Contracts          *ContractSet
 }
 
 type ReconciliationInfo struct {
@@ -1215,7 +1216,7 @@ type DenomInfo struct {
 	OldDenom     string
 }
 
-type Contracts struct {
+type ContractSet struct {
 	TokenBridge    *TokenBridge
 	Almanac        *Almanac
 	AName          *AName
