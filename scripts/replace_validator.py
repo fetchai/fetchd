@@ -1,4 +1,3 @@
-
 from typing import Mapping, Any
 from genesis_helpers import (
     get_staking_validator_info,
