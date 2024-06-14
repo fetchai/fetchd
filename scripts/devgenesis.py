@@ -21,7 +21,7 @@ from genesis_helpers import (
     get_account_address_by_name,
     get_account,
     pubkey_to_bech32_address,
-    ExpandPath,
+    ExpandPath, increase_balance,
 )
 from replace_validator import replace_validator_keys_recursive
 from typing import Tuple
@@ -204,7 +204,7 @@ def reset_to_single_validator(args: ap.Namespace):
     )
 
     # Add new balance to bank
-    set_balance(genesis, local_validator_base_address, FUND_BALANCE, staking_denom)
+    increase_balance(genesis, local_validator_base_address, FUND_BALANCE, staking_denom)
 
     # Add new account to auth if not already there
     ensure_account(genesis, local_validator_base_address)

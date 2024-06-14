@@ -116,6 +116,31 @@ def set_balance(genesis, address, new_balance, denom):
         genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
 
 
+def increase_balance(genesis, address, new_balance, denom):
+    account_found = False
+    denom_found = False
+
+    for balance in genesis["app_state"]["bank"]["balances"]:
+        if balance["address"] == address:
+            account_found = True
+            for amount in balance["coins"]:
+                if amount["denom"] == denom:
+                    amount["amount"] = str(int(amount["amount"]) + new_balance)
+                    denom_found = True
+                    break
+
+            if not denom_found:
+                balance["coins"].append({"amount": str(new_balance), "denom": denom})
+
+
+    if not account_found:
+        new_balance_entry = {
+            "address": address,
+            "coins": [{"amount": str(new_balance), "denom": denom}],
+        }
+        genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
+
+
 def get_balance(genesis, address, denom, ensure=False):
     res_amount = 0
     for balance in genesis["app_state"]["bank"]["balances"]:
