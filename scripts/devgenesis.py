@@ -35,10 +35,14 @@ DEFAULT_VOTING_PERIOD = "60s"
 
 def parse_commandline() -> Tuple[ap.Namespace, ap.ArgumentParser]:
 
-    parser = ap.ArgumentParser(description="""
+    parser = ap.ArgumentParser(
+        description="""
 CLI for post-processing of `genesis.json` file to achieve desired changes.
 The primary purpose of this CLI is for *testing* blockchain deployments.
-It is not recommended to use this CLI for production grade deployments.""")
+It is not recommended to use this CLI for production grade deployments.""",
+        epilog="""Example of usage:
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator""",
+        formatter_class=ap.RawTextHelpFormatter)
     parser.set_defaults(func=lambda *args: parser.print_help())
 
     parser.add_argument(
@@ -55,16 +59,15 @@ It is not recommended to use this CLI for production grade deployments.""")
         help='Reset to single validator',
         description="""This script updates an exported genesis from a running chain
 to be used to run on a single validator local node.
-It will take the first validator and jail all the others
-and replace the validator pubkey and the nodekey with the one 
-found in the node_home_dir folder
+It will take the first validator which is not jailed, jail all remaining validators.
+Then it will replace the validator pubkey & nodekey with the one found in the `node_home_dir` directory provided by the `--home node_home_dir` argument.
+If unspecified, the `node_home_dir` value defaults to the "~/.fetchd" directory, this folder must exist and contain the directory structure created by the "fetchd init ..." command.
 
-if unspecified, node_home_dir default to the ~/.fetchd/ folder. 
-this folder must exists and contains the files created by the "fetchd init" command.
-
-The updated genesis will be written under node_home_dir/config/genesis.json, allowing
-the local chain to be started with."""
-    )
+The updated genesis will be written under `node_home_dir`/config/genesis.json, allowing the local chain to be started with.""",
+        epilog="""Example of usage:
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator --validator_key_name "my_validator_key_name_in_fetchd_keyring" --voting_period 300s""",
+        formatter_class=ap.RawTextHelpFormatter)
     parser_single_validator.add_argument(
         "--validator_key_name",
         help="The name of the local key to use for the validator",
@@ -80,19 +83,23 @@ the local chain to be started with."""
     parser_replace_validator_keys = subparsers.add_parser(
         'replace_validator_keys',
         help='Replace consensus and operator keys of given validator',
-        description="This script replaces a validator in the genesis file based on provided public keys and addresses.")
+        description="This script replaces a validator in the genesis file based on provided public keys and addresses.",
+        epilog="""Example of usage:
+    python %(prog)s --home ~/.fetchd "my_genesis.json" replace_validator_keys "Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=" "AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i" "A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq"
+    python %(prog)s --home ~/.fetchd "my_genesis.json" replace_validator_keys "Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=" "AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i" "A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq" --output "my_resulting_genesis.json" """,
+        formatter_class=ap.RawTextHelpFormatter)
     parser_replace_validator_keys.add_argument(
         "src_validator_pubkey",
         type=str,
-        help="Source validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+        help="Source validator *consensus* public key in base64 format, for example: Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
     parser_replace_validator_keys.add_argument(
         "dest_validator_pubkey",
         type=str,
-        help="Destination validator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+        help="Destination validator *consesnus* public key in base64 format, for example: AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i")
     parser_replace_validator_keys.add_argument(
         "dest_validator_operator_pubkey",
         type=str,
-        help="Destination validator operator public key in base64 format, f.e. Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+        help="Destination validator *operator* public key in base64 format, for example: A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq")
     parser_replace_validator_keys.add_argument(
         "--output",
         help="The path for modified genesis file",
@@ -282,8 +289,8 @@ def replace_validator_keys(args: ap.Namespace):
 
 
 def main():
-    args, _ = parse_commandline()
-    args.func(args)
+    args, parser = parse_commandline()
+    args.func()
 
 
 if __name__ == "__main__":
