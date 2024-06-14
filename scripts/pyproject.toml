@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "devgenesis"
+version = "0.1.0"
+description = ""
+authors = ["Jiří Vestfál <jiri.vestfal@fetch.ai>"]
+#readme = "README.md"
+#packages = [{include = "scripts"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+bech32 = "1.2.0"
+pycryptodome = "3.20.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
