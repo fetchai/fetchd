@@ -118,12 +118,20 @@ def set_balance(genesis, address, new_balance, denom):
 
 def increase_balance(genesis, address, new_balance, denom):
     account_found = False
+    denom_found = False
+
     for balance in genesis["app_state"]["bank"]["balances"]:
         if balance["address"] == address:
+            account_found = True
             for amount in balance["coins"]:
                 if amount["denom"] == denom:
                     amount["amount"] = str(int(amount["amount"]) + new_balance)
-                    account_found = True
+                    denom_found = True
+                    break
+
+            if not denom_found:
+                balance["coins"].append({"amount": str(new_balance), "denom": denom})
+
 
     if not account_found:
         new_balance_entry = {
