@@ -364,8 +364,8 @@ func ASIGenesisUpgradeUpdateGenesisTime(genDoc *types.GenesisDoc, newGenesisTime
 		}
 		genDoc.GenesisTime = tmtime.Canonical(genesisTime)
 		manifest.Network.GenesisTime = &ValueUpdate{
-			From: oldGenesisTime.String(),
-			To:   genDoc.GenesisTime.String(),
+			From: oldGenesisTime.Format(time.RFC3339Nano),
+			To:   genDoc.GenesisTime.Format(time.RFC3339Nano),
 		}
 	}
 }
