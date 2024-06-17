@@ -719,19 +719,6 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	const municipalInflationTargetAddress = "fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03"
-
-	// NOTE(pb): The `v0.11.3` upgrade handler *MUST* be present due to the mainnent & testnet, where this is the *LAST*
-	//           executed upgrade. Presence of this handler is enforced by the `x/upgrade/abci.go#L31-L40` (see the
-	// https://github.com/fetchai/cosmos-sdk/blob/09cf7baf4297a30acd8d09d9db7dd97d79ffe008/x/upgrade/abci.go#L31-L40).
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
-	// NOTE(pb): Empty upgrade handler (all necessary changes will be done on genesis.json level).
-	app.UpgradeKeeper.SetUpgradeHandler("v0.12.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
