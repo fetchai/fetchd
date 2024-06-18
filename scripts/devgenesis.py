@@ -1,213 +1,162 @@
 #!/usr/bin/env python3
 
-import argparse
+import argparse as ap
 import json
 import os
-import re
-import subprocess
 import sys
-from pathlib import Path
-from typing import Any, Dict, List
+from genesis_helpers import (
+    get_balance,
+    get_unjailed_validator,
+    set_balance,
+    ensure_account,
+    convert_to_valoper,
+    load_json_file,
+    replace_validator_with_info,
+    jail_validators,
+    remove_max_wasm_code_size,
+    set_voting_period,
+    update_chain_id,
+    get_local_key_data,
+    hex_address_to_bech32,
+    get_account_address_by_name,
+    get_account,
+    pubkey_to_bech32_address,
+    ExpandPath, increase_balance,
+)
+from replace_validator import replace_validator_keys_recursive
+from typing import Tuple
 
-import bech32
 
-DEFAULT_STAKING_DENOM = "afet"
-DEFAULT_HOME_PATH = os.path.expanduser("~") + "/.fetchd"
+DEFAULT_HOME_PATH = os.path.expanduser("~/.fetchd")
 DEFAULT_VALIDATOR_KEY_NAME = "validator"
 FUND_BALANCE = 10**23
 DEFAULT_VOTING_PERIOD = "60s"
 
 
-def parse_commandline():
-    description = """This script updates an exported genesis from a running chain
-to be used to run on a single validator local node.
-It will take the first validator and jail all the others
-and replace the validator pubkey and the nodekey with the one 
-found in the node_home_dir folder
+def parse_commandline() -> Tuple[ap.Namespace, ap.ArgumentParser]:
 
-if unspecified, node_home_dir default to the ~/.fetchd/ folder. 
-this folder must exists and contains the files created by the "fetchd init" command.
+    parser = ap.ArgumentParser(
+        description="""
+CLI for post-processing of `genesis.json` file to achieve desired changes.
+The primary purpose of this CLI is for *testing* blockchain deployments.
+It is not recommended to use this CLI for production grade deployments.""",
+        epilog="""Example of usage:
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator""",
+        formatter_class=ap.RawTextHelpFormatter)
+    parser.set_defaults(func=lambda *args: parser.print_help())
 
-The updated genesis will be written under node_home_dir/config/genesis.json, allowing
-the local chain to be started with:
-    """
-
-    parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
-        "genesis_export", type=_path, help="The path to the genesis export"
-    )
-    parser.add_argument(
-        "--home_path",
+        "--home",
         help="The path to the local node data i.e. ~/.fetchd",
         default=DEFAULT_HOME_PATH,
-    )
-    parser.add_argument(
+        action=ExpandPath)
+    parser.add_argument("genesis_file_path", type=str, help="The path to the genesis file", action=ExpandPath)
+
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser_single_validator = subparsers.add_parser(
+        'reset_to_single_validator',
+        help='Reset to single validator',
+        description="""This script updates an exported genesis from a running chain
+to be used to run on a single validator local node.
+It will take the first validator which is not jailed, jail all remaining validators.
+Then it will replace the validator pubkey & nodekey with the one found in the `node_home_dir` directory provided by the `--home node_home_dir` argument.
+If unspecified, the `node_home_dir` value defaults to the "~/.fetchd" directory, this folder must exist and contain the directory structure created by the "fetchd init ..." command.
+
+The updated genesis will be written under `node_home_dir`/config/genesis.json, allowing the local chain to be started with.""",
+        epilog="""Example of usage:
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator
+python %(prog)s --home ~/.fetchd "my_genesis.json" reset_to_single_validator --validator_key_name "my_validator_key_name_in_fetchd_keyring" --voting_period 300s""",
+        formatter_class=ap.RawTextHelpFormatter)
+    parser_single_validator.add_argument(
         "--validator_key_name",
         help="The name of the local key to use for the validator",
-        default=DEFAULT_VALIDATOR_KEY_NAME,
-    )
-    parser.add_argument(
-        "--staking_denom", help="The staking denom", default=DEFAULT_STAKING_DENOM
-    )
-    parser.add_argument("--chain_id", help="New chain ID to be set", default=None)
-    parser.add_argument(
+        default=DEFAULT_VALIDATOR_KEY_NAME)
+    parser_single_validator.add_argument("--chain_id", help="New chain ID to be set", default=None)
+    parser_single_validator.add_argument(
         "--voting_period",
         help="The new voting period to be set",
-        default=DEFAULT_VOTING_PERIOD,
-    )
-
-    return parser.parse_args()
+        default=DEFAULT_VOTING_PERIOD)
+    parser_single_validator.set_defaults(func=reset_to_single_validator)
 
 
-def _path(text: str) -> str:
-    return os.path.abspath(text)
+    parser_replace_validator_keys = subparsers.add_parser(
+        'replace_validator_keys',
+        help='Replace consensus and operator keys of given validator',
+        description="This script replaces a validator in the genesis file based on provided public keys and addresses.",
+        epilog="""Example of usage:
+    python %(prog)s --home ~/.fetchd "my_genesis.json" replace_validator_keys "Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=" "AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i" "A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq"
+    python %(prog)s --home ~/.fetchd "my_genesis.json" replace_validator_keys "Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=" "AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i" "A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq" --output "my_resulting_genesis.json" """,
+        formatter_class=ap.RawTextHelpFormatter)
+    parser_replace_validator_keys.add_argument(
+        "src_validator_pubkey",
+        type=str,
+        help="Source validator *consensus* public key in base64 format, for example: Fd9qzmh+4ZfLwLw1obIN9jPcijh1O7ZwuVBQwbP7RaM=")
+    parser_replace_validator_keys.add_argument(
+        "dest_validator_pubkey",
+        type=str,
+        help="Destination validator *consesnus* public key in base64 format, for example: AtZLs0C20OK7BvwyBB8nkbo8NB05LwH1qyhkBNTD+M5i")
+    parser_replace_validator_keys.add_argument(
+        "dest_validator_operator_pubkey",
+        type=str,
+        help="Destination validator *operator* public key in base64 format, for example: A2A07JmOtkK/rd/R1rhzj5sDzDJ+EbdGj7DY8ghVx0tq")
+    parser_replace_validator_keys.add_argument(
+        "--output",
+        help="The path for modified genesis file",
+        default="modified_genesis.json")
+    parser_replace_validator_keys.set_defaults(func=replace_validator_keys)
+
+    return parser.parse_args(), parser
 
 
-def _convert_to_valoper(address):
-    hrp, data = bech32.bech32_decode(address)
-    if hrp != "fetch":
-        print("Invalid address, expected normal fetch address")
-        sys.exit(1)
-
-    return bech32.bech32_encode("fetchvaloper", data)
-
-
-def _ensure_account(genesis, address):
-    for account in genesis["app_state"]["auth"]["accounts"]:
-        if "address" in account and account["address"] == address:
-            return
-
-    # Add new account to auth
-    last_account_number = int(
-        genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
-    )
-
-    # Ensure unique account number
-    new_account = {
-        "@type": "/cosmos.auth.v1beta1.BaseAccount",
-        "account_number": str(last_account_number + 1),
-        "address": address,
-        "pub_key": None,
-        "sequence": "0",
-    }
-    genesis["app_state"]["auth"]["accounts"].append(new_account)
-    return genesis
-
-
-def _set_balance(genesis, address, new_balance, denom):
-    account_found = False
-    for balance in genesis["app_state"]["bank"]["balances"]:
-        if balance["address"] == address:
-            for amount in balance["coins"]:
-                if amount["denom"] == denom:
-                    amount["amount"] = str(new_balance)
-                    account_found = True
-
-    if not account_found:
-        new_balance_entry = {
-            "address": address,
-            "coins": [{"amount": str(new_balance), "denom": denom}],
-        }
-        genesis["app_state"]["bank"]["balances"].append(new_balance_entry)
-    return genesis
-
-
-def _get_balance(genesis, address, denom):
-    amount = 0
-    for balance in genesis["app_state"]["bank"]["balances"]:
-        if balance["address"] == address:
-            for amount in balance["coins"]:
-                if amount["denom"] == denom:
-                    amount = int(amount["amount"])
-                    break
-            if amount != 0:
-                break
-    return amount
-
-
-def _get_unjailed_validator(genesis):
-    for val_info in genesis["app_state"]["staking"]["validators"]:
-        if not val_info["jailed"]:
-            return val_info
-
-
-def main():
-    args = parse_commandline()
-
-    print("    Genesis Export:", args.genesis_export)
-    print("  Fetchd Home Path:", args.home_path)
+def reset_to_single_validator(args: ap.Namespace):
+    print("    Genesis Export:", args.genesis_file_path)
+    print("  Fetchd Home Path:", args.home)
     print("Validator Key Name:", args.validator_key_name)
 
     # load up the local validator key
     local_validator_key_path = os.path.join(
-        args.home_path, "config", "priv_validator_key.json"
+        args.home, "config", "priv_validator_key.json"
     )
-    with open(local_validator_key_path, "r") as input_file:
-        local_validator_key = json.load(input_file)
 
     # extract the tendermint addresses
-    cmd = ["fetchd", "--home", args.home_path, "tendermint", "show-address"]
-    validator_address = subprocess.check_output(cmd).decode().strip()
-    validator_pubkey = local_validator_key["pub_key"]["value"]
-    validator_hexaddr = local_validator_key["address"]
+    local_validator_json = load_json_file(local_validator_key_path)
+    validator_hexaddr = local_validator_json["address"]
+    validator_address = hex_address_to_bech32(validator_hexaddr, "fetchvalcons")
+    validator_pubkey = local_validator_json["pub_key"]["value"]
 
     # extract the address for the local validator key
-    cmd = [
-        "fetchd",
-        "--home",
-        args.home_path,
-        "keys",
-        "show",
-        args.validator_key_name,
-        "--output",
-        "json",
-    ]
-    key_data = json.loads(subprocess.check_output(cmd).decode())
-
-    if key_data["type"] != "local":
-        print("Unable to use non-local key type")
-        sys.exit(1)
+    local_key_data = get_local_key_data(args.home, args.validator_key_name)
 
     # extract the local address and convert into a valid validator operator address
-    validator_operator_base_address = key_data["address"]
-    validator_operator_address = _convert_to_valoper(validator_operator_base_address)
-    print(f"       {validator_operator_base_address}")
-    print(validator_operator_address)
+    local_validator_base_address = local_key_data["address"]
+    local_validator_operator_address = convert_to_valoper(local_validator_base_address)
+    print(f"{local_validator_base_address} {local_validator_operator_address}")
 
     # load the genesis up
     print("reading genesis export...")
-    with open(args.genesis_export, "r") as export_file:
-        genesis = json.load(export_file)
+    genesis = load_json_file(args.genesis_file_path)
     print("reading genesis export...complete")
 
-    val_infos = _get_unjailed_validator(genesis)
-    if not val_infos:
+    staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
+    print(f"Staking denom: {staking_denom}")
+
+    target_val_info = get_unjailed_validator(genesis)
+    if not target_val_info:
         print("Genesis file does not contain any validators")
         sys.exit(1)
 
-    target_validator_operator_address = val_infos["operator_address"]
-    target_validator_public_key = val_infos["consensus_pubkey"]["key"]
-    val_tokens = int(val_infos["tokens"])
+    val_tokens = int(target_val_info["tokens"])
     val_power = int(val_tokens / (10**18))
 
     # Replace selected validator by current node one
-    print(f"Replacing validator {target_validator_operator_address}...")
-
-    val_addr = None
-    val_infos["consensus_pubkey"]["key"] = validator_pubkey
-    for val in genesis["validators"]:
-        if val["pub_key"]["value"] == target_validator_public_key:
-            val["pub_key"]["value"] = validator_pubkey
-            val_addr = val["address"]
-            break
-    assert val_addr is not None, "Validator not found in genesis"
-
-    genesis_dump = json.dumps(genesis)
-    genesis_dump = re.sub(val_addr, validator_hexaddr, genesis_dump)
-    genesis_dump = re.sub(
-        target_validator_operator_address, validator_operator_address, genesis_dump
+    replace_validator_with_info(
+        genesis,
+        target_val_info,
+        validator_pubkey,
+        validator_hexaddr,
+        local_validator_operator_address,
     )
-    genesis = json.loads(genesis_dump)
 
     # Set .app_state.slashing.signing_infos to contain only our validator signing infos
     print("Updating signing infos...")
@@ -228,51 +177,41 @@ def main():
     # Find the bonded and not bonded token pools
     print("Finding bonded and not bonded token pools...")
 
-    bonded_pool_address = None
-    not_bonded_pool_address = None
-    for account in genesis["app_state"]["auth"]["accounts"]:
-        if "name" in account:
-            if account["name"] == "bonded_tokens_pool":
-                bonded_pool_address = account["base_account"]["address"]
-            elif account["name"] == "not_bonded_tokens_pool":
-                not_bonded_pool_address = account["base_account"]["address"]
-
-            if bonded_pool_address and not_bonded_pool_address:
-                break
+    bonded_pool_address = get_account_address_by_name(genesis, "bonded_tokens_pool")
+    not_bonded_pool_address = get_account_address_by_name(
+        genesis, "not_bonded_tokens_pool"
+    )
 
     # Update bonded and not bonded pool values to make invariant checks happy
     print("Updating bonded and not bonded token pool values...")
 
     # Get current bonded and not bonded tokens
-    bonded_tokens = _get_balance(genesis, bonded_pool_address, args.staking_denom)
-    not_bonded_tokens = _get_balance(
-        genesis, not_bonded_pool_address, args.staking_denom
-    )
+    bonded_tokens = get_balance(genesis, bonded_pool_address, staking_denom)
+    not_bonded_tokens = get_balance(genesis, not_bonded_pool_address, staking_denom)
 
     new_not_bonded_tokens = not_bonded_tokens + bonded_tokens - val_tokens
+    if new_not_bonded_tokens < 0:
+        print(f"Invalid new_not_bonded_tokens amount: {new_not_bonded_tokens}")
+        sys.exit(1)
 
     # Update bonded pool and not bonded pool balances
-    _set_balance(genesis, bonded_pool_address, val_tokens, args.staking_denom)
-    _set_balance(
-        genesis, not_bonded_pool_address, new_not_bonded_tokens, args.staking_denom
-    )
+    set_balance(genesis, bonded_pool_address, val_tokens, staking_denom)
+    set_balance(genesis, not_bonded_pool_address, new_not_bonded_tokens, staking_denom)
 
     # Create new account and fund it
     print(
-        f"Creating new funded account for local validator {validator_operator_base_address}..."
+        f"Creating new funded account for local validator {local_validator_base_address}..."
     )
 
     # Add new balance to bank
-    genesis = _set_balance(
-        genesis, validator_operator_base_address, FUND_BALANCE, args.staking_denom
-    )
+    increase_balance(genesis, local_validator_base_address, FUND_BALANCE, staking_denom)
 
     # Add new account to auth if not already there
-    genesis = _ensure_account(genesis, validator_operator_base_address)
+    ensure_account(genesis, local_validator_base_address)
 
     # Update total supply of staking denom with new funds added
     for supply in genesis["app_state"]["bank"]["supply"]:
-        if supply["denom"] == args.staking_denom:
+        if supply["denom"] == staking_denom:
             supply["amount"] = str(int(supply["amount"]) + FUND_BALANCE)
 
     # Remove all .validators but the one we work with
@@ -284,40 +223,74 @@ def main():
     # Set .app_state.staking.last_validator_powers to contain only our validator
     print("Updating last voting power...")
     genesis["app_state"]["staking"]["last_validator_powers"] = [
-        {"address": validator_operator_address, "power": str(val_power)}
+        {"address": local_validator_operator_address, "power": str(val_power)}
     ]
 
     # Jail everyone but our validator
     print("Jail other validators...")
-    for validator in genesis["app_state"]["staking"]["validators"]:
-        if validator["operator_address"] != validator_operator_address:
-            validator["status"] = "BOND_STATUS_UNBONDING"
-            validator["jailed"] = True
+    jail_validators(genesis, local_validator_operator_address)
 
-    if "max_wasm_code_size" in genesis["app_state"]["wasm"]["params"]:
-        print("Removing max_wasm_code_size...")
-        del genesis["app_state"]["wasm"]["params"]["max_wasm_code_size"]
+    remove_max_wasm_code_size(genesis)
 
     # Set voting period
-    print(f"Setting voting period to {args.voting_period}...")
-    genesis["app_state"]["gov"]["voting_params"]["voting_period"] = args.voting_period
+    set_voting_period(genesis, args.voting_period)
 
     # Update the chain id if provided
     if args.chain_id:
-        print(f"Updating chain id to {args.chain_id}...")
-        genesis["chain_id"] = args.chain_id
+        update_chain_id(genesis, args.chain_id)
 
     print("Writing new genesis file...")
-    with open(f"{args.home_path}/config/genesis.json", "w") as f:
-        json.dump(genesis, f, indent=2)
+    with open(f"{args.home}/config/genesis.json", "w") as f:
+        json.dump(genesis, f)
 
-    print(f"Done! Wrote new genesis at {args.home_path}/config/genesis.json")
+    print(f"Done! Wrote new genesis at {args.home}/config/genesis.json")
     print("You can now start the chain:")
     print()
     print(
-        f"fetchd --home {args.home_path} tendermint unsafe-reset-all && fetchd --home {args.home_path} start"
+        f"fetchd --home {args.home} tendermint unsafe-reset-all && fetchd --home {args.home} start"
     )
     print()
+
+
+def replace_validator_keys(args: ap.Namespace):
+    print("       Genesis Path:", args.genesis_file_path)
+    print("Source Validator PK:", args.src_validator_pubkey)
+    print("Destination Validator PK:", args.dest_validator_pubkey)
+    print("Destination Operator PK:", args.dest_validator_operator_pubkey)
+
+    # Load the genesis file
+    print("Reading genesis file...")
+    genesis = load_json_file(args.genesis_file_path)
+    print("Reading genesis file...complete")
+
+    # TODO(pb): Whole this check can be dropped, since it does not have any effect (code will continue disregard):
+    # Ensure that operator is not already registered in auth module:
+    dest_operator_base_address = pubkey_to_bech32_address(
+        args.dest_validator_operator_pubkey, "fetch"
+    )
+    new_operator_has_account = get_account(genesis, dest_operator_base_address)
+    if new_operator_has_account:
+        print(
+            "New operator account already existed before - it is recommended to generate new operator key"
+        )
+
+    replace_validator_keys_recursive(
+        genesis=genesis,
+        src_validator_pubkey=args.src_validator_pubkey,
+        dest_validator_pubkey=args.dest_validator_pubkey,
+        dest_validator_operator_pubkey=args.dest_validator_operator_pubkey)
+
+    # Save the modified genesis file
+    output_genesis_path = args.output
+    print(f"Writing modified genesis file to {output_genesis_path}...")
+    with open(output_genesis_path, "w") as f:
+        json.dump(genesis, f)
+    print("Modified genesis file written successfully.")
+
+
+def main():
+    args, _ = parse_commandline()
+    args.func(args)
 
 
 if __name__ == "__main__":
