@@ -55,7 +55,7 @@ You can file new issues by selecting from our [new issue templates](https://gith
 
 Before you submit your Pull Request (PR) consider the following guidelines:
 
-1. All Pull Requests should be based off of and opened against the `main` branch.
+1. All Pull Requests should be based off of and opened against the `master` branch.
 
     <!-- markdown-link-check-disable -->
 2. Search [Existing PRs](https://github.com/fetchai/fetchd/pulls) for an open or closed PR that relates to your submission.
@@ -68,7 +68,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 4. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) the [repository](https://github.com/fetchai/fetchd).
     <!-- markdown-link-check-enable -->
 
-5. In your forked repository, make your changes in a new git branch created off of the `main` branch.
+5. In your forked repository, make your changes in a new git branch created off of the `master` branch.
 
 6. Make your changes, **including test cases and documentation updates where appropriate**.
 
@@ -82,7 +82,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 
 10. Push your branch to GitHub.
 
-11. In GitHub, send a pull request to `fetchai:main`.
+11. In GitHub, send a pull request to `fetchai:master`.
 
 #### Reviewing a Pull Request
 
