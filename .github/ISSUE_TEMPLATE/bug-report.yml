@@ -1,23 +1,20 @@
 name: 🐛 Bug Report
-description: Report a reproducible bug.
-title: "Bug report: <short description>"
+description: Report a bug.
 labels: ["bug", "unconfirmed"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting the issue you are facing. Please complete the following so we can have the details necessary to assist you.
+        Thanks for taking the time to report a bug! We appreciate your contribution to improving the library.
   - type: checkboxes
     id: prerequisites
     attributes:
       label: Prerequisites
-      description: Please confirm before submitting a new issue
+      description: Please confirm before submitting any new bug report.
       options:
-        - label: I am running the [latest fetchd version](https://docs.fetch.ai/ledger_v2/versions/).
+        - label: I checked the [documentation](https://fetch.ai/docs) and found no answer to my problem
           required: true
-        - label: I checked the [documentation](https://docs.fetch.ai/ledger_v2/cli-introduction/) and found no answer to my problem.
-          required: true
-        - label: I checked the [existing issues](https://github.com/fetchai/fetchd/issues) to make sure my problem has not already been reported.
+        - label: I checked the [existing issues](https://github.com/fetchai/fetchd/issues) and made sure there are no similar bug reports
           required: true
   - type: dropdown
     id: category
@@ -54,9 +51,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Fetchd Version
-      description: Which version of fetchd were you using? Please enter the version number here.
-      placeholder: ex. v0.1.0
+      label: Version
+      description: Which version were you using? Please enter the version number here.
+      placeholder: ex. v0.5.0
     validations:
       required: true
   - type: textarea

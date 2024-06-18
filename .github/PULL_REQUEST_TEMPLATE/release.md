@@ -12,6 +12,7 @@ _Put an `x` in the boxes that apply._
 
 - [ ] I am making a pull request against the `master` branch
 - [ ] Checks and tests pass locally
+- [ ] I have updated the version in `pyproject.toml`
 - [ ] I have regenerated and updated the API docs
 - [ ] The documentation is up-to-date
 
