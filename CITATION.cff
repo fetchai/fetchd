@@ -3,6 +3,6 @@ message: "If you use fetchd in your research or project, please cite it as follo
 title: fetchd Library
 authors:
   - family-names: Fetch.ai
-date-released: "2022-09-28"
+date-released: "2019-04-03"
 url: "https://github.com/fetchai/fetchd"
 license: "Apache-2.0"
