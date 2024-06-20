@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 	"io"
 	"net/http"
 	"os"
@@ -742,6 +743,31 @@ func (app *App) UpgradeAdmin(ctx sdk.Context, contractAddr string, newAdmin stri
 	return nil
 }
 
+func (app *App) DeleteContractState(ctx sdk.Context, contractAddr string) error {
+	addr, err := sdk.AccAddressFromBech32(contractAddr)
+	if err != nil {
+		return fmt.Errorf("invalid contract address: %v", err)
+	}
+
+	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
+	contractAddrKey := append(wasmTypes.ContractStorePrefix, addr...)
+	prefixStore := prefix.NewStore(store, contractAddrKey)
+
+	iter := prefixStore.Iterator(nil, nil)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		// Set
+		//newValue := []byte("new_Value")
+		//prefixStore.Set(iter.Key(), newValue)
+
+		// Or delete
+		prefixStore.Delete(iter.Key())
+	}
+
+	return nil
+}
+
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.3-8-g929563a", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
@@ -749,6 +775,13 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		// Example contract address and new admin
 		contractAddr := "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
 		newAdmin := "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut"
+
+		/*
+			err := app.DeleteContractState(ctx, contractAddr)
+			if err != nil {
+				return nil, err
+			}
+		*/
 
 		// Call the separate function to handle the admin upgrade
 		err := app.UpgradeAdmin(ctx, contractAddr, newAdmin)
