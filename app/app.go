@@ -371,7 +371,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -750,7 +750,7 @@ func (app *App) DeleteContractState(ctx sdk.Context, contractAddr string) error 
 	}
 
 	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
-	contractAddrKey := append(wasmTypes.ContractStorePrefix, addr...)
+	contractAddrKey := wasmTypes.GetContractStorePrefix(addr)
 	prefixStore := prefix.NewStore(store, contractAddrKey)
 
 	iter := prefixStore.Iterator(nil, nil)
@@ -769,25 +769,30 @@ func (app *App) DeleteContractState(ctx sdk.Context, contractAddr string) error 
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.3-8-g929563a", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// TODO(pb): MANDATORY: Implement transfers of all balances from reconciliation accounts listed in
+		//           reconciliation .csv file to reconciliation contract address.
 
 		// Example contract address and new admin
 		contractAddr := "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
 		newAdmin := "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut"
 
-		/*
-			err := app.DeleteContractState(ctx, contractAddr)
-			if err != nil {
-				return nil, err
-			}
-		*/
-
-		// Call the separate function to handle the admin upgrade
-		err := app.UpgradeAdmin(ctx, contractAddr, newAdmin)
+		err := app.DeleteContractState(ctx, contractAddr)
 		if err != nil {
 			return nil, err
 		}
+
+		// Call the separate function to handle the admin upgrade
+		err = app.UpgradeAdmin(ctx, contractAddr, newAdmin)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO(pb): OPTIONAL: Implement full contract state reconstruction (all transfers transferred balances, etc. )
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
