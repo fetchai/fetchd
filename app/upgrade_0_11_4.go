@@ -8,6 +8,8 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
+	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 	"github.com/cosmos/cosmos-sdk/types"
 	"strings"
 )
@@ -32,6 +34,16 @@ var NetworkInfos = map[string]NetworkConfig{
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 				NewLabel: getStringPtr("reconciliation-contract"),
 			},
+			Almanac: &Almanac{
+				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
+			},
+			AName: &AName{
+				ProdAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
+			},
+			TokenBridge: &TokenBridge{
+				Addr:     "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
+				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
+			},
 		},
 	},
 
@@ -43,6 +55,14 @@ var NetworkInfos = map[string]NetworkConfig{
 		Contracts: &ContractSet{
 			Reconciliation: &Reconciliation{
 				Addr: "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
+			},
+			Almanac: &Almanac{
+				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
+				DevAddr:  "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp",
+			},
+			AName: &AName{
+				ProdAddr: "fetch1mxz8kn3l5ksaftx8a9pj9a6prpzk2uhxnqdkwuqvuh37tw80xu6qges77l",
+				DevAddr:  "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 			},
 		},
 	},
@@ -87,7 +107,7 @@ func readInputReconciliationData(csvData []byte) [][]string {
 }
 
 func (app *App) ProcessReconciliation(ctx types.Context, networkInfo *NetworkConfig) error {
-	records := readInputReconciliationData(reconciliationData)
+	records := networkInfo.ReconciliationInfo.InputCSVRecords
 
 	transfers, err := app.WithdrawReconciliationBalances(ctx, networkInfo, records)
 	if err != nil {
@@ -146,7 +166,7 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 }
 
 func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInfo *NetworkConfig, reconciliationTransfers []ReconciliationTransfer) error {
-	_, _, prefixStore, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
+	_, _, prefixStore, err := app.getContractData(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
 		return err
 	}
@@ -227,6 +247,101 @@ func DropHexPrefix(hexEncodedData string) string {
 	return hexEncodedData
 }
 
+func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contractAddr *string) error {
+	if newAdmin == nil || contractAddr == nil {
+		return nil
+	}
+
+	addr, store, _, err := app.getContractData(ctx, *contractAddr)
+	if err != nil {
+		return err
+	}
+
+	// Get contract info
+	var contract = app.WasmKeeper.GetContractInfo(ctx, *addr)
+	contract.Admin = *newAdmin
+
+	// Store contract info
+	contractBz, err := app.AppCodec().Marshal(contract)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated contract info: %v", err)
+	}
+
+	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
+	(*store).Set(contractAddrKey, contractBz)
+
+	return nil
+}
+
+func (app *App) UpgradeContractAdmins(ctx types.Context, networkInfo *NetworkConfig) error {
+	contracts := []struct{ Addr, NewAdmin *string }{
+		{Addr: &networkInfo.Contracts.Reconciliation.Addr, NewAdmin: networkInfo.Contracts.Reconciliation.NewAdmin},
+		{Addr: &networkInfo.Contracts.TokenBridge.Addr, NewAdmin: networkInfo.Contracts.TokenBridge.NewAdmin},
+	}
+
+	for _, contract := range contracts {
+		err := app.UpgradeContractAdmin(ctx, contract.NewAdmin, contract.Addr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (app *App) DeleteContractState(ctx types.Context, contractAddr string) error {
+	if contractAddr == "" {
+		return nil
+	}
+
+	_, _, prefixStore, err := app.getContractData(ctx, contractAddr)
+	if err != nil {
+		return err
+	}
+
+	iter := prefixStore.Iterator(nil, nil)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		prefixStore.Delete(iter.Key())
+	}
+
+	return nil
+}
+
+func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConfig) error {
+	contractsToWipe := []string{
+		networkInfo.Contracts.Reconciliation.Addr,
+		networkInfo.Contracts.Almanac.ProdAddr,
+		networkInfo.Contracts.Almanac.DevAddr,
+		networkInfo.Contracts.AName.DevAddr,
+		networkInfo.Contracts.AName.ProdAddr,
+	}
+
+	for _, contract := range contractsToWipe {
+		err := app.DeleteContractState(ctx, contract)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getContractData returns the contract address, info, and states for a given contract address
+func (app *App) getContractData(ctx types.Context, contractAddr string) (*types.AccAddress, *types.KVStore, *prefix.Store, error) {
+	addr, err := types.AccAddressFromBech32(contractAddr)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("invalid contract address: %v", err)
+	}
+
+	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
+	contractAddrKey := wasmTypes.GetContractStorePrefix(addr)
+	prefixStore := prefix.NewStore(store, contractAddrKey)
+
+	return &addr, &store, &prefixStore, nil
+}
+
 type ReconciliationTransfer struct {
 	From    string      `json:"from"`
 	EthAddr string      `json:"eth_addr"`
@@ -245,10 +360,28 @@ type ReconciliationInfo struct {
 
 type ContractSet struct {
 	Reconciliation *Reconciliation
+	TokenBridge    *TokenBridge
+	Almanac        *Almanac
+	AName          *AName
+}
+
+type TokenBridge struct {
+	Addr     string
+	NewAdmin *string
 }
 
 type Reconciliation struct {
 	Addr     string
 	NewAdmin *string
 	NewLabel *string
+}
+
+type Almanac struct {
+	DevAddr  string
+	ProdAddr string
+}
+
+type AName struct {
+	DevAddr  string
+	ProdAddr string
 }

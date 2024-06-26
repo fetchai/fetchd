@@ -2,8 +2,6 @@ package app
 
 import (
 	"fmt"
-	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	"io"
 	"net/http"
 	"os"
@@ -720,67 +718,6 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func (app *App) UpgradeAdmin(ctx sdk.Context, networkInfo *NetworkConfig) error {
-	newAdmin := networkInfo.Contracts.Reconciliation.NewAdmin
-	if newAdmin == nil {
-		return nil
-	}
-
-	addr, store, _, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
-	if err != nil {
-		return err
-	}
-
-	// Get contract info
-	var contract = app.WasmKeeper.GetContractInfo(ctx, *addr)
-	contract.Admin = *newAdmin
-
-	// Store contract info
-	contractBz, err := app.AppCodec().Marshal(contract)
-	if err != nil {
-		return fmt.Errorf("failed to marshal updated contract info: %v", err)
-	}
-
-	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
-	(*store).Set(contractAddrKey, contractBz)
-
-	return nil
-}
-
-func (app *App) DeleteContractState(ctx sdk.Context, networkInfo *NetworkConfig) error {
-	_, _, prefixStore, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
-	if err != nil {
-		return err
-	}
-
-	iter := prefixStore.Iterator(nil, nil)
-	defer iter.Close()
-
-	for ; iter.Valid(); iter.Next() {
-		// Set
-		//newValue := []byte("new_Value")
-		//prefixStore.Set(iter.Key(), newValue)
-
-		// Or delete
-		prefixStore.Delete(iter.Key())
-	}
-
-	return nil
-}
-
-func (app *App) GetContractParams(ctx sdk.Context, contractAddr string) (*sdk.AccAddress, *sdk.KVStore, *prefix.Store, error) {
-	addr, err := sdk.AccAddressFromBech32(contractAddr)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("invalid contract address: %v", err)
-	}
-
-	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
-	contractAddrKey := wasmTypes.GetContractStorePrefix(addr)
-	prefixStore := prefix.NewStore(store, contractAddrKey)
-
-	return &addr, &store, &prefixStore, nil
-}
-
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
@@ -795,18 +732,21 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic("Network info not found for chain id: " + ctx.ChainID())
 		}
 
-		err := app.DeleteContractState(ctx, &networkInfo)
+		err := app.DeleteContractStates(ctx, &networkInfo)
 		if err != nil {
 			return nil, err
 		}
 
 		// Call the separate function to handle the admin upgrade
-		err = app.UpgradeAdmin(ctx, &networkInfo)
+		err = app.UpgradeContractAdmins(ctx, &networkInfo)
 		if err != nil {
 			return nil, err
 		}
 
 		err = app.ProcessReconciliation(ctx, &networkInfo)
+		if err != nil {
+			return nil, err
+		}
 
 		// TODO(pb): OPTIONAL: Implement full contract state reconstruction (all transfers transferred balances, etc. )
 
