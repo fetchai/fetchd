@@ -7,10 +7,13 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	"github.com/cosmos/cosmos-sdk/types"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -106,15 +109,53 @@ func readInputReconciliationData(csvData []byte) [][]string {
 	return records
 }
 
-func (app *App) ProcessReconciliation(ctx types.Context, networkInfo *NetworkConfig) error {
+func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, newLabel *string, manifest *UpgradeManifest) error {
+	addr, store, _, err := app.getContractData(ctx, *contractAddr)
+	if err != nil {
+		return err
+	}
+
+	// Get contract info
+	var contractInfo = app.WasmKeeper.GetContractInfo(ctx, *addr)
+	oldLabel := contractInfo.Label
+	contractInfo.Label = *newLabel
+
+	// Store contract info
+	contractBz, err := app.AppCodec().Marshal(contractInfo)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated contract info: %v", err)
+	}
+
+	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
+	(*store).Set(contractAddrKey, contractBz)
+
+	manifest.Contracts.LabelUpdated = append(manifest.Contracts.LabelUpdated, ContractValueUpdate{*contractAddr, oldLabel, *newLabel})
+	return nil
+}
+
+func (app *App) ChangeContractLabels(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
+	contracts := []struct{ addr, newLabel *string }{
+		{addr: &networkInfo.Contracts.Reconciliation.Addr, newLabel: networkInfo.Contracts.Reconciliation.NewLabel},
+	}
+	for _, contract := range contracts {
+		err := app.ChangeContractLabel(ctx, contract.addr, contract.newLabel, manifest)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (app *App) ProcessReconciliation(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	records := networkInfo.ReconciliationInfo.InputCSVRecords
 
-	transfers, err := app.WithdrawReconciliationBalances(ctx, networkInfo, records)
+	err := app.WithdrawReconciliationBalances(ctx, networkInfo, records, manifest)
 	if err != nil {
 		return fmt.Errorf("error withdrawing reconciliation balances: %v", err)
 	}
 
-	err = app.ReplaceReconciliationContractState(ctx, networkInfo, transfers)
+	err = app.ReplaceReconciliationContractState(ctx, networkInfo, manifest)
 	if err != nil {
 		return fmt.Errorf("error replacing reconciliation contract state: %v", err)
 	}
@@ -122,21 +163,20 @@ func (app *App) ProcessReconciliation(ctx types.Context, networkInfo *NetworkCon
 	return nil
 }
 
-func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *NetworkConfig, records [][]string) ([]ReconciliationTransfer, error) {
-	transfers := make([]ReconciliationTransfer, 0)
+func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *NetworkConfig, records [][]string, manifest *UpgradeManifest) error {
 	landingAddr, err := types.AccAddressFromBech32(networkInfo.ReconciliationInfo.TargetAddress)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !app.AccountKeeper.HasAccount(ctx, landingAddr) {
-		return nil, fmt.Errorf("landing address does not exist")
+		return fmt.Errorf("landing address does not exist")
 	}
 
 	for _, record := range records {
 		recordAddr, err := types.AccAddressFromBech32(record[2])
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if !app.AccountKeeper.HasAccount(ctx, recordAddr) {
@@ -151,21 +191,22 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 
 		err = app.BankKeeper.SendCoins(ctx, recordAddr, landingAddr, recordBalanceCoins)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		transfer := ReconciliationTransfer{
+		transfer := UpgradeReconciliationTransfer{
 			EthAddr: record[0],
 			From:    record[2],
 			Amount:  recordBalanceCoins,
 		}
-		transfers = append(transfers, transfer)
+		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, transfer)
 	}
 
-	return transfers, nil
+	return nil
 }
 
-func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInfo *NetworkConfig, reconciliationTransfers []ReconciliationTransfer) error {
+func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
+	reconciliationTransfers := manifest.Reconciliation.Transfers.Transfers
 	_, _, prefixStore, err := app.getContractData(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
 		return err
@@ -176,6 +217,9 @@ func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInf
 		if key == nil {
 			continue
 		}
+		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, UpgradeReconciliationContractStateBalanceRecord{EthAddr: transfer.EthAddr, Balances: transfer.Amount})
+		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(transfer.Amount...)
+		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
 
 		prefixStore.Set(key, value)
 	}
@@ -247,7 +291,7 @@ func DropHexPrefix(hexEncodedData string) string {
 	return hexEncodedData
 }
 
-func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contractAddr *string) error {
+func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contractAddr *string, manifest *UpgradeManifest) error {
 	if newAdmin == nil || contractAddr == nil {
 		return nil
 	}
@@ -259,6 +303,7 @@ func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contra
 
 	// Get contract info
 	var contract = app.WasmKeeper.GetContractInfo(ctx, *addr)
+	oldAdmin := contract.Admin
 	contract.Admin = *newAdmin
 
 	// Store contract info
@@ -270,17 +315,18 @@ func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contra
 	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
 	(*store).Set(contractAddrKey, contractBz)
 
+	manifest.Contracts.AdminUpdated = append(manifest.Contracts.AdminUpdated, ContractValueUpdate{*contractAddr, oldAdmin, *newAdmin})
 	return nil
 }
 
-func (app *App) UpgradeContractAdmins(ctx types.Context, networkInfo *NetworkConfig) error {
+func (app *App) UpgradeContractAdmins(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	contracts := []struct{ Addr, NewAdmin *string }{
 		{Addr: &networkInfo.Contracts.Reconciliation.Addr, NewAdmin: networkInfo.Contracts.Reconciliation.NewAdmin},
 		{Addr: &networkInfo.Contracts.TokenBridge.Addr, NewAdmin: networkInfo.Contracts.TokenBridge.NewAdmin},
 	}
 
 	for _, contract := range contracts {
-		err := app.UpgradeContractAdmin(ctx, contract.NewAdmin, contract.Addr)
+		err := app.UpgradeContractAdmin(ctx, contract.NewAdmin, contract.Addr, manifest)
 		if err != nil {
 			return err
 		}
@@ -289,7 +335,7 @@ func (app *App) UpgradeContractAdmins(ctx types.Context, networkInfo *NetworkCon
 	return nil
 }
 
-func (app *App) DeleteContractState(ctx types.Context, contractAddr string) error {
+func (app *App) DeleteContractState(ctx types.Context, contractAddr string, manifest *UpgradeManifest) error {
 	if contractAddr == "" {
 		return nil
 	}
@@ -305,11 +351,11 @@ func (app *App) DeleteContractState(ctx types.Context, contractAddr string) erro
 	for ; iter.Valid(); iter.Next() {
 		prefixStore.Delete(iter.Key())
 	}
-
+	manifest.Contracts.StateCleaned = append(manifest.Contracts.StateCleaned, contractAddr)
 	return nil
 }
 
-func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConfig) error {
+func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	contractsToWipe := []string{
 		networkInfo.Contracts.Reconciliation.Addr,
 		networkInfo.Contracts.Almanac.ProdAddr,
@@ -319,7 +365,7 @@ func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConf
 	}
 
 	for _, contract := range contractsToWipe {
-		err := app.DeleteContractState(ctx, contract)
+		err := app.DeleteContractState(ctx, contract, manifest)
 		if err != nil {
 			return err
 		}
@@ -342,7 +388,7 @@ func (app *App) getContractData(ctx types.Context, contractAddr string) (*types.
 	return &addr, &store, &prefixStore, nil
 }
 
-type ReconciliationTransfer struct {
+type UpgradeReconciliationTransfer struct {
 	From    string      `json:"from"`
 	EthAddr string      `json:"eth_addr"`
 	Amount  types.Coins `json:"amount"`
@@ -384,4 +430,92 @@ type Almanac struct {
 type AName struct {
 	DevAddr  string
 	ProdAddr string
+}
+
+type UpgradeManifest struct {
+	Reconciliation *UpgradeReconciliation `json:"reconciliation,omitempty"`
+	Contracts      *Contracts             `json:"contracts,omitempty"`
+}
+
+func initManifest() *UpgradeManifest {
+	return &UpgradeManifest{
+		Reconciliation: &UpgradeReconciliation{
+			Transfers: UpgradeReconciliationTransfers{
+				Transfers: make([]UpgradeReconciliationTransfer, 0),
+			},
+			ContractState: &UpgradeReconciliationContractState{
+				Balances: make([]UpgradeReconciliationContractStateBalanceRecord, 0),
+			},
+		},
+		Contracts: &Contracts{
+			StateCleaned: make([]string, 0),
+			AdminUpdated: make([]ContractValueUpdate, 0),
+			LabelUpdated: make([]ContractValueUpdate, 0),
+		},
+	}
+}
+
+type Contracts struct {
+	StateCleaned []string              `json:"contracts_state_cleaned,omitempty"`
+	AdminUpdated []ContractValueUpdate `json:"contracts_admin_updated,omitempty"`
+	LabelUpdated []ContractValueUpdate `json:"contracts_label_updated,omitempty"`
+}
+
+type ContractValueUpdate struct {
+	Address string `json:"address"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+}
+
+type ValueUpdate struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type UpgradeReconciliation struct {
+	Transfers     UpgradeReconciliationTransfers      `json:"transfers"`
+	ContractState *UpgradeReconciliationContractState `json:"contract_state"`
+}
+
+type UpgradeReconciliationTransfers struct {
+	Transfers                   []UpgradeReconciliationTransfer `json:"transfers"`
+	To                          string                          `json:"to"`
+	AggregatedTransferredAmount types.Coins                     `json:"aggregated_transferred_amount"`
+	NumberOfTransfers           int                             `json:"number_of_transfers"`
+}
+
+type UpgradeReconciliationContractStateBalanceRecord struct {
+	EthAddr  string      `json:"eth_addr"`
+	Balances types.Coins `json:"balances"`
+}
+
+type UpgradeReconciliationContractState struct {
+	Balances                 []UpgradeReconciliationContractStateBalanceRecord `json:"balances"`
+	AggregatedBalancesAmount types.Coins                                       `json:"aggregated_balances_amount"`
+	NumberOfBalanceRecords   int                                               `json:"number_of_balance_records"`
+}
+
+func (app *App) SaveManifest(manifest *UpgradeManifest) error {
+	var serialisedManifest []byte
+	var err error
+	if serialisedManifest, err = json.MarshalIndent(manifest, "", "\t"); err != nil {
+		return fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+
+	// TODO: find a better way to get the genesis file path
+	genesisPath := ""
+
+	var f *os.File
+	const manifestFilename = "upgrade_manifest.json"
+	manifestFilePath := path.Join(path.Dir(genesisPath), manifestFilename)
+	if f, err = os.Create(manifestFilePath); err != nil {
+		return fmt.Errorf("failed to create file \"%s\": %w", manifestFilePath, err)
+	}
+	defer f.Close()
+
+	if _, err = f.Write(serialisedManifest); err != nil {
+		return fmt.Errorf("failed to write manifest to the \"%s\" file : %w", manifestFilePath, err)
+	}
+
+	return nil
 }

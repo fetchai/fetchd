@@ -724,31 +724,39 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	})
 
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// TODO(pb): MANDATORY: Implement transfers of all balances from reconciliation accounts listed in
-		//           reconciliation .csv file to reconciliation contract address.
+		manifest := initManifest()
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
 			panic("Network info not found for chain id: " + ctx.ChainID())
 		}
 
-		err := app.DeleteContractStates(ctx, &networkInfo)
+		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
 		// Call the separate function to handle the admin upgrade
-		err = app.UpgradeContractAdmins(ctx, &networkInfo)
+		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		err = app.ProcessReconciliation(ctx, &networkInfo)
+		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO(pb): OPTIONAL: Implement full contract state reconstruction (all transfers transferred balances, etc. )
+		err = app.ChangeContractLabels(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		// Save the manifest
+		err = app.SaveManifest(manifest)
+		if err != nil {
+			panic(err)
+		}
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
