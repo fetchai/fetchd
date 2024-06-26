@@ -175,6 +175,9 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 		return fmt.Errorf("landing address does not exist")
 	}
 
+	manifest.Reconciliation.Transfers = nil
+	transfers := UpgradeReconciliationTransfers{}
+
 	for _, record := range records {
 		recordAddr, err := types.AccAddressFromBech32(record[2])
 		if err != nil {
@@ -201,39 +204,58 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 			From:    record[2],
 			Amount:  recordBalanceCoins,
 		}
-		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, transfer)
-		manifest.Reconciliation.Transfers.AggregatedTransferredAmount = manifest.Reconciliation.Transfers.AggregatedTransferredAmount.Add(recordBalanceCoins...)
-		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
+		transfers.Transfers = append(transfers.Transfers, transfer)
+		transfers.AggregatedTransferredAmount = transfers.AggregatedTransferredAmount.Add(recordBalanceCoins...)
+		transfers.NumberOfTransfers += 1
 	}
 
-	if manifest.Reconciliation.Transfers.NumberOfTransfers != len(manifest.Reconciliation.Transfers.Transfers) {
-		return fmt.Errorf("manifest: number of elements in the `Transfers` array does not match the `NumberOfTransfers`")
+	if transfers.NumberOfTransfers != len(transfers.Transfers) {
+		return fmt.Errorf("manifest: Transfers: number of elements in the `Transfers` array does not match the `NumberOfTransfers`")
+	}
+
+	if transfers.NumberOfTransfers > 0 {
+		transfers.To = networkInfo.ReconciliationInfo.TargetAddress
+		manifest.Reconciliation.Transfers = &transfers
+	} else {
+		if !transfers.AggregatedTransferredAmount.IsZero() {
+			return fmt.Errorf("manifest: Transfers: `NumberOfTransfers` is zero but `AggregatedTransferredAmount` is not zero")
+		}
 	}
 
 	return nil
 }
 
 func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	reconciliationTransfers := manifest.Reconciliation.Transfers.Transfers
 	_, _, prefixStore, err := app.getContractData(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
 		return err
 	}
 
-	for _, transfer := range reconciliationTransfers {
+	manifest.Reconciliation.ContractState = nil
+	contractState := UpgradeReconciliationContractState{}
+
+	for _, transfer := range manifest.Reconciliation.Transfers.Transfers {
 		key, value := reconciliationContractStateBalancesRecord(transfer.EthAddr, transfer.Amount)
 		if key == nil {
 			continue
 		}
-		manifest.Reconciliation.ContractState.Balances = append(manifest.Reconciliation.ContractState.Balances, UpgradeReconciliationContractStateBalanceRecord{EthAddr: transfer.EthAddr, Balances: transfer.Amount})
-		manifest.Reconciliation.ContractState.AggregatedBalancesAmount = manifest.Reconciliation.ContractState.AggregatedBalancesAmount.Add(transfer.Amount...)
-		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
+		contractState.Balances = append(contractState.Balances, UpgradeReconciliationContractStateBalanceRecord{EthAddr: transfer.EthAddr, Balances: transfer.Amount})
+		contractState.AggregatedBalancesAmount = contractState.AggregatedBalancesAmount.Add(transfer.Amount...)
+		contractState.NumberOfBalanceRecords += 1
 
 		prefixStore.Set(key, value)
 	}
 
-	if manifest.Reconciliation.ContractState.NumberOfBalanceRecords != len(manifest.Reconciliation.ContractState.Balances) {
-		return fmt.Errorf("manifest: number of elements in the `Balances` array does not match the `NumberOfBalanceRecords`")
+	if contractState.NumberOfBalanceRecords != len(contractState.Balances) {
+		return fmt.Errorf("manifest: ContractState: number of elements in the `Balances` array does not match the `NumberOfBalanceRecords`")
+	}
+
+	if contractState.NumberOfBalanceRecords > 0 {
+		manifest.Reconciliation.ContractState = &contractState
+	} else {
+		if !contractState.AggregatedBalancesAmount.IsZero() {
+			return fmt.Errorf("manifest: ContractState: `NumberOfBalanceRecords` is zero but `AggregatedBalancesAmount` is not zero")
+		}
 	}
 
 	return nil
@@ -452,7 +474,7 @@ type UpgradeManifest struct {
 func initManifest() *UpgradeManifest {
 	return &UpgradeManifest{
 		Reconciliation: &UpgradeReconciliation{
-			Transfers: UpgradeReconciliationTransfers{
+			Transfers: &UpgradeReconciliationTransfers{
 				Transfers: make([]UpgradeReconciliationTransfer, 0),
 			},
 			ContractState: &UpgradeReconciliationContractState{
@@ -485,8 +507,8 @@ type ValueUpdate struct {
 }
 
 type UpgradeReconciliation struct {
-	Transfers     UpgradeReconciliationTransfers      `json:"transfers"`
-	ContractState *UpgradeReconciliationContractState `json:"contract_state"`
+	Transfers     *UpgradeReconciliationTransfers     `json:"transfers,omitempty"`
+	ContractState *UpgradeReconciliationContractState `json:"contract_state,omitempty"`
 }
 
 type UpgradeReconciliationTransfers struct {
