@@ -1,11 +1,13 @@
 name: 🐛 Bug Report
 description: Report a bug.
 labels: ["bug", "unconfirmed"]
+assignees:
+  - pbukva
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! We appreciate your contribution to improving the library.
+        Thanks for taking the time to report a bug! We appreciate your contribution to improving this repository.
   - type: checkboxes
     id: prerequisites
     attributes:
@@ -60,7 +62,7 @@ body:
     id: environment
     attributes:
       label: Environment Details (Optional)
-      description: Provide any relevant information about your environment, such as operating system, Python version, and any other libraries used.
+      description: Provide any relevant information about your environment, such as operating system, Go version, and any other libraries used.
       render: markdown
     validations:
       required: false

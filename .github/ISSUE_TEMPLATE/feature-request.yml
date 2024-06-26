@@ -2,7 +2,7 @@ name: ☝️Feature request
 description: Suggest an idea.
 labels: ["enhancement", "unconfirmed"]
 assignees:
-  - jrriehl
+  - pbukva
 body:
   - type: markdown
     attributes:
