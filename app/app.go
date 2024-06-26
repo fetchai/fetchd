@@ -371,7 +371,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -720,15 +720,15 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func (app *App) UpgradeAdmin(ctx sdk.Context, contractAddr string, newAdmin string) error {
-	addr, err := sdk.AccAddressFromBech32(contractAddr)
+func (app *App) UpgradeAdmin(ctx sdk.Context, networkInfo *NetworkConfig) error {
+	addr, store, _, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
-		return fmt.Errorf("invalid contract address: %v", err)
+		return err
 	}
 
 	// Get contract info
-	var contract = app.WasmKeeper.GetContractInfo(ctx, addr)
-	contract.Admin = newAdmin
+	var contract = app.WasmKeeper.GetContractInfo(ctx, *addr)
+	contract.Admin = *networkInfo.Contracts.Reconciliation.NewAdmin
 
 	// Store contract info
 	contractBz, err := app.AppCodec().Marshal(contract)
@@ -736,22 +736,17 @@ func (app *App) UpgradeAdmin(ctx sdk.Context, contractAddr string, newAdmin stri
 		return fmt.Errorf("failed to marshal updated contract info: %v", err)
 	}
 
-	contractAddrKey := append(wasmTypes.ContractKeyPrefix, addr...)
-	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
-	store.Set(contractAddrKey, contractBz)
+	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
+	(*store).Set(contractAddrKey, contractBz)
 
 	return nil
 }
 
-func (app *App) DeleteContractState(ctx sdk.Context, contractAddr string) error {
-	addr, err := sdk.AccAddressFromBech32(contractAddr)
+func (app *App) DeleteContractState(ctx sdk.Context, networkInfo *NetworkConfig) error {
+	_, _, prefixStore, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
-		return fmt.Errorf("invalid contract address: %v", err)
+		return err
 	}
-
-	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
-	contractAddrKey := wasmTypes.GetContractStorePrefix(addr)
-	prefixStore := prefix.NewStore(store, contractAddrKey)
 
 	iter := prefixStore.Iterator(nil, nil)
 	defer iter.Close()
@@ -768,20 +763,34 @@ func (app *App) DeleteContractState(ctx sdk.Context, contractAddr string) error 
 	return nil
 }
 
-func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
+func (app *App) GetContractParams(ctx sdk.Context, contractAddr string) (*sdk.AccAddress, *sdk.KVStore, *prefix.Store, error) {
+	addr, err := sdk.AccAddressFromBech32(contractAddr)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("invalid contract address: %v", err)
+	}
 
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])
+	contractAddrKey := wasmTypes.GetContractStorePrefix(addr)
+	prefixStore := prefix.NewStore(store, contractAddrKey)
+
+	return &addr, &store, &prefixStore, nil
+}
+
+func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
+	//app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	//	return app.mm.RunMigrations(ctx, cfg, fromVM)
+	//})
+
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		// TODO(pb): MANDATORY: Implement transfers of all balances from reconciliation accounts listed in
 		//           reconciliation .csv file to reconciliation contract address.
 
-		// Example contract address and new admin
-		contractAddr := "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"
-		newAdmin := "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut"
+		networkInfo, ok := NetworkInfos[ctx.ChainID()]
+		if !ok {
+			panic("Network info not found for chain id: " + ctx.ChainID())
+		}
 
-		err := app.DeleteContractState(ctx, contractAddr)
+		err := app.DeleteContractState(ctx, &networkInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -791,6 +800,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			return nil, err
 		}
+
+		err = app.ProcessReconciliation(ctx, &networkInfo)
 
 		// TODO(pb): OPTIONAL: Implement full contract state reconstruction (all transfers transferred balances, etc. )
 
