@@ -13,9 +13,11 @@ import (
 )
 
 //go:embed reconciliation_data.csv
+var reconciliationData []byte
+
 //go:embed reconciliation_data_testnet.csv
 var reconciliationDataTestnet []byte
-var reconciliationData []byte
+
 var reconciliationBalancesKey = prefixStringWithLength("balances")
 
 var NetworkInfos = map[string]NetworkConfig{
