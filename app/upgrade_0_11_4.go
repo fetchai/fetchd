@@ -202,6 +202,12 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 			Amount:  recordBalanceCoins,
 		}
 		manifest.Reconciliation.Transfers.Transfers = append(manifest.Reconciliation.Transfers.Transfers, transfer)
+		manifest.Reconciliation.Transfers.AggregatedTransferredAmount = manifest.Reconciliation.Transfers.AggregatedTransferredAmount.Add(recordBalanceCoins...)
+		manifest.Reconciliation.Transfers.NumberOfTransfers += 1
+	}
+
+	if manifest.Reconciliation.Transfers.NumberOfTransfers != len(manifest.Reconciliation.Transfers.Transfers) {
+		return fmt.Errorf("manifest: number of elements in the `Transfers` array does not match the `NumberOfTransfers`")
 	}
 
 	return nil
@@ -224,6 +230,10 @@ func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInf
 		manifest.Reconciliation.ContractState.NumberOfBalanceRecords += 1
 
 		prefixStore.Set(key, value)
+	}
+
+	if manifest.Reconciliation.ContractState.NumberOfBalanceRecords != len(manifest.Reconciliation.ContractState.Balances) {
+		return fmt.Errorf("manifest: number of elements in the `Balances` array does not match the `NumberOfBalanceRecords`")
 	}
 
 	return nil
