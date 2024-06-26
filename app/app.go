@@ -721,6 +721,11 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) UpgradeAdmin(ctx sdk.Context, networkInfo *NetworkConfig) error {
+	newAdmin := networkInfo.Contracts.Reconciliation.NewAdmin
+	if newAdmin == nil {
+		return nil
+	}
+
 	addr, store, _, err := app.GetContractParams(ctx, networkInfo.Contracts.Reconciliation.Addr)
 	if err != nil {
 		return err
@@ -728,7 +733,7 @@ func (app *App) UpgradeAdmin(ctx sdk.Context, networkInfo *NetworkConfig) error 
 
 	// Get contract info
 	var contract = app.WasmKeeper.GetContractInfo(ctx, *addr)
-	contract.Admin = *networkInfo.Contracts.Reconciliation.NewAdmin
+	contract.Admin = *newAdmin
 
 	// Store contract info
 	contractBz, err := app.AppCodec().Marshal(contract)
@@ -796,7 +801,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		// Call the separate function to handle the admin upgrade
-		err = app.UpgradeAdmin(ctx, contractAddr, newAdmin)
+		err = app.UpgradeAdmin(ctx, &networkInfo)
 		if err != nil {
 			return nil, err
 		}
