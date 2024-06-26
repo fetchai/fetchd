@@ -724,7 +724,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	})
 
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		manifest := initManifest()
+		manifest := NewUpgradeManifest()
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
