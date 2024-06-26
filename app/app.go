@@ -782,11 +782,11 @@ func (app *App) GetContractParams(ctx sdk.Context, contractAddr string) (*sdk.Ac
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	//app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-	//	return app.mm.RunMigrations(ctx, cfg, fromVM)
-	//})
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		// TODO(pb): MANDATORY: Implement transfers of all balances from reconciliation accounts listed in
 		//           reconciliation .csv file to reconciliation contract address.
 
