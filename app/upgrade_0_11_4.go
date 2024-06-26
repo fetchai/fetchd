@@ -25,6 +25,8 @@ var reconciliationDataTestnet []byte
 
 var reconciliationBalancesKey = prefixStringWithLength("balances")
 
+const manifestFilenameBase = "upgrade_manifest.json"
+
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
 		ReconciliationInfo: &ReconciliationInfo{
@@ -495,19 +497,40 @@ type UpgradeReconciliationContractState struct {
 	NumberOfBalanceRecords   int                                               `json:"number_of_balance_records"`
 }
 
-func (app *App) SaveManifest(manifest *UpgradeManifest) error {
+func (app *App) GetManifestFilePath(prefix string) (string, error) {
+	var upgradeFilePath string
+	var err error
+
+	if upgradeFilePath, err = app.UpgradeKeeper.GetUpgradeInfoPath(); err != nil {
+		return "", err
+	}
+
+	upgradeDir := path.Dir(upgradeFilePath)
+
+	manifestFileName := manifestFilenameBase
+	if prefix != "" {
+		manifestFileName = fmt.Sprintf("%s_%s", prefix, manifestFilenameBase)
+	}
+
+	manifestFilePath := path.Join(upgradeDir, manifestFileName)
+
+	return manifestFilePath, nil
+}
+
+func (app *App) SaveManifest(manifest *UpgradeManifest, upgradeLabel string) error {
 	var serialisedManifest []byte
 	var err error
+
+	var manifestFilePath string
+	if manifestFilePath, err = app.GetManifestFilePath(upgradeLabel); err != nil {
+		return err
+	}
+
 	if serialisedManifest, err = json.MarshalIndent(manifest, "", "\t"); err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
 	}
 
-	// TODO: find a better way to get the genesis file path
-	genesisPath := ""
-
 	var f *os.File
-	const manifestFilename = "upgrade_manifest.json"
-	manifestFilePath := path.Join(path.Dir(genesisPath), manifestFilename)
 	if f, err = os.Create(manifestFilePath); err != nil {
 		return fmt.Errorf("failed to create file \"%s\": %w", manifestFilePath, err)
 	}

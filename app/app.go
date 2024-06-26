@@ -369,7 +369,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -753,7 +753,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		// Save the manifest
-		err = app.SaveManifest(manifest)
+		err = app.SaveManifest(manifest, plan.Name)
 		if err != nil {
 			panic(err)
 		}
