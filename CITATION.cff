@@ -1,8 +1,0 @@
-cff-version: 1.2.0
-message: "If you use fetchd in your research or project, please cite it as follows:"
-title: fetchd Library
-authors:
-  - family-names: Fetch.ai
-date-released: "2019-04-03"
-url: "https://github.com/fetchai/fetchd"
-license: "Apache-2.0"
