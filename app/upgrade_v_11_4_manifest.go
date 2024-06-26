@@ -17,19 +17,7 @@ type UpgradeManifest struct {
 
 func NewUpgradeManifest() *UpgradeManifest {
 	return &UpgradeManifest{
-		Reconciliation: &UpgradeReconciliation{
-			Transfers: &UpgradeReconciliationTransfers{
-				Transfers: make([]UpgradeReconciliationTransfer, 0),
-			},
-			ContractState: &UpgradeReconciliationContractState{
-				Balances: make([]UpgradeReconciliationContractStateBalanceRecord, 0),
-			},
-		},
-		Contracts: &Contracts{
-			StateCleaned: make([]string, 0),
-			AdminUpdated: make([]ContractValueUpdate, 0),
-			LabelUpdated: make([]ContractValueUpdate, 0),
-		},
+		Contracts: &Contracts{},
 	}
 }
 

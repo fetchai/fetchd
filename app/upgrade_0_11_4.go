@@ -124,7 +124,6 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 		return fmt.Errorf("landing address does not exist")
 	}
 
-	manifest.Reconciliation.Transfers = nil
 	transfers := UpgradeReconciliationTransfers{}
 
 	for _, record := range records {
@@ -164,10 +163,18 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 
 	if transfers.NumberOfTransfers > 0 {
 		transfers.To = networkInfo.ReconciliationInfo.TargetAddress
+
+		if manifest.Reconciliation == nil {
+			manifest.Reconciliation = &UpgradeReconciliation{}
+		}
 		manifest.Reconciliation.Transfers = &transfers
 	} else {
 		if !transfers.AggregatedTransferredAmount.IsZero() {
 			return fmt.Errorf("manifest: Transfers: `NumberOfTransfers` is zero but `AggregatedTransferredAmount` is not zero")
+		}
+
+		if manifest.Reconciliation != nil {
+			manifest.Reconciliation.Transfers = nil
 		}
 	}
 
@@ -200,10 +207,17 @@ func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInf
 	}
 
 	if contractState.NumberOfBalanceRecords > 0 {
+		if manifest.Reconciliation == nil {
+			manifest.Reconciliation = &UpgradeReconciliation{}
+		}
+
 		manifest.Reconciliation.ContractState = &contractState
 	} else {
 		if !contractState.AggregatedBalancesAmount.IsZero() {
 			return fmt.Errorf("manifest: ContractState: `NumberOfBalanceRecords` is zero but `AggregatedBalancesAmount` is not zero")
+		}
+		if manifest.Reconciliation != nil {
+			manifest.Reconciliation.ContractState = nil
 		}
 	}
 
