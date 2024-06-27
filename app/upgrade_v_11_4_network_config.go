@@ -11,6 +11,10 @@ var NetworkInfos = map[string]NetworkConfig{
 				Addr:     "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 				NewLabel: getStringPtr("reconciliation-contract"),
+				NewContractVersion: &ContractVersion{
+					Contract: "contract-fetch-asi-reconciliation",
+					Version:  "1.0.0",
+				},
 			},
 			Almanac: &Almanac{
 				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
@@ -33,6 +37,10 @@ var NetworkInfos = map[string]NetworkConfig{
 		Contracts: &ContractSet{
 			Reconciliation: &Reconciliation{
 				Addr: "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
+				NewContractVersion: &ContractVersion{
+					Contract: "contract-fetch-asi-reconciliation",
+					Version:  "1.0.0",
+				},
 			},
 			Almanac: &Almanac{
 				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
@@ -68,10 +76,16 @@ type TokenBridge struct {
 	NewAdmin *string
 }
 
+type ContractVersion struct {
+	Contract string `json:"contract"`
+	Version  string `json:"version"`
+}
+
 type Reconciliation struct {
-	Addr     string
-	NewAdmin *string
-	NewLabel *string
+	Addr               string
+	NewAdmin           *string
+	NewLabel           *string
+	NewContractVersion *ContractVersion
 }
 
 type Almanac struct {

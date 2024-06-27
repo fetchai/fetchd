@@ -22,15 +22,22 @@ func NewUpgradeManifest() *UpgradeManifest {
 }
 
 type Contracts struct {
-	StateCleaned []string              `json:"contracts_state_cleaned,omitempty"`
-	AdminUpdated []ContractValueUpdate `json:"contracts_admin_updated,omitempty"`
-	LabelUpdated []ContractValueUpdate `json:"contracts_label_updated,omitempty"`
+	StateCleaned   []string                `json:"contracts_state_cleaned,omitempty"`
+	AdminUpdated   []ContractValueUpdate   `json:"contracts_admin_updated,omitempty"`
+	LabelUpdated   []ContractValueUpdate   `json:"contracts_label_updated,omitempty"`
+	VersionUpdated []ContractVersionUpdate `json:"version_updated,omitempty"`
 }
 
 type ContractValueUpdate struct {
 	Address string `json:"address"`
 	From    string `json:"from"`
 	To      string `json:"to"`
+}
+
+type ContractVersionUpdate struct {
+	Address string           `json:"address"`
+	From    *ContractVersion `json:"from,omitempty"`
+	To      *ContractVersion `json:"to"`
 }
 
 type ValueUpdate struct {

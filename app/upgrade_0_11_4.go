@@ -22,6 +22,7 @@ var reconciliationData []byte
 var reconciliationDataTestnet []byte
 
 var (
+	cw20ContractInfoKey                    = []byte("contract_info")
 	reconciliationTotalBalanceKey          = []byte("total_balance")
 	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
 	reconciliationStateKey                 = []byte("state")
@@ -90,12 +91,77 @@ func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, new
 	return nil
 }
 
+func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, newVersion *ContractVersion, manifest *UpgradeManifest) error {
+	if contractAddr == nil {
+		return nil
+	}
+
+	_, _, prefixStore, err := app.getContractData(ctx, *contractAddr)
+	if err != nil {
+		return err
+	}
+
+	wasPresent := prefixStore.Has(cw20ContractInfoKey)
+
+	var origVersion *ContractVersion
+	if wasPresent {
+		storeVal := prefixStore.Get(cw20ContractInfoKey)
+		var val ContractVersion
+		if err := json.Unmarshal(storeVal, val); err != nil {
+			return err
+		}
+		origVersion = &val
+	}
+
+	//if origVersion == newVersion || (origVersion != nil && newVersion != nil && *origVersion == *newVersion) {
+	//	return nil
+	//}
+
+	if newVersion != nil {
+		newVersionStoreValue, err := json.Marshal(*newVersion)
+		if err != nil {
+			return err
+		}
+		prefixStore.Set(cw20ContractInfoKey, newVersionStoreValue)
+	} else if wasPresent {
+		prefixStore.Delete(cw20ContractInfoKey)
+	}
+
+	manifestVersionUpdate := ContractVersionUpdate{
+		Address: *contractAddr,
+		From:    origVersion,
+		To:      newVersion,
+	}
+
+	manifest.Contracts.VersionUpdated = append(manifest.Contracts.VersionUpdated, manifestVersionUpdate)
+
+	return nil
+}
+
 func (app *App) ChangeContractLabels(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	contracts := []struct{ addr, newLabel *string }{
 		{addr: &networkInfo.Contracts.Reconciliation.Addr, newLabel: networkInfo.Contracts.Reconciliation.NewLabel},
 	}
 	for _, contract := range contracts {
 		err := app.ChangeContractLabel(ctx, contract.addr, contract.newLabel, manifest)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (app *App) ChangeContractVersions(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
+	contracts := []struct {
+		addr       *string
+		newVersion *ContractVersion
+	}{
+		{addr: &networkInfo.Contracts.Reconciliation.Addr, newVersion: networkInfo.Contracts.Reconciliation.NewContractVersion},
+	}
+	for _, contract := range contracts {
+
+		err := app.ChangeContractVersion(ctx, contract.addr, contract.newVersion, manifest)
 		if err != nil {
 			return err
 		}

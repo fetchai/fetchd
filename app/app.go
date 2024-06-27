@@ -752,6 +752,11 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, err
 		}
 
+		err = app.ChangeContractVersions(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
 		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)
 		if err != nil {
