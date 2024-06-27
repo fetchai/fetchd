@@ -369,7 +369,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -719,94 +719,54 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	const municipalInflationTargetAddress = "fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03"
-
-	// NOTE(pb): The `fetchd-v0.10.7` upgrade handler *MUST* be present due to the mainnent, where this is the *LAST*
-	//           executed upgrade. Presence of this handler is enforced by the `x/upgrade/abci.go#L31-L40` (see the
-	// https://github.com/fetchai/cosmos-sdk/blob/09cf7baf4297a30acd8d09d9db7dd97d79ffe008/x/upgrade/abci.go#L31-L40).
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
-	// NOTE(pb): The `v0.11.2` upgrade handler *MUST* be present due to Dorado-1 testnet, where this is the *LAST*
-	//           executed upgrade. Please see the details in the NOTE above.
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		mobixInfl, err := sdk.NewDecFromStr("0.03")
-		if err != nil {
-			return module.VersionMap{}, err
-		}
-		minter := app.MintKeeper.GetMinter(ctx)
-		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation(municipalInflationTargetAddress, mobixInfl)},
-		}
-
-		app.MintKeeper.SetMinter(ctx, minter)
-
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// Introducing the NOMX token **IF** it does not exist yet:
-		const nomxDenom = "nanonomx"
-		const nomxName = "NOMX"
-		const nomxSupply = 1000000000000000000 // = 10^18 < 2^63 (max(int64))
-		if !app.BankKeeper.HasSupply(ctx, nomxDenom) {
-			coinsToMint := sdk.NewCoins(sdk.NewInt64Coin(nomxDenom, nomxSupply))
-			app.MintKeeper.MintCoins(ctx, coinsToMint)
-
-			acc, err := sdk.AccAddressFromBech32(municipalInflationTargetAddress)
-			if err != nil {
-				panic(err)
-			}
-
-			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, acc, coinsToMint)
-			if err != nil {
-				panic(err)
-			}
-
-			ctx.EventManager().EmitEvent(
-				sdk.NewEvent(
-					minttypes.EventTypeMunicipalMint,
-					sdk.NewAttribute(minttypes.AttributeKeyDenom, nomxDenom),
-					sdk.NewAttribute(minttypes.AttributeKeyTargetAddr, municipalInflationTargetAddress),
-					sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
-				),
-			)
-
-			nomxMetadata := banktypes.Metadata{
-				Base:        nomxDenom,
-				Name:        nomxName,
-				Symbol:      nomxName,
-				Display:     nomxName,
-				Description: nomxName + " token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: nomxName, Exponent: 9, Aliases: nil},
-					{Denom: "mnomx", Exponent: 6, Aliases: nil},
-					{Denom: "unomx", Exponent: 3, Aliases: nil},
-					{Denom: nomxDenom, Exponent: 0, Aliases: nil},
-				},
-			}
-
-			app.BankKeeper.SetDenomMetaData(ctx, nomxMetadata)
-		}
-
-		// Municipal Inflation for MOBX & NOMX tokens:
-		inflation, err := sdk.NewDecFromStr("0.03")
-		if err != nil {
-			return module.VersionMap{}, err
-		}
-
-		minter := app.MintKeeper.GetMinter(ctx)
-		municipalInflation := minttypes.NewMunicipalInflation(municipalInflationTargetAddress, inflation)
-		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: municipalInflation},
-			{Denom: nomxDenom, Inflation: municipalInflation},
-		}
-
-		app.MintKeeper.SetMinter(ctx, minter)
-
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
+
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		manifest := NewUpgradeManifest()
+
+		networkInfo, ok := NetworkInfos[ctx.ChainID()]
+		if !ok {
+			panic("Network info not found for chain id: " + ctx.ChainID())
+		}
+
+		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		// Call the separate function to handle the admin upgrade
+		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractLabels(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractVersions(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		// Save the manifest
+		err = app.SaveManifest(manifest, plan.Name)
+		if err != nil {
+			panic(err)
+		}
+
+		// End of migration
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
+
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
