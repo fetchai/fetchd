@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -20,7 +21,12 @@ var reconciliationData []byte
 //go:embed reconciliation_data_testnet.csv
 var reconciliationDataTestnet []byte
 
-var reconciliationBalancesKey = prefixStringWithLength("balances")
+var (
+	reconciliationTotalBalanceKey          = []byte("total_balance")
+	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
+	reconciliationStateKey                 = []byte("state")
+	reconciliationBalancesKey              = prefixStringWithLength("balances")
+)
 
 func getStringPtr(val string) *string {
 	return &val
@@ -201,6 +207,25 @@ func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInf
 
 		prefixStore.Set(key, value)
 	}
+
+	totalBalanceRecord, err := contractState.AggregatedBalancesAmount.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	stateRecord := ReconciliationContractStateRecord{
+		Paused: true,
+	}
+
+	var stateRecordJsonBz []byte
+	stateRecordJsonBz, err = json.Marshal(stateRecord)
+	if err != nil {
+		return err
+	}
+
+	prefixStore.Set(reconciliationTotalBalanceKey, totalBalanceRecord)
+	prefixStore.Set(reconciliationNOutstandingAddressesKey, []byte(fmt.Sprintf("%d", contractState.NumberOfBalanceRecords)))
+	prefixStore.Set(reconciliationStateKey, stateRecordJsonBz)
 
 	if contractState.NumberOfBalanceRecords != len(contractState.Balances) {
 		return fmt.Errorf("manifest: ContractState: number of elements in the `Balances` array does not match the `NumberOfBalanceRecords`")
@@ -383,4 +408,8 @@ func (app *App) getContractData(ctx types.Context, contractAddr string) (*types.
 	prefixStore := prefix.NewStore(store, contractAddrKey)
 
 	return &addr, &store, &prefixStore, nil
+}
+
+type ReconciliationContractStateRecord struct {
+	Paused bool `json:"paused"`
 }
