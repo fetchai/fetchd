@@ -113,10 +113,6 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		origVersion = &val
 	}
 
-	//if origVersion == newVersion || (origVersion != nil && newVersion != nil && *origVersion == *newVersion) {
-	//	return nil
-	//}
-
 	if newVersion != nil {
 		newVersionStoreValue, err := json.Marshal(*newVersion)
 		if err != nil {
