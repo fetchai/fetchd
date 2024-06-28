@@ -68,7 +68,6 @@ The easiest way to get started with a simple network is to run the [docker-compo
 
 1. [Website](https://fetch.ai/)
 2. [Documentation](https://docs.fetch.ai/ledger_v2/)
-3. [Discord Server](https://discord.gg/UDzpBFa)
-4. [Blog](https://fetch.ai/blog)
-5. [Community Website](https://community.fetch.ai/)
-6. [Community Telegram Group](https://t.me/fetch_ai)
+3. [Blog](https://fetch.ai/blog)
+4. [Community Website](https://community.fetch.ai/)
+5. [Community Telegram Group](https://t.me/fetch_ai)
