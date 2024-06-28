@@ -130,6 +130,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		// AddStakeReconciliationMigrateCmd(),
 		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
+		ASIGenesisUpgradeCmd(app.DefaultNodeHome),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
 		AddGenesisDelegationCmd(app.DefaultNodeHome),
 		tmcli.NewCompletionCmd(rootCmd, true),
