@@ -8,7 +8,7 @@ The chain identifier of our production network is fetchhub-4.
 | -------------- | ----- |
 | Chain ID       | fetchhub-4 |
 | Block range    | 5,300,201 --> |
-| Date range     | 05/04/2022 --> |
+| Date range     | April 5, 2022 --> |
 | Denomination   | afet |
 | Decimals       | 18 (1fet = 1000000000000000000afet) |
 | Version        | [v0.10.3](https://github.com/fetchai/fetchd/releases/tag/v0.10.3) up to block 6295500 <br/> [v0.10.4](https://github.com/fetchai/fetchd/releases/tag/v0.10.4) up to block 7305500 <br/> [v0.10.5](https://github.com/fetchai/fetchd/releases/tag/v0.10.5) for blocks > 7305500 |
@@ -32,6 +32,8 @@ It is stable for deploying smart contracts and testing IBC.
 | Parameter       | Value  |
 | --------------- | ------ |
 | Chain ID        | dorado-1 |
+| Block range     | 827,201 --> |
+| Date range      | April 27, 2022 --> |
 | Denomination    | atestfet |
 | Decimals        | 18 (1testfet = 1000000000000000000atestfet) |
 | Min Gas Prices  | 1000000000atestfet |
