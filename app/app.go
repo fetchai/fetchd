@@ -216,6 +216,7 @@ type App struct {
 	interfaceRegistry types.InterfaceRegistry
 
 	invCheckPeriod uint
+	cudosPath      string
 
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
@@ -256,7 +257,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosPath string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -285,6 +286,7 @@ func New(
 		appCodec:          appCodec,
 		interfaceRegistry: interfaceRegistry,
 		invCheckPeriod:    invCheckPeriod,
+		cudosPath:         cudosPath,
 		keys:              keys,
 		tkeys:             tkeys,
 		memKeys:           memKeys,
@@ -369,7 +371,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -718,12 +720,48 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
+func (app *App) PerformASIUpgradeTasks(ctx sdk.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
+	err := app.DeleteContractStates(ctx, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
+
+	// Call the separate function to handle the admin upgrade
+	err = app.UpgradeContractAdmins(ctx, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
+
+	err = app.ProcessReconciliation(ctx, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
+
+	err = app.ChangeContractLabels(ctx, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
+
+	err = app.ChangeContractVersions(ctx, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		genesis, err := ReadGenesisFile(app.cudosPath)
+		if err != nil {
+			return nil, err
+		}
+		print(genesis)
+
 		manifest := NewUpgradeManifest()
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
@@ -731,28 +769,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic("Network info not found for chain id: " + ctx.ChainID())
 		}
 
-		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		// Call the separate function to handle the admin upgrade
-		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ChangeContractLabels(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ChangeContractVersions(ctx, &networkInfo, manifest)
+		// Perform ASI upgrade tasks
+		err = app.PerformASIUpgradeTasks(ctx, &networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
