@@ -756,11 +756,22 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	})
 
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// "fetchd-v0.11.3-8-g929563a"
 		genesis, err := ReadGenesisFile(app.cudosPath)
 		if err != nil {
 			return nil, err
 		}
-		print(genesis)
+
+		// Create the map to store balances by address
+		balanceMap, _ := GetBankBalances(genesis)
+
+		// Print the balance map
+		for addr, coins := range balanceMap {
+			fmt.Printf("Address: %s\n", addr)
+			for _, coin := range coins {
+				fmt.Printf("  Coin: %s, Amount: %s\n", coin.Denom, coin.Amount.String())
+			}
+		}
 
 		manifest := NewUpgradeManifest()
 
