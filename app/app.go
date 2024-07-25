@@ -86,7 +86,7 @@ import (
 	icahostkeeper "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/keeper"
 	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
-	transfer "github.com/cosmos/ibc-go/v3/modules/apps/transfer"
+	"github.com/cosmos/ibc-go/v3/modules/apps/transfer"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v3/modules/core"
@@ -755,22 +755,16 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// "fetchd-v0.11.3-8-g929563a"
-		genesis, err := ReadGenesisFile(app.cudosPath)
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.3-8-g929563a", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+
+		genesisState, _, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
 		if err != nil {
-			return nil, err
+			panic(fmt.Sprintf("failed to unmarshal genesis state: %w", err))
 		}
 
-		// Create the map to store balances by address
-		balanceMap, _ := GetBankBalances(genesis)
-
-		// Print the balance map
-		for addr, coins := range balanceMap {
-			fmt.Printf("Address: %s\n", addr)
-			for _, coin := range coins {
-				fmt.Printf("  Coin: %s, Amount: %s\n", coin.Denom, coin.Amount.String())
-			}
+		err = ProcessAccounts(app, genesisState)
+		if err != nil {
+			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
 
 		manifest := NewUpgradeManifest()
