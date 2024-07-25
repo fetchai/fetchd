@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -757,21 +758,27 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.3-8-g929563a", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
-		genesisState, _, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
-		if err != nil {
-			panic(fmt.Sprintf("failed to unmarshal genesis state: %w", err))
-		}
-
-		err = ProcessAccounts(app, genesisState)
-		if err != nil {
-			panic(fmt.Sprintf("failed process accounts: %w", err))
-		}
-
 		manifest := NewUpgradeManifest()
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
 			panic("Network info not found for chain id: " + ctx.ChainID())
+		}
+
+		_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
+		if err != nil {
+			panic(fmt.Sprintf("failed to unmarshal genesis state: %w", err))
+		}
+
+		// unmarshal the app state
+		var jsonData map[string]interface{}
+		if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
+			panic(fmt.Sprintf("failed to unmarshal app state: %w", err))
+		}
+
+		err = ProcessAccounts(ctx, app, jsonData, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
 
 		// Perform ASI upgrade tasks

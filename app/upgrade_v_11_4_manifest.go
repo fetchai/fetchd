@@ -13,6 +13,7 @@ const manifestFilenameBase = "upgrade_manifest.json"
 type UpgradeManifest struct {
 	Reconciliation *UpgradeReconciliation `json:"reconciliation,omitempty"`
 	Contracts      *Contracts             `json:"contracts,omitempty"`
+	IBC            *UpgradeIBCTransfers   `json:"ibc,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
@@ -43,6 +44,19 @@ type ContractVersionUpdate struct {
 type ValueUpdate struct {
 	From string `json:"from"`
 	To   string `json:"to"`
+}
+
+type UpgradeIBCTransfer struct {
+	From      string      `json:"from"`
+	ChannelID string      `json:"channel_id"`
+	Amount    types.Coins `json:"amount"`
+}
+
+type UpgradeIBCTransfers struct {
+	Transfers                   []UpgradeIBCTransfer `json:"transfer"`
+	To                          string               `json:"to"`
+	AggregatedTransferredAmount types.Coins          `json:"aggregated_transferred_amount"`
+	NumberOfTransfers           int                  `json:"number_of_transfers"`
 }
 
 type UpgradeReconciliation struct {

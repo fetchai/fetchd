@@ -2,6 +2,7 @@ package app
 
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
+		IbcTargetAddr: "fetch1zydegef0z6lz4gamamzlnu52ethe8xnm0xe5fkyrgwumsh9pplus5he63f",
 		ReconciliationInfo: &ReconciliationInfo{
 			TargetAddress:   "fetch1tynmzk68pq6kzawqffrqdhquq475gw9ccmlf9gk24mxjjy6ugl3q70aeyd",
 			InputCSVRecords: readInputReconciliationData(reconciliationData),
@@ -30,6 +31,7 @@ var NetworkInfos = map[string]NetworkConfig{
 	},
 
 	"dorado-1": {
+		IbcTargetAddr: "fetch18rlg4hs2p03yuvvdu389pe65qa789asmyqsfftdxsh2qjfwmt94qmrf7g0",
 		ReconciliationInfo: &ReconciliationInfo{
 			TargetAddress:   "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 			InputCSVRecords: readInputReconciliationData(reconciliationDataTestnet),
@@ -57,6 +59,7 @@ var NetworkInfos = map[string]NetworkConfig{
 type NetworkConfig struct {
 	ReconciliationInfo *ReconciliationInfo
 	Contracts          *ContractSet
+	IbcTargetAddr      string
 }
 
 type ReconciliationInfo struct {
