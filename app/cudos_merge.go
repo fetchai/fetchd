@@ -355,10 +355,6 @@ func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{},
 		accDataMap := accData.(map[string]interface{})
 		addr := accDataMap["address"].(string)
 
-		if addr == "cudos1a53udazy8ayufvy0s434pfwjcedzqv34hat64m" {
-			print(addr, accType)
-		}
-
 		if ibcAccountsSet[addr] {
 			// Handle IBC account
 			continue
