@@ -8,9 +8,11 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	"math/big"
 	"strconv"
 )
 
@@ -28,11 +30,20 @@ const (
 	NewAddrPrefix = "fetch"
 	OldAddrPrefix = "cudos"
 
+	ConvertedDenom = "afet"
+
+	MergeTime     = 123456                // Epoch time of merge
+	VestingPeriod = 3 * 30 * 24 * 60 * 60 // 3 months period
+
 	FlagGenesisTime = "genesis-time"
 
 	ModuleAccount = "/cosmos.auth.v1beta1.ModuleAccount"
 	BaseAccount   = "/cosmos.auth.v1beta1.BaseAccount"
 )
+
+var BalanceDivisionConstants = map[string]int{
+	"acudos": 11,
+}
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.Decode(addr)
@@ -101,6 +112,63 @@ func getGenesisBalancesMap(balances []interface{}) *map[string]int {
 	}
 
 	return &balanceMap
+}
+
+func getConvertedGenesisBalancesMap(balances []interface{}) map[string]sdk.Coins {
+	balanceMap := make(map[string]sdk.Coins)
+
+	for _, balance := range balances {
+
+		addr := balance.(map[string]interface{})["address"]
+		if addr == nil {
+			fmt.Println(balance)
+		}
+		addrStr := addr.(string)
+
+		var resBalance sdk.Coins
+
+		coins := balance.(map[string]interface{})["coins"]
+		for _, coin := range coins.([]interface{}) {
+
+			amount := coin.(map[string]interface{})["amount"].(string)
+
+			// Convert amount to big.Int
+			amountInt := new(big.Int)
+			_, ok := amountInt.SetString(amount, 10)
+			if !ok {
+				panic("Failed to convert amount to big.Int")
+			}
+
+			denom := coin.(map[string]interface{})["denom"].(string)
+
+			if divisionConst, ok := BalanceDivisionConstants[denom]; ok {
+				divisionConstBigInt := big.NewInt(int64(divisionConst))
+				newAmount := new(big.Int).Div(amountInt, divisionConstBigInt)
+
+				sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
+				resBalance = resBalance.Add(sdkCoin)
+
+			} else {
+				print("Unknown denom", denom)
+				// Just add without conversion
+
+				newAmount, ok := sdk.NewIntFromString(amount)
+				if !ok {
+					panic("Failed to convert amount to big.Int")
+				}
+
+				sdkCoin := sdk.NewCoin(denom, newAmount)
+
+				resBalance = resBalance.Add(sdkCoin)
+
+			}
+
+		}
+
+		balanceMap[addrStr] = resBalance
+	}
+
+	return balanceMap
 }
 
 func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
@@ -301,7 +369,7 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 	}
 }
 
-func createNewAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}) error {
+func createNewVestingAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}, vestedCoins sdk.Coins, startTime int64, endTime int64) error {
 	// Get raw address
 	addr := accDataMap["address"].(string)
 	accRawAddr, err := convertAddressToRaw(addr)
@@ -309,23 +377,32 @@ func createNewAccount(ctx sdk.Context, app *App, accDataMap map[string]interface
 		return err
 	}
 
-	// Create new account
-	newAcc := app.AccountKeeper.NewAccountWithAddress(ctx, accRawAddr)
-
 	// Set pubkey if present
+	var pubKey cryptotypes.PubKey
 	if pk, ok := accDataMap["pub_key"]; ok {
-		decodedPk, err := decodePubKeyFromMap(pk.(map[string]interface{}))
-		if err != nil {
-			return err
+		if pk != nil {
+			pubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
 		}
-		newAcc.SetPubKey(decodedPk)
 	}
 
-	app.AccountKeeper.SetAccount(ctx, newAcc)
+	// Create new account
+
+	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
+	newBaseAccount := authtypes.NewBaseAccount(accRawAddr, pubKey, newAccNumber, 0)
+
+	// TODO: Fill balances
+	newBaseVestingAcc := authvesting.NewBaseVestingAccount(newBaseAccount, vestedCoins, endTime)
+	newContinuousVestingAcc := authvesting.NewContinuousVestingAccountRaw(newBaseVestingAcc, startTime)
+
+	app.AccountKeeper.SetAccount(ctx, newContinuousVestingAcc)
+
 	return nil
 }
 
-func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
 
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
@@ -379,7 +456,10 @@ func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{},
 			}
 
 			// Handle regular migration
-			createNewAccount(ctx, app, accDataMap)
+
+			// Create vesting account
+			newBalance := convertedBalancesMap[addr]
+			createNewVestingAccount(ctx, app, accDataMap, newBalance, MergeTime, MergeTime+VestingPeriod)
 
 		} else if accType == ModuleAccount {
 			// Skip module accounts

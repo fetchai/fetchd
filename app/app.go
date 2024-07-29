@@ -776,7 +776,12 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to unmarshal app state: %w", err))
 		}
 
-		err = ProcessAccounts(ctx, app, jsonData, networkInfo, manifest)
+		bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+		balances := bank["balances"].([]interface{})
+
+		convertedBalancesMap := getConvertedGenesisBalancesMap(balances)
+
+		err = ProcessAccounts(ctx, app, jsonData, networkInfo, manifest, convertedBalancesMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
