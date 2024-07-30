@@ -786,6 +786,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
 
+		panic("Debug interruption")
+
 		// Perform ASI upgrade tasks
 		err = app.PerformASIUpgradeTasks(ctx, &networkInfo, manifest)
 		if err != nil {

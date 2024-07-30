@@ -10,6 +10,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"math/big"
@@ -149,7 +150,7 @@ func getConvertedGenesisBalancesMap(balances []interface{}) map[string]sdk.Coins
 				resBalance = resBalance.Add(sdkCoin)
 
 			} else {
-				print("Unknown denom", denom)
+				println("Unknown denom: ", denom)
 				// Just add without conversion
 
 				newAmount, ok := sdk.NewIntFromString(amount)
@@ -393,11 +394,18 @@ func createNewVestingAccount(ctx sdk.Context, app *App, accDataMap map[string]in
 	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
 	newBaseAccount := authtypes.NewBaseAccount(accRawAddr, pubKey, newAccNumber, 0)
 
-	// TODO: Fill balances
 	newBaseVestingAcc := authvesting.NewBaseVestingAccount(newBaseAccount, vestedCoins, endTime)
 	newContinuousVestingAcc := authvesting.NewContinuousVestingAccountRaw(newBaseVestingAcc, startTime)
 
 	app.AccountKeeper.SetAccount(ctx, newContinuousVestingAcc)
+
+	return nil
+}
+
+func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins sdk.Coins) error {
+
+	app.MintKeeper.MintCoins(ctx, newCoins)
+	app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, address, newCoins)
 
 	return nil
 }
@@ -460,8 +468,17 @@ func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{},
 			// Create vesting account
 			newBalance := convertedBalancesMap[addr]
 			createNewVestingAccount(ctx, app, accDataMap, newBalance, MergeTime, MergeTime+VestingPeriod)
+			err = mintToAccount(ctx, app, accRawAddr, newBalance)
+			if err != nil {
+				return err
+			}
 
 		} else if accType == ModuleAccount {
+
+			newBalance := convertedBalancesMap[addr]
+
+			println(acc.(map[string]interface{})["name"].(string), newBalance.String())
+
 			// Skip module accounts
 			continue
 		}
