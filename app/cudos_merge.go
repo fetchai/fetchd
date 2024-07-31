@@ -3,10 +3,12 @@ package app
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/btcsuite/btcutil/bech32"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -47,12 +49,12 @@ var BalanceDivisionConstants = map[string]int{
 }
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
-	_, decodedAddrData, err := bech32.Decode(addr)
+	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 	if err != nil {
 		return "", err
 	}
 
-	newAddress, err := bech32.Encode(NewAddrPrefix+addressPrefix, decodedAddrData)
+	newAddress, err := bech32.ConvertAndEncode(NewAddrPrefix+addressPrefix, decodedAddrData)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +68,12 @@ func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
 }
 
 func convertAddressToRaw(addr string) (sdk.AccAddress, error) {
-	_, decodedAddrData, err := bech32.Decode(addr)
+	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
+
+	if prefix != OldAddrPrefix {
+		println("Unknown prefix: ", prefix)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -344,18 +351,18 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 		return nil, fmt.Errorf("@type field not found or is not a string in pubKeyMap")
 	}
 
-	keyStr, ok := pubKeyMap["key"].(string)
-	if !ok {
-		return nil, fmt.Errorf("key field not found or is not a string in pubKeyMap")
-	}
-
-	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 key: %w", err)
-	}
-
 	switch keyType {
 	case "/cosmos.crypto.secp256k1.PubKey":
+		keyStr, ok := pubKeyMap["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("key field not found or is not a string in pubKeyMap")
+		}
+
+		keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode base64 key: %w", err)
+		}
+
 		// Ensure the byte slice is the correct length for a secp256k1 public key
 		if len(keyBytes) != secp256k1.PubKeySize {
 			return nil, fmt.Errorf("invalid pubkey length: got %d, expected %d", len(keyBytes), secp256k1.PubKeySize)
@@ -365,17 +372,68 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 			Key: keyBytes,
 		}
 		return &pubKey, nil
+
+	case "/cosmos.crypto.ed25519.PubKey":
+		keyStr, ok := pubKeyMap["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("key field not found or is not a string in pubKeyMap")
+		}
+
+		keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode base64 key: %w", err)
+		}
+
+		// Ensure the byte slice is the correct length for an ed25519 public key
+		if len(keyBytes) != ed25519.PubKeySize {
+			return nil, fmt.Errorf("invalid pubkey length: got %d, expected %d", len(keyBytes), ed25519.PubKeySize)
+		}
+
+		pubKey := ed25519.PubKey{
+			Key: keyBytes,
+		}
+		return &pubKey, nil
+
+	case "/cosmos.crypto.multisig.LegacyAminoPubKey":
+		threshold, ok := pubKeyMap["threshold"].(float64) // JSON numbers are float64
+		if !ok {
+			return nil, fmt.Errorf("threshold field not found or is not a number in pubKeyMap")
+		}
+
+		pubKeysInterface, ok := pubKeyMap["public_keys"].([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("public_keys field not found or is not an array in pubKeyMap")
+		}
+
+		var pubKeys []cryptotypes.PubKey
+		for _, pubKeyInterface := range pubKeysInterface {
+			pubKeyMap, ok := pubKeyInterface.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("public key entry is not a valid map")
+			}
+
+			pubKey, err := decodePubKeyFromMap(pubKeyMap)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode public key: %w", err)
+			}
+
+			pubKeys = append(pubKeys, pubKey)
+		}
+
+		legacyAminoPubKey := multisig.NewLegacyAminoPubKey(int(threshold), pubKeys)
+		return legacyAminoPubKey, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", keyType)
 	}
 }
 
-func createNewVestingAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}, vestedCoins sdk.Coins, startTime int64, endTime int64) error {
+func getNewBaseAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}) (*authtypes.BaseAccount, error) {
 	// Get raw address
 	addr := accDataMap["address"].(string)
 	accRawAddr, err := convertAddressToRaw(addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set pubkey if present
@@ -384,7 +442,7 @@ func createNewVestingAccount(ctx sdk.Context, app *App, accDataMap map[string]in
 		if pk != nil {
 			pubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -393,8 +451,11 @@ func createNewVestingAccount(ctx sdk.Context, app *App, accDataMap map[string]in
 
 	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
 	newBaseAccount := authtypes.NewBaseAccount(accRawAddr, pubKey, newAccNumber, 0)
+	return newBaseAccount, nil
+}
 
-	newBaseVestingAcc := authvesting.NewBaseVestingAccount(newBaseAccount, vestedCoins, endTime)
+func createNewVestingAccountFromBaseAccount(ctx sdk.Context, app *App, account *authtypes.BaseAccount, vestedCoins sdk.Coins, startTime int64, endTime int64) error {
+	newBaseVestingAcc := authvesting.NewBaseVestingAccount(account, vestedCoins, endTime)
 	newContinuousVestingAcc := authvesting.NewContinuousVestingAccountRaw(newBaseVestingAcc, startTime)
 
 	app.AccountKeeper.SetAccount(ctx, newContinuousVestingAcc)
@@ -456,22 +517,56 @@ func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{},
 				return err
 			}
 
+			newBalance := convertedBalancesMap[addr]
+
 			// Check for collision
 			existingAccount := app.AccountKeeper.GetAccount(ctx, accRawAddr)
 			if existingAccount != nil {
 				// Handle collision
-				return fmt.Errorf("account already exists: %s", addr)
+
+				// Check that public keys are the same
+				var newAccPubKey cryptotypes.PubKey
+				if pk, ok := accDataMap["pub_key"]; ok {
+					if pk != nil {
+						newAccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
+						if err != nil {
+							return err
+						}
+					}
+				}
+				existingAccountPubkey := existingAccount.GetPubKey()
+
+				// Set pubkey from newAcc if is not in existingAccount
+				if existingAccountPubkey == nil && newAccPubKey != nil {
+					existingAccount.SetPubKey(newAccPubKey)
+				}
+
+				if newAccPubKey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(newAccPubKey) {
+					return fmt.Errorf("account already exists with different pubkey: %s", addr)
+				}
+
+				newBaseAccount := authtypes.NewBaseAccount(accRawAddr, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
+				createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
+
+				// Existing account is the same
+				continue
+
 			}
 
 			// Handle regular migration
 
 			// Create vesting account
-			newBalance := convertedBalancesMap[addr]
-			createNewVestingAccount(ctx, app, accDataMap, newBalance, MergeTime, MergeTime+VestingPeriod)
+			newBaseAccount, err := getNewBaseAccount(ctx, app, accDataMap)
+			if err != nil {
+				return err
+			}
+
+			createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 			err = mintToAccount(ctx, app, accRawAddr, newBalance)
 			if err != nil {
 				return err
 			}
+			continue
 
 		} else if accType == ModuleAccount {
 
