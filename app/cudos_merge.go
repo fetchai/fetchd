@@ -13,6 +13,7 @@ import (
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"math/big"
@@ -40,8 +41,10 @@ const (
 
 	FlagGenesisTime = "genesis-time"
 
-	ModuleAccount = "/cosmos.auth.v1beta1.ModuleAccount"
-	BaseAccount   = "/cosmos.auth.v1beta1.BaseAccount"
+	ModuleAccount  = "/cosmos.auth.v1beta1.ModuleAccount"
+	BaseAccount    = "/cosmos.auth.v1beta1.BaseAccount"
+	UnbondedStatus = "BOND_STATUS_UNBONDED"
+	BondedStatus   = "BOND_STATUS_BONDED"
 )
 
 var BalanceDivisionConstants = map[string]int{
@@ -71,7 +74,7 @@ func convertAddressToRaw(addr string) (sdk.AccAddress, error) {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 
 	if prefix != OldAddrPrefix {
-		println("Unknown prefix: ", prefix)
+		return nil, fmt.Errorf("Unknown prefix: %s", prefix)
 	}
 
 	if err != nil {
@@ -122,14 +125,92 @@ func getGenesisBalancesMap(balances []interface{}) *map[string]int {
 	return &balanceMap
 }
 
-func getConvertedGenesisBalancesMap(balances []interface{}) map[string]sdk.Coins {
+func getConsAddressFromValidator(validatorData map[string]interface{}) (sdk.ConsAddress, error) {
+	consensusPubkey := validatorData["consensus_pubkey"].(map[string]interface{})
+	decodedConsensusPubkey, err := decodePubKeyFromMap(consensusPubkey)
+	if err != nil {
+		return nil, err
+	}
+	return sdk.ConsAddress(decodedConsensusPubkey.Address()), nil
+}
+
+func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBalances map[string]sdk.Coins) error {
+
+	// Validator pubkey hex -> tokens int amount
+	validatorStakeMap := make(map[string]sdk.Int)
+
+	// Operator address -> Validator pubkey hex
+	validatorOperatorMap := make(map[string]string)
+
+	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
+	delegations := staking["delegations"].([]interface{})
+	validators := staking["validators"].([]interface{})
+
+	// Prepare maps and total tokens amount
+	totalStake := sdk.NewInt(0)
+	for _, validator := range validators {
+
+		tokens := validator.(map[string]interface{})["tokens"].(string)
+		operatorAddress := validator.(map[string]interface{})["operator_address"].(string)
+
+		consensusPubkey := validator.(map[string]interface{})["consensus_pubkey"].(map[string]interface{})
+		decodedConsensusPubkey, err := decodePubKeyFromMap(consensusPubkey)
+		if err != nil {
+			return err
+		}
+
+		// Convert amount to big.Int
+		tokensInt, ok := sdk.NewIntFromString(tokens)
+		if !ok {
+			panic("Failed to convert validator tokens to big.Int")
+		}
+		totalStake = totalStake.Add(tokensInt)
+
+		validatorStakeMap[decodedConsensusPubkey.String()] = tokensInt
+		validatorOperatorMap[operatorAddress] = decodedConsensusPubkey.String()
+
+	}
+
+	println(totalStake.String())
+
+	for _, delegation := range delegations {
+		delegationMap := delegation.(map[string]interface{})
+		delegatorAddress := delegationMap["delegator_address"].(string)
+		validatorOperatorAddress := delegationMap["validator_address"].(string)
+		shares := delegationMap["shares"].(string)
+
+		sharesDec, err := sdk.NewDecFromStr(shares)
+		if err != nil {
+			return err
+		}
+
+		validatorAddress := validatorOperatorMap[validatorOperatorAddress]
+		validatorTokens := validatorStakeMap[validatorAddress]
+
+		println(delegatorAddress, validatorOperatorAddress, sharesDec.String(), validatorAddress, validatorTokens.String())
+	}
+
+	// Dummy modification
+	for key := range convertedBalances {
+		newAmount := big.NewInt(int64(123))
+		sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
+		convertedBalances[key] = convertedBalances[key].Add(sdkCoin)
+	}
+
+	return nil
+}
+
+func getConvertedGenesisBalancesMap(jsonData map[string]interface{}) map[string]sdk.Coins {
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	balances := bank["balances"].([]interface{})
+
 	balanceMap := make(map[string]sdk.Coins)
 
 	for _, balance := range balances {
 
 		addr := balance.(map[string]interface{})["address"]
 		if addr == nil {
-			fmt.Println(balance)
+			panic("Failed to get address")
 		}
 		addrStr := addr.(string)
 
@@ -471,7 +552,7 @@ func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins s
 	return nil
 }
 
-func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
+func ProcessAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
 
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
@@ -551,17 +632,19 @@ func ProcessAccounts(ctx sdk.Context, app *App, jsonData map[string]interface{},
 				// Existing account is the same
 				continue
 
+			} else {
+
+				// Handle regular migration
+
+				// Create vesting account
+				newBaseAccount, err := getNewBaseAccount(ctx, app, accDataMap)
+				if err != nil {
+					return err
+				}
+
+				createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 			}
 
-			// Handle regular migration
-
-			// Create vesting account
-			newBaseAccount, err := getNewBaseAccount(ctx, app, accDataMap)
-			if err != nil {
-				return err
-			}
-
-			createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 			err = mintToAccount(ctx, app, accRawAddr, newBalance)
 			if err != nil {
 				return err
