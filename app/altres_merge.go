@@ -32,7 +32,7 @@ const (
 	ConsAddressPrefix = "valcons"
 
 	NewAddrPrefix = "fetch"
-	OldAddrPrefix = "cudos"
+	OldAddrPrefix = "altres"
 
 	ConvertedDenom = "afet"
 
@@ -48,7 +48,7 @@ const (
 )
 
 var BalanceDivisionConstants = map[string]int{
-	"acudos": 11,
+	"aaltres": 11,
 }
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {

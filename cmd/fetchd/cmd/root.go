@@ -153,7 +153,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 func addModuleInitFlags(startCmd *cobra.Command) {
 	crisis.AddModuleInitFlags(startCmd)
 	wasm.AddModuleInitFlags(startCmd)
-	AddCudosFlags(startCmd)
+	AddAltresFlags(startCmd)
 }
 
 func queryCommand() *cobra.Command {
@@ -248,7 +248,7 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		logger, db, traceStore, true, skipUpgradeHeights,
 		cast.ToString(appOpts.Get(flags.FlagHome)),
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
-		cast.ToString(appOpts.Get(FlagCudosPath)),
+		cast.ToString(appOpts.Get(FlagAltresPath)),
 		a.encCfg,
 		app.GetEnabledProposals(),
 		appOpts,
@@ -279,9 +279,9 @@ func (a appCreator) appExport(
 		return servertypes.ExportedApp{}, errors.New("application home not set")
 	}
 
-	cudosPath, ok := appOpts.Get(FlagCudosPath).(string)
-	if !ok || cudosPath == "" {
-		return servertypes.ExportedApp{}, errors.New("cudos path not set")
+	altresPath, ok := appOpts.Get(FlagAltresPath).(string)
+	if !ok || altresPath == "" {
+		return servertypes.ExportedApp{}, errors.New("altres path not set")
 	}
 
 	var emptyWasmOpts []wasm.Option
@@ -294,7 +294,7 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
-			cudosPath,
+			altresPath,
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,
@@ -313,7 +313,7 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
-			cudosPath,
+			altresPath,
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,

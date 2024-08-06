@@ -217,7 +217,7 @@ type App struct {
 	interfaceRegistry types.InterfaceRegistry
 
 	invCheckPeriod uint
-	cudosPath      string
+	altresPath     string
 
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
@@ -258,7 +258,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosPath string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, altresPath string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -287,7 +287,7 @@ func New(
 		appCodec:          appCodec,
 		interfaceRegistry: interfaceRegistry,
 		invCheckPeriod:    invCheckPeriod,
-		cudosPath:         cudosPath,
+		altresPath:        altresPath,
 		keys:              keys,
 		tkeys:             tkeys,
 		memKeys:           memKeys,
@@ -765,7 +765,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic("Network info not found for chain id: " + ctx.ChainID())
 		}
 
-		_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
+		_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.altresPath)
 		if err != nil {
 			panic(fmt.Sprintf("failed to unmarshal genesis state: %w", err))
 		}
