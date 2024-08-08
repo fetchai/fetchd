@@ -279,11 +279,6 @@ func (a appCreator) appExport(
 		return servertypes.ExportedApp{}, errors.New("application home not set")
 	}
 
-	cudosPath, ok := appOpts.Get(FlagCudosPath).(string)
-	if !ok || cudosPath == "" {
-		return servertypes.ExportedApp{}, errors.New("cudos path not set")
-	}
-
 	var emptyWasmOpts []wasm.Option
 	if height != -1 {
 		anApp = app.New(
@@ -294,7 +289,7 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
-			cudosPath,
+			"",
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,
@@ -313,7 +308,7 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
-			cudosPath,
+			"",
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,

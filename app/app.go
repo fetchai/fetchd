@@ -760,6 +760,10 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		manifest := NewUpgradeManifest()
 
+		if app.cudosPath == "" {
+			panic("cudos path not set")
+		}
+
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
 			panic("Network info not found for chain id: " + ctx.ChainID())
@@ -788,19 +792,21 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
 
-		panic("Debug interruption")
-
-		// Perform ASI upgrade tasks
-		err = app.PerformASIUpgradeTasks(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
+		/*
+			// Perform ASI upgrade tasks
+			err = app.PerformASIUpgradeTasks(ctx, &networkInfo, manifest)
+			if err != nil {
+				return nil, err
+			}
+		*/
 
 		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)
 		if err != nil {
 			panic(err)
 		}
+
+		panic("Debug interruption")
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)

@@ -544,10 +544,23 @@ func createNewVestingAccountFromBaseAccount(ctx sdk.Context, app *App, account *
 	return nil
 }
 
-func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins sdk.Coins) error {
+func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins sdk.Coins, manifest *UpgradeManifest) error {
 
 	app.MintKeeper.MintCoins(ctx, newCoins)
 	app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, address, newCoins)
+
+	if manifest.Minting == nil {
+		manifest.Minting = &UpgradeMinting{}
+	}
+
+	mint := UpgradeMint{
+		to:     address.String(),
+		Amount: newCoins,
+	}
+	manifest.Minting.Mints = append(manifest.Minting.Mints, mint)
+
+	manifest.Minting.AggregatedMintedAmount = manifest.Minting.AggregatedMintedAmount.Add(newCoins...)
+	manifest.Minting.NumberOfMints += 1
 
 	return nil
 }
@@ -645,7 +658,7 @@ func ProcessAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]i
 				createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 			}
 
-			err = mintToAccount(ctx, app, accRawAddr, newBalance)
+			err = mintToAccount(ctx, app, accRawAddr, newBalance, manifest)
 			if err != nil {
 				return err
 			}
