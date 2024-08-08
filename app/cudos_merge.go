@@ -554,7 +554,7 @@ func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins s
 	}
 
 	mint := UpgradeMint{
-		to:     address.String(),
+		To:     address.String(),
 		Amount: newCoins,
 	}
 	manifest.Minting.Mints = append(manifest.Minting.Mints, mint)
@@ -565,12 +565,10 @@ func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins s
 	return nil
 }
 
-func ProcessAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
+func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
 
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
-
-	//accountSequenceMap := getGenesisAccountSequenceMap(accounts)
 
 	ibcAccountsSet, err := GetIBCAccountAddresses(jsonData)
 	if err != nil {
@@ -595,83 +593,63 @@ func ProcessAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]i
 		accDataMap := accData.(map[string]interface{})
 		addr := accDataMap["address"].(string)
 
-		if ibcAccountsSet[addr] {
-			// Handle IBC account
+		// Skip if account is not regular basic account
+		if ibcAccountsSet[addr] || contractAccountsSet[addr] || accType != BaseAccount {
 			continue
 		}
 
-		if contractAccountsSet[addr] {
-			// Skip contract account
-			continue
+		accRawAddr, err := convertAddressToRaw(addr)
+		if err != nil {
+			return err
 		}
 
-		if accType == BaseAccount {
-			accRawAddr, err := convertAddressToRaw(addr)
-			if err != nil {
-				return err
-			}
+		// Get balance to mint
+		newBalance := convertedBalancesMap[addr]
+		var newBaseAccount *authtypes.BaseAccount
 
-			newBalance := convertedBalancesMap[addr]
+		// Check for collision
+		existingAccount := app.AccountKeeper.GetAccount(ctx, accRawAddr)
+		if existingAccount != nil {
+			// Handle collision
 
-			// Check for collision
-			existingAccount := app.AccountKeeper.GetAccount(ctx, accRawAddr)
-			if existingAccount != nil {
-				// Handle collision
-
-				// Check that public keys are the same
-				var newAccPubKey cryptotypes.PubKey
-				if pk, ok := accDataMap["pub_key"]; ok {
-					if pk != nil {
-						newAccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
-						if err != nil {
-							return err
-						}
+			// Check that public keys are the same
+			var newAccPubKey cryptotypes.PubKey
+			if pk, ok := accDataMap["pub_key"]; ok {
+				if pk != nil {
+					newAccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
+					if err != nil {
+						return err
 					}
 				}
-				existingAccountPubkey := existingAccount.GetPubKey()
+			}
+			existingAccountPubkey := existingAccount.GetPubKey()
 
-				// Set pubkey from newAcc if is not in existingAccount
-				if existingAccountPubkey == nil && newAccPubKey != nil {
-					existingAccount.SetPubKey(newAccPubKey)
-				}
-
-				if newAccPubKey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(newAccPubKey) {
-					return fmt.Errorf("account already exists with different pubkey: %s", addr)
-				}
-
-				newBaseAccount := authtypes.NewBaseAccount(accRawAddr, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
-				createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
-
-				// Existing account is the same
-				continue
-
-			} else {
-
-				// Handle regular migration
-
-				// Create vesting account
-				newBaseAccount, err := getNewBaseAccount(ctx, app, accDataMap)
-				if err != nil {
-					return err
-				}
-
-				createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
+			// Set pubkey from newAcc if is not in existingAccount
+			if existingAccountPubkey == nil && newAccPubKey != nil {
+				existingAccount.SetPubKey(newAccPubKey)
 			}
 
-			err = mintToAccount(ctx, app, accRawAddr, newBalance, manifest)
+			if newAccPubKey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(newAccPubKey) {
+				return fmt.Errorf("account already exists with different pubkey: %s", addr)
+			}
+
+			newBaseAccount = authtypes.NewBaseAccount(accRawAddr, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
+
+		} else {
+
+			// Handle regular migration
+			newBaseAccount, err = getNewBaseAccount(ctx, app, accDataMap)
 			if err != nil {
 				return err
 			}
-			continue
 
-		} else if accType == ModuleAccount {
+		}
 
-			newBalance := convertedBalancesMap[addr]
+		createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 
-			println(acc.(map[string]interface{})["name"].(string), newBalance.String())
-
-			// Skip module accounts
-			continue
+		err = mintToAccount(ctx, app, accRawAddr, newBalance, manifest)
+		if err != nil {
+			return err
 		}
 
 	}

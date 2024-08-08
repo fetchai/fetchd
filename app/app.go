@@ -787,7 +787,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
 
-		err = ProcessAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, convertedBalancesMap)
+		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, convertedBalancesMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
