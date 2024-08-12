@@ -34,6 +34,7 @@ const (
 	NewAddrPrefix = "fetch"
 	OldAddrPrefix = "cudos"
 
+	OriginalDenom  = "acudos"
 	ConvertedDenom = "afet"
 
 	MergeTime     = 123456                // Epoch time of merge
@@ -45,10 +46,20 @@ const (
 	BaseAccount    = "/cosmos.auth.v1beta1.BaseAccount"
 	UnbondedStatus = "BOND_STATUS_UNBONDED"
 	BondedStatus   = "BOND_STATUS_BONDED"
+
+	TransferAccName      = "transfer"
+	BondedPoolAccName    = "bonded_tokens_pool"
+	NotBondedPoolAccName = "not_bonded_tokens_pool"
+	MintAccName          = "cudoMint"
+	GovAccName           = "gov"
+	DistributionAccName  = "distribution"
+	GravityAccName       = "gravity"
+	MarketplaceAccName   = "marketplace"
+	FeeCollectorAccName  = "fee_collector"
 )
 
 var BalanceDivisionConstants = map[string]int{
-	"acudos": 11,
+	OriginalDenom: 11,
 }
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
@@ -63,6 +74,19 @@ func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
 	}
 
 	err = sdk.VerifyAddressFormat(decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	return newAddress, nil
+}
+func convertAddressPrefix(addr string, newPrefix string) (string, error) {
+	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
+	if err != nil {
+		return "", err
+	}
+
+	newAddress, err := bech32.ConvertAndEncode(newPrefix, decodedAddrData)
 	if err != nil {
 		return "", err
 	}
@@ -138,19 +162,20 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 
 	// Validator pubkey hex -> tokens int amount
 	validatorStakeMap := make(map[string]sdk.Int)
+	validatorSharesMap := make(map[string]sdk.Dec)
 
 	// Operator address -> Validator pubkey hex
 	validatorOperatorMap := make(map[string]string)
 
 	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
-	delegations := staking["delegations"].([]interface{})
 	validators := staking["validators"].([]interface{})
 
 	// Prepare maps and total tokens amount
 	totalStake := sdk.NewInt(0)
 	for _, validator := range validators {
 
-		tokens := validator.(map[string]interface{})["tokens"].(string)
+		validatorMap := validator.(map[string]interface{})
+		tokens := validatorMap["tokens"].(string)
 		operatorAddress := validator.(map[string]interface{})["operator_address"].(string)
 
 		consensusPubkey := validator.(map[string]interface{})["consensus_pubkey"].(map[string]interface{})
@@ -169,35 +194,112 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 		validatorStakeMap[decodedConsensusPubkey.String()] = tokensInt
 		validatorOperatorMap[operatorAddress] = decodedConsensusPubkey.String()
 
+		validatorShares := validatorMap["delegator_shares"].(string)
+
+		validatorSharesDec, err := sdk.NewDecFromStr(validatorShares)
+		if err != nil {
+			return err
+		}
+		validatorSharesMap[decodedConsensusPubkey.String()] = validatorSharesDec
+
 	}
 
 	println(totalStake.String())
 
+	// Handle delegations
+	delegations := staking["delegations"].([]interface{})
 	for _, delegation := range delegations {
 		delegationMap := delegation.(map[string]interface{})
 		delegatorAddress := delegationMap["delegator_address"].(string)
 		validatorOperatorAddress := delegationMap["validator_address"].(string)
-		shares := delegationMap["shares"].(string)
+		delegatorShares := delegationMap["shares"].(string)
 
-		sharesDec, err := sdk.NewDecFromStr(shares)
+		delegatorSharesDec, err := sdk.NewDecFromStr(delegatorShares)
 		if err != nil {
 			return err
 		}
 
 		validatorAddress := validatorOperatorMap[validatorOperatorAddress]
 		validatorTokens := validatorStakeMap[validatorAddress]
+		validatorShares := validatorSharesMap[validatorAddress]
 
-		println(delegatorAddress, validatorOperatorAddress, sharesDec.String(), validatorAddress, validatorTokens.String())
-	}
+		var delegatorTokens sdk.Int
+		if validatorTokens.String() != validatorShares.TruncateInt().String() {
+			delegatorTokens = (delegatorSharesDec.QuoTruncate(validatorShares)).MulInt(validatorTokens).TruncateInt()
+		} else {
+			delegatorTokens = delegatorSharesDec.TruncateInt()
+		}
 
-	// Dummy modification
-	for key := range convertedBalances {
-		newAmount := big.NewInt(int64(123))
-		sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
-		convertedBalances[key] = convertedBalances[key].Add(sdkCoin)
+		println("("+delegatorSharesDec.String()+"/"+validatorShares.String()+")*"+validatorTokens.String()+"="+delegatorTokens.String(), delegatorAddress)
+
+		// Add delegated balance to convertedBalances map
+
+		delegatorBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, delegatorTokens))
+
+		// Convert acudos to afet
+		convertedBalance, err := convertBalance(delegatorBalance)
+		if err != nil {
+			panic(err)
+		}
+
+		convertedBalances[delegatorAddress].Add(convertedBalance...)
+		// TODO: This balance should be delegated to new validator, but it needs to be minted first!
+
 	}
 
 	return nil
+}
+
+func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
+	var resBalance sdk.Coins
+	for _, coin := range coins {
+
+		amount := coin.(map[string]interface{})["amount"].(string)
+
+		denom := coin.(map[string]interface{})["denom"].(string)
+
+		sdkAmount, ok := sdk.NewIntFromString(amount)
+		if !ok {
+			return nil, fmt.Errorf("Failed to convert amount to sdk.Int")
+		}
+
+		sdkCoin := sdk.NewCoin(denom, sdkAmount)
+		resBalance = resBalance.Add(sdkCoin)
+
+	}
+
+	return resBalance, nil
+}
+
+func convertBalance(balance sdk.Coins) (sdk.Coins, error) {
+	var resBalance sdk.Coins
+
+	for _, coin := range balance {
+		if divisionConst, ok := BalanceDivisionConstants[coin.Denom]; ok {
+			divisionConstBigInt := big.NewInt(int64(divisionConst))
+			newAmount := new(big.Int).Div(coin.Amount.BigInt(), divisionConstBigInt)
+
+			sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
+			resBalance = resBalance.Add(sdkCoin)
+		} else {
+			println("Unknown denom: ", coin.Denom)
+			// Ignore unlisted tokens
+			continue
+			/*
+				// Just add without conversion
+				newAmount, ok := sdk.NewIntFromString(amount)
+				if !ok {
+					panic("Failed to convert amount to big.Int")
+				}
+
+				sdkCoin := sdk.NewCoin(denom, newAmount)
+
+				resBalance = resBalance.Add(sdkCoin)
+			*/
+		}
+	}
+
+	return resBalance, nil
 }
 
 func getConvertedGenesisBalancesMap(jsonData map[string]interface{}) map[string]sdk.Coins {
@@ -214,47 +316,21 @@ func getConvertedGenesisBalancesMap(jsonData map[string]interface{}) map[string]
 		}
 		addrStr := addr.(string)
 
-		var resBalance sdk.Coins
-
 		coins := balance.(map[string]interface{})["coins"]
-		for _, coin := range coins.([]interface{}) {
 
-			amount := coin.(map[string]interface{})["amount"].(string)
-
-			// Convert amount to big.Int
-			amountInt := new(big.Int)
-			_, ok := amountInt.SetString(amount, 10)
-			if !ok {
-				panic("Failed to convert amount to big.Int")
-			}
-
-			denom := coin.(map[string]interface{})["denom"].(string)
-
-			if divisionConst, ok := BalanceDivisionConstants[denom]; ok {
-				divisionConstBigInt := big.NewInt(int64(divisionConst))
-				newAmount := new(big.Int).Div(amountInt, divisionConstBigInt)
-
-				sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
-				resBalance = resBalance.Add(sdkCoin)
-
-			} else {
-				println("Unknown denom: ", denom)
-				// Just add without conversion
-
-				newAmount, ok := sdk.NewIntFromString(amount)
-				if !ok {
-					panic("Failed to convert amount to big.Int")
-				}
-
-				sdkCoin := sdk.NewCoin(denom, newAmount)
-
-				resBalance = resBalance.Add(sdkCoin)
-
-			}
-
+		sdkBalance, err := parseGenesisBalance(coins.([]interface{}))
+		if err != nil {
+			panic(err)
 		}
 
-		balanceMap[addrStr] = resBalance
+		convertedBalance, err := convertBalance(sdkBalance)
+		if err != nil {
+			panic(err)
+		}
+		if !convertedBalance.Empty() {
+			balanceMap[addrStr] = convertedBalance
+		}
+
 	}
 
 	return balanceMap
@@ -544,17 +620,18 @@ func createNewVestingAccountFromBaseAccount(ctx sdk.Context, app *App, account *
 	return nil
 }
 
-func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins sdk.Coins, manifest *UpgradeManifest) error {
+func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.AccAddress, newCoins sdk.Coins, manifest *UpgradeManifest) error {
 
 	app.MintKeeper.MintCoins(ctx, newCoins)
-	app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, address, newCoins)
+	app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, toAddress, newCoins)
 
 	if manifest.Minting == nil {
 		manifest.Minting = &UpgradeMinting{}
 	}
 
 	mint := UpgradeMint{
-		To:     address.String(),
+		From:   fromAddress,
+		To:     toAddress.String(),
 		Amount: newCoins,
 	}
 	manifest.Minting.Mints = append(manifest.Minting.Mints, mint)
@@ -563,6 +640,30 @@ func mintToAccount(ctx sdk.Context, app *App, address sdk.AccAddress, newCoins s
 	manifest.Minting.NumberOfMints += 1
 
 	return nil
+}
+
+func GetAddressByName(name string, jsonData map[string]interface{}) (string, error) {
+	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
+	accounts := auth["accounts"].([]interface{})
+
+	for _, acc := range accounts {
+		accMap := acc.(map[string]interface{})
+		accType := accMap["@type"]
+
+		if accType == ModuleAccount {
+			accName := accMap["name"].(string)
+			if accName == name {
+
+				baseAccData := accMap["base_account"].(map[string]interface{})
+				accAddr := baseAccData["address"].(string)
+
+				return accAddr, nil
+			}
+		}
+
+	}
+
+	return "", fmt.Errorf("address not found")
 }
 
 func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, convertedBalancesMap map[string]sdk.Coins) error {
@@ -647,7 +748,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 
 		createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
 
-		err = mintToAccount(ctx, app, accRawAddr, newBalance, manifest)
+		err = mintToAccount(ctx, app, addr, accRawAddr, newBalance, manifest)
 		if err != nil {
 			return err
 		}

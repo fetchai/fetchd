@@ -54,6 +54,7 @@ type UpgradeIBCTransfer struct {
 }
 
 type UpgradeMint struct {
+	From   string      `json:"from"`
 	To     string      `json:"to"`
 	Amount types.Coins `json:"amount"`
 }
