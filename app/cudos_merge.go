@@ -108,7 +108,7 @@ func convertAddressToRaw(addr string) (sdk.AccAddress, error) {
 	return decodedAddrData, nil
 }
 
-func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
+func getGenesisAccountSequenceMap(accounts []interface{}) map[string]int {
 	accountMap := make(map[string]int)
 
 	for _, acc := range accounts {
@@ -131,7 +131,7 @@ func getGenesisAccountSequenceMap(accounts []interface{}) *map[string]int {
 		accountMap[addr] = sequenceInt
 	}
 
-	return &accountMap
+	return accountMap
 }
 
 func getGenesisBalancesMap(balances []interface{}) *map[string]int {
@@ -207,6 +207,8 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 	println(totalStake.String())
 
 	// Handle delegations
+
+	// Map of delegatorAddress -> validatorPubkey -> sdk.coins balance
 	delegatedBalanceMap := make(map[string]map[string]sdk.Coins)
 	delegations := staking["delegations"].([]interface{})
 	for _, delegation := range delegations {
@@ -243,6 +245,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 			panic(err)
 		}
 
+		// Add balance to converted balances - panics if account doesn't already exist
 		convertedBalances[delegatorAddress] = convertedBalances[delegatorAddress].Add(convertedBalance...)
 
 		if delegatedBalanceMap[delegatorAddress] == nil {
@@ -324,8 +327,12 @@ func getConvertedGenesisBalancesMap(jsonData map[string]interface{}) map[string]
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 
-	balanceMap := make(map[string]sdk.Coins)
+	// Map to verify that account exists in auth module
+	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
+	accounts := auth["accounts"].([]interface{})
+	accountsMap := getGenesisAccountSequenceMap(accounts)
 
+	balanceMap := make(map[string]sdk.Coins)
 	for _, balance := range balances {
 
 		addr := balance.(map[string]interface{})["address"]
@@ -333,6 +340,11 @@ func getConvertedGenesisBalancesMap(jsonData map[string]interface{}) map[string]
 			panic("Failed to get address")
 		}
 		addrStr := addr.(string)
+
+		// Verify that account exists in auth module
+		if _, exists := accountsMap[addrStr]; !exists {
+			panic("Account not registered in auth module")
+		}
 
 		coins := balance.(map[string]interface{})["coins"]
 
