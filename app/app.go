@@ -782,7 +782,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		convertedBalancesMap := getConvertedGenesisBalancesMap(jsonData)
 
-		err = withdrawGenesisStakingRewards(jsonData, convertedBalancesMap)
+		delegatedBalanceMap, err := withdrawGenesisStakingRewards(jsonData, convertedBalancesMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
@@ -791,6 +791,9 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
+
+		// TODO: Delegate balances
+		println(delegatedBalanceMap)
 
 		/*
 			// Perform ASI upgrade tasks

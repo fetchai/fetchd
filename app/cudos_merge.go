@@ -158,14 +158,14 @@ func getConsAddressFromValidator(validatorData map[string]interface{}) (sdk.Cons
 	return sdk.ConsAddress(decodedConsensusPubkey.Address()), nil
 }
 
-func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBalances map[string]sdk.Coins) error {
+func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBalances map[string]sdk.Coins) (map[string]map[string]sdk.Coins, error) {
 
 	// Validator pubkey hex -> tokens int amount
 	validatorStakeMap := make(map[string]sdk.Int)
 	validatorSharesMap := make(map[string]sdk.Dec)
 
 	// Operator address -> Validator pubkey hex
-	validatorOperatorMap := make(map[string]string)
+	validatorOperatorToPubkeyMap := make(map[string]string)
 
 	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
 	validators := staking["validators"].([]interface{})
@@ -181,7 +181,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 		consensusPubkey := validator.(map[string]interface{})["consensus_pubkey"].(map[string]interface{})
 		decodedConsensusPubkey, err := decodePubKeyFromMap(consensusPubkey)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// Convert amount to big.Int
@@ -192,13 +192,13 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 		totalStake = totalStake.Add(tokensInt)
 
 		validatorStakeMap[decodedConsensusPubkey.String()] = tokensInt
-		validatorOperatorMap[operatorAddress] = decodedConsensusPubkey.String()
+		validatorOperatorToPubkeyMap[operatorAddress] = decodedConsensusPubkey.String()
 
 		validatorShares := validatorMap["delegator_shares"].(string)
 
 		validatorSharesDec, err := sdk.NewDecFromStr(validatorShares)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		validatorSharesMap[decodedConsensusPubkey.String()] = validatorSharesDec
 
@@ -207,6 +207,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 	println(totalStake.String())
 
 	// Handle delegations
+	delegatedBalanceMap := make(map[string]map[string]sdk.Coins)
 	delegations := staking["delegations"].([]interface{})
 	for _, delegation := range delegations {
 		delegationMap := delegation.(map[string]interface{})
@@ -216,12 +217,12 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 
 		delegatorSharesDec, err := sdk.NewDecFromStr(delegatorShares)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		validatorAddress := validatorOperatorMap[validatorOperatorAddress]
-		validatorTokens := validatorStakeMap[validatorAddress]
-		validatorShares := validatorSharesMap[validatorAddress]
+		validatorPubkey := validatorOperatorToPubkeyMap[validatorOperatorAddress]
+		validatorTokens := validatorStakeMap[validatorPubkey]
+		validatorShares := validatorSharesMap[validatorPubkey]
 
 		var delegatorTokens sdk.Int
 		if validatorTokens.String() != validatorShares.TruncateInt().String() {
@@ -242,12 +243,29 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 			panic(err)
 		}
 
-		convertedBalances[delegatorAddress].Add(convertedBalance...)
+		convertedBalances[delegatorAddress] = convertedBalances[delegatorAddress].Add(convertedBalance...)
+
+		if delegatedBalanceMap[delegatorAddress] == nil {
+			delegatedBalanceMap[delegatorAddress] = make(map[string]sdk.Coins)
+		}
+
+		if delegatedBalanceMap[delegatorAddress][validatorPubkey] == nil {
+			delegatedBalanceMap[delegatorAddress][validatorPubkey] = sdk.NewCoins()
+		}
+
+		delegatedBalanceMap[delegatorAddress][validatorPubkey] = delegatedBalanceMap[delegatorAddress][validatorPubkey].Add(convertedBalance...)
+
 		// TODO: This balance should be delegated to new validator, but it needs to be minted first!
 
 	}
 
-	return nil
+	// Handle unbonding delegations
+
+	// Handle redelegations
+
+	// Handle rewards
+
+	return delegatedBalanceMap, nil
 }
 
 func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
