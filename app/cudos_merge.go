@@ -225,12 +225,12 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, convertedBal
 
 		var delegatorTokens sdk.Int
 		if validatorTokens.String() != validatorShares.TruncateInt().String() {
-			delegatorTokens = (delegatorSharesDec.QuoTruncate(validatorShares)).MulInt(validatorTokens).TruncateInt()
+			delegatorTokens = (delegatorSharesDec.MulInt(validatorTokens)).Quo(validatorShares).TruncateInt()
 		} else {
 			delegatorTokens = delegatorSharesDec.TruncateInt()
 		}
 
-		println("("+delegatorSharesDec.String()+"/"+validatorShares.String()+")*"+validatorTokens.String()+"="+delegatorTokens.String(), delegatorAddress)
+		//println("("+delegatorSharesDec.String()+"/"+validatorShares.String()+")*"+validatorTokens.String()+"="+delegatorTokens.String(), delegatorAddress)
 
 		// Add delegated balance to convertedBalances map
 
