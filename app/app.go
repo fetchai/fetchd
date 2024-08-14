@@ -782,12 +782,17 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		genesisBalancesMap := getGenesisBalancesMap(jsonData)
 
-		delegatedBalanceMap, err := withdrawGenesisStakingRewards(jsonData, genesisBalancesMap)
+		contractAccountMap, err := GetWasmContractAccounts(jsonData)
+		if err != nil {
+			panic(err)
+		}
+
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
 
-		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisBalancesMap)
+		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisBalancesMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}

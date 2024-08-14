@@ -165,7 +165,7 @@ type ValidatorInfo struct {
 	Status string
 }
 
-func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins) (map[string]map[string]sdk.Coins, error) {
+func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo) (map[string]map[string]sdk.Coins, error) {
 
 	// Validator pubkey hex -> ValidatorInfo
 	validatorInfoMap := make(map[string]ValidatorInfo)
@@ -244,6 +244,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 	for _, delegation := range delegations {
 		delegationMap := delegation.(map[string]interface{})
 		delegatorAddress := delegationMap["delegator_address"].(string)
+		resolvedDelegatorAddress := resolveIfContractAddress(delegatorAddress, contractAccountMap)
 		validatorOperatorAddress := delegationMap["validator_address"].(string)
 		delegatorSharesDec, err := sdk.NewDecFromStr(delegationMap["shares"].(string))
 		if err != nil {
@@ -257,7 +258,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 
 		// Move balance to delegator address
 		delegatorBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, delegatorTokens))
-		genesisBalances[delegatorAddress] = genesisBalances[delegatorAddress].Add(delegatorBalance...)
+		genesisBalances[resolvedDelegatorAddress] = genesisBalances[resolvedDelegatorAddress].Add(delegatorBalance...)
 
 		// Subtract balance from bonded or not-bonded pool
 		if currentValidatorInfo.Status == BondedStatus {
@@ -267,15 +268,15 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 		}
 
 		// Store delegation to delegated map
-		if delegatedBalanceMap[delegatorAddress] == nil {
-			delegatedBalanceMap[delegatorAddress] = make(map[string]sdk.Coins)
+		if delegatedBalanceMap[resolvedDelegatorAddress] == nil {
+			delegatedBalanceMap[resolvedDelegatorAddress] = make(map[string]sdk.Coins)
 		}
 
-		if delegatedBalanceMap[delegatorAddress][validatorPubkey] == nil {
-			delegatedBalanceMap[delegatorAddress][validatorPubkey] = sdk.NewCoins()
+		if delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] == nil {
+			delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = sdk.NewCoins()
 		}
 
-		delegatedBalanceMap[delegatorAddress][validatorPubkey] = delegatedBalanceMap[delegatorAddress][validatorPubkey].Add(delegatorBalance...)
+		delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey].Add(delegatorBalance...)
 
 		// TODO: This balance should be delegated to new validator, but it needs to be minted first!
 
@@ -310,6 +311,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 
 		entries := unbondingDelegationMap["entries"].([]interface{})
 		delegatorAddress := unbondingDelegationMap["delegator_address"].(string)
+		resolvedDelegatorAddress := resolveIfContractAddress(delegatorAddress, contractAccountMap)
 
 		for _, entry := range entries {
 			unbondingDelegationTokensInt, ok := sdk.NewIntFromString(entry.(map[string]interface{})["balance"].(string))
@@ -320,7 +322,7 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 			unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, unbondingDelegationTokensInt))
 
 			// Move unbonding balance from not-bonded pool to delegator address
-			genesisBalances[delegatorAddress] = genesisBalances[delegatorAddress].Add(unbondingDelegationBalance...)
+			genesisBalances[resolvedDelegatorAddress] = genesisBalances[resolvedDelegatorAddress].Add(unbondingDelegationBalance...)
 			genesisBalances[notBondedPoolAddress] = genesisBalances[notBondedPoolAddress].Sub(unbondingDelegationBalance)
 
 			totalUnbondingDelegationsStake = totalUnbondingDelegationsStake.Add(unbondingDelegationTokensInt)
@@ -330,8 +332,6 @@ func withdrawGenesisStakingRewards(jsonData map[string]interface{}, genesisBalan
 	println("Remaining not-bonded pool balance: ", genesisBalances[notBondedPoolAddress].String())
 
 	// Handle remaining pool balances
-
-	// Handle rewards
 
 	return delegatedBalanceMap, nil
 }
@@ -606,6 +606,20 @@ func GetWasmContractAccounts(jsonData map[string]interface{}) (map[string]Contra
 	return contractAccountMap, nil
 }
 
+func resolveIfContractAddress(address string, contractAccountMap map[string]ContractInfo) string {
+	if contractInfo, exists := contractAccountMap[address]; exists {
+		if contractInfo.Admin != "" {
+			return resolveIfContractAddress(contractInfo.Admin, contractAccountMap)
+		} else if contractInfo.Creator != "" {
+			return resolveIfContractAddress(contractInfo.Creator, contractAccountMap)
+		} else {
+			panic(fmt.Errorf("contract %s has no admin nor creator", address))
+		}
+	} else {
+		return address
+	}
+}
+
 func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, error) {
 	keyType, ok := pubKeyMap["@type"].(string)
 	if !ok {
@@ -770,17 +784,12 @@ func GetAddressByName(jsonData map[string]interface{}, name string) (string, err
 	return "", fmt.Errorf("address not found")
 }
 
-func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisBalancesMap map[string]sdk.Coins) error {
+func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisBalancesMap map[string]sdk.Coins, contractAccountMap map[string]ContractInfo) error {
 
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
 
 	ibcAccountsSet, err := GetIBCAccountAddresses(jsonData)
-	if err != nil {
-		return err
-	}
-
-	contractAccountMap, err := GetWasmContractAccounts(jsonData)
 	if err != nil {
 		return err
 	}
