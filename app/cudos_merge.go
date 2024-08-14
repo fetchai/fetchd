@@ -258,13 +258,18 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 
 		// Move balance to delegator address
 		delegatorBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, delegatorTokens))
-		genesisBalances[resolvedDelegatorAddress] = genesisBalances[resolvedDelegatorAddress].Add(delegatorBalance...)
 
 		// Subtract balance from bonded or not-bonded pool
 		if currentValidatorInfo.Status == BondedStatus {
-			genesisBalances[bondedPoolAddress] = genesisBalances[bondedPoolAddress].Sub(delegatorBalance)
+			err := moveGenesisBalance(genesisBalances, bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance)
+			if err != nil {
+				return nil, err
+			}
 		} else {
-			genesisBalances[notBondedPoolAddress] = genesisBalances[notBondedPoolAddress].Sub(delegatorBalance)
+			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Store delegation to delegated map
@@ -322,8 +327,10 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 			unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, unbondingDelegationTokensInt))
 
 			// Move unbonding balance from not-bonded pool to delegator address
-			genesisBalances[resolvedDelegatorAddress] = genesisBalances[resolvedDelegatorAddress].Add(unbondingDelegationBalance...)
-			genesisBalances[notBondedPoolAddress] = genesisBalances[notBondedPoolAddress].Sub(unbondingDelegationBalance)
+			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance)
+			if err != nil {
+				return nil, err
+			}
 
 			totalUnbondingDelegationsStake = totalUnbondingDelegationsStake.Add(unbondingDelegationTokensInt)
 		}
@@ -355,6 +362,27 @@ func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
 	}
 
 	return resBalance, nil
+}
+
+func withdrawGenesisContractBalances(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo) error {
+
+	for contractAddress := range contractAccountMap {
+		resolvedAddress := resolveIfContractAddress(contractAddress, contractAccountMap)
+		if resolvedAddress == contractAddress {
+			return fmt.Errorf("Failed to resolve contract admin/owner for contract %s", contractAddress)
+		}
+
+		contractBalance := genesisBalances[contractAddress]
+
+		if contractBalance != nil {
+			err := moveGenesisBalance(genesisBalances, contractAddress, resolvedAddress, contractBalance)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func convertBalance(balance sdk.Coins) (sdk.Coins, error) {
@@ -760,6 +788,12 @@ func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.
 	return nil
 }
 
+func moveGenesisBalance(genesisBalances map[string]sdk.Coins, fromAddress, toAddress string, amount sdk.Coins) error {
+	genesisBalances[toAddress] = genesisBalances[toAddress].Add(amount...)
+	genesisBalances[fromAddress] = genesisBalances[fromAddress].Sub(amount)
+	return nil
+}
+
 func GetAddressByName(jsonData map[string]interface{}, name string) (string, error) {
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
@@ -809,7 +843,33 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 
 		// Skip if account is not regular basic account
 		_, contractExists := contractAccountMap[addr]
-		if ibcAccountsSet[addr] || contractExists || accType != BaseAccount {
+		if contractExists {
+			// All contracts balance should be handled already
+			if !genesisBalancesMap[addr].Empty() {
+				panic("Unresolved contract balance")
+			}
+
+			continue
+		}
+
+		if accType != BaseAccount {
+			var accName string
+			if name, ok := accMap["name"].(string); ok {
+				accName = name
+			} else {
+				accName = ""
+			}
+
+			if !genesisBalancesMap[addr].Empty() {
+				println("Unresolved module balance: ", addr, genesisBalancesMap[addr].String(), accName)
+			}
+			continue
+		}
+
+		if ibcAccountsSet[addr] {
+			if !genesisBalancesMap[addr].Empty() {
+				println("Unresolved IBC balance: ", addr, genesisBalancesMap[addr].String())
+			}
 			continue
 		}
 

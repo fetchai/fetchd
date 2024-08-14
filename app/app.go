@@ -787,6 +787,11 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
+		err = withdrawGenesisContractBalances(jsonData, genesisBalancesMap, contractAccountMap)
+		if err != nil {
+			panic(fmt.Sprintf("failed to withdraw genesis contracts balances: %w", err))
+		}
+
 		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
