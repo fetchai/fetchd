@@ -780,14 +780,14 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to unmarshal app state: %w", err))
 		}
 
-		convertedBalancesMap := getConvertedGenesisBalancesMap(jsonData)
+		genesisBalancesMap := getGenesisBalancesMap(jsonData)
 
-		delegatedBalanceMap, err := withdrawGenesisStakingRewards(jsonData, convertedBalancesMap)
+		delegatedBalanceMap, err := withdrawGenesisStakingRewards(jsonData, genesisBalancesMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
 
-		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, convertedBalancesMap)
+		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisBalancesMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
