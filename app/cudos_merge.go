@@ -560,8 +560,13 @@ func GetIBCAccountAddresses(jsonData map[string]interface{}) (map[string]bool, e
 	return ibcAccountSet, nil
 }
 
-func GetWasmContractAccounts(jsonData map[string]interface{}) (map[string]bool, error) {
-	contractAccountSet := make(map[string]bool)
+type ContractInfo struct {
+	Admin   string
+	Creator string
+}
+
+func GetWasmContractAccounts(jsonData map[string]interface{}) (map[string]ContractInfo, error) {
+	contractAccountMap := make(map[string]ContractInfo)
 
 	// Navigate to the "wasm" module
 	wasm, ok := jsonData["wasm"].(map[string]interface{})
@@ -587,10 +592,18 @@ func GetWasmContractAccounts(jsonData map[string]interface{}) (map[string]bool, 
 			return nil, fmt.Errorf("contract_address not found or invalid in contract")
 		}
 
-		contractAccountSet[contractAddr] = true
+		contractInfo, ok := contractMap["contract_info"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("contract_info not found or invalid in contract")
+		}
+
+		admin := contractInfo["admin"].(string)
+		creator := contractInfo["creator"].(string)
+
+		contractAccountMap[contractAddr] = ContractInfo{Admin: admin, Creator: creator}
 	}
 
-	return contractAccountSet, nil
+	return contractAccountMap, nil
 }
 
 func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, error) {
@@ -767,7 +780,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 		return err
 	}
 
-	contractAccountsSet, err := GetWasmContractAccounts(jsonData)
+	contractAccountMap, err := GetWasmContractAccounts(jsonData)
 	if err != nil {
 		return err
 	}
@@ -786,7 +799,8 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 		addr := accDataMap["address"].(string)
 
 		// Skip if account is not regular basic account
-		if ibcAccountsSet[addr] || contractAccountsSet[addr] || accType != BaseAccount {
+		_, contractExists := contractAccountMap[addr]
+		if ibcAccountsSet[addr] || contractExists || accType != BaseAccount {
 			continue
 		}
 
