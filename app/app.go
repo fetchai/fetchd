@@ -372,7 +372,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -760,25 +760,23 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
+		// Get all accounts and balances into map
 		genesisAccountsMap, err := getGenesisAccountMap(jsonData)
 		if err != nil {
 			panic(fmt.Sprintf("failed to get accounts map: %w", err))
 		}
 
-		genesisBalancesMap := getGenesisBalancesMap(jsonData, genesisAccountsMap)
-		createNonExistingBalanceEntries(genesisBalancesMap, genesisAccountsMap)
-
-		err = GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisBalancesMap, networkInfo, manifest)
+		err = GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisAccountsMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw IBC channels balances: %w", err))
 		}
 
-		err = withdrawGenesisContractBalances(genesisBalancesMap, contractAccountMap, networkInfo, manifest)
+		err = withdrawGenesisContractBalances(genesisAccountsMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap, networkInfo, manifest)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
@@ -787,7 +785,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		// TODO: Handle remaining account balances
 
-		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisBalancesMap, contractAccountMap)
+		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisAccountsMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}

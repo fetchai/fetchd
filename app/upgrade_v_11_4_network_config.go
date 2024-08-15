@@ -14,6 +14,10 @@ var NetworkInfos = map[string]NetworkConfig{
 
 		BalanceConversionConstants: map[string]int{
 			"acudos": 11},
+
+		NotVestedAccounts: map[string]bool{
+			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
+		},
 	},
 
 	"dorado-1": {
@@ -34,4 +38,6 @@ type NetworkConfig struct {
 	VestingPeriod int64 // 3 months period
 
 	BalanceConversionConstants map[string]int
+
+	NotVestedAccounts map[string]bool
 }
