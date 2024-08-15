@@ -755,18 +755,18 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
-		ibcAccountsMap, err := GetIBCAccountsMap(jsonData, networkInfo)
+		IBCAccountMap, err := GetIBCAccountsMap(jsonData, networkInfo)
 		if err != nil {
 			panic(err)
 		}
 
 		// Get all accounts and balances into map
-		genesisAccountsMap, err := getGenesisAccountMap(jsonData)
+		genesisAccountsMap, err := getGenesisAccountMap(jsonData, contractAccountMap, IBCAccountMap, networkInfo)
 		if err != nil {
 			panic(fmt.Sprintf("failed to get accounts map: %w", err))
 		}
 
-		err = GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisAccountsMap, networkInfo, manifest)
+		err = GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountMap, genesisAccountsMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw IBC channels balances: %w", err))
 		}

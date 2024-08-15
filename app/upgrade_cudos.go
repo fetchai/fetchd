@@ -98,15 +98,26 @@ func convertAddressToRaw(addr string, networkInfo NetworkConfig) (sdk.AccAddress
 	return decodedAddrData, nil
 }
 
+type AccountType string
+
+const (
+	BaseAccountType     AccountType = "base_acc"
+	ModuleAccountType   AccountType = "module_acc"
+	ContractAccountType AccountType = "contract_acc"
+	IBCAccountType      AccountType = "IBC_acc"
+)
+
 type AccountInfo struct {
-	name     string
-	sequence int
-	pubkey   cryptotypes.PubKey
-	balance  sdk.Coins
-	migrated bool
+	name        string
+	sequence    int
+	pubkey      cryptotypes.PubKey
+	balance     sdk.Coins
+	migrated    bool
+	accountType AccountType
+	rawAddress  sdk.AccAddress
 }
 
-func getGenesisAccountMap(jsonData map[string]interface{}) (map[string]AccountInfo, error) {
+func getGenesisAccountMap(jsonData map[string]interface{}, contractAccountMap map[string]ContractInfo, IBCAccountsMap map[string]IBCInfo, networkInfo NetworkConfig) (map[string]AccountInfo, error) {
 	var err error
 
 	// Map to verify that account exists in auth module
@@ -124,6 +135,7 @@ func getGenesisAccountMap(jsonData map[string]interface{}) (map[string]AccountIn
 		if accType == ModuleAccount {
 			accData = accMap["base_account"]
 			name = accMap["name"].(string)
+
 		}
 
 		accDataMap := accData.(map[string]interface{})
@@ -146,7 +158,24 @@ func getGenesisAccountMap(jsonData map[string]interface{}) (map[string]AccountIn
 			}
 		}
 
-		accountMap[addr] = AccountInfo{name: name, sequence: sequenceInt, pubkey: AccPubKey, balance: sdk.NewCoins(), migrated: false}
+		var accountType AccountType
+		if accType == ModuleAccount {
+			accountType = ModuleAccountType
+		} else if _, exists := contractAccountMap[addr]; exists {
+			accountType = ContractAccountType
+		} else if _, exists := IBCAccountsMap[addr]; exists {
+			accountType = IBCAccountType
+		} else {
+			accountType = BaseAccountType
+		}
+
+		// Get raw address
+		accRawAddr, err := convertAddressToRaw(addr, networkInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		accountMap[addr] = AccountInfo{name: name, sequence: sequenceInt, pubkey: AccPubKey, balance: sdk.NewCoins(), migrated: false, accountType: accountType, rawAddress: accRawAddr}
 	}
 
 	// Add balances to accounts map
@@ -697,29 +726,10 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 	}
 }
 
-func getNewBaseAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}, networkInfo NetworkConfig) (*authtypes.BaseAccount, error) {
-	// Get raw address
-	addr := accDataMap["address"].(string)
-	accRawAddr, err := convertAddressToRaw(addr, networkInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set pubkey if present
-	var pubKey cryptotypes.PubKey
-	if pk, ok := accDataMap["pub_key"]; ok {
-		if pk != nil {
-			pubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
+func getNewBaseAccount(ctx sdk.Context, app *App, accountInfo AccountInfo) (*authtypes.BaseAccount, error) {
 	// Create new account
-
 	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
-	newBaseAccount := authtypes.NewBaseAccount(accRawAddr, pubKey, newAccNumber, 0)
+	newBaseAccount := authtypes.NewBaseAccount(accountInfo.rawAddress, accountInfo.pubkey, newAccNumber, 0)
 	return newBaseAccount, nil
 }
 
@@ -851,80 +861,48 @@ func GetAddressByName(jsonData map[string]interface{}, name string) (string, err
 }
 
 func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap map[string]AccountInfo, contractAccountMap map[string]ContractInfo) error {
+	var err error
+	for genesisAccountAddress, genesisAccount := range genesisAccountsMap {
 
-	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
-	accounts := auth["accounts"].([]interface{})
-
-	ibcAccountsMap, err := GetIBCAccountsMap(jsonData, networkInfo)
-	if err != nil {
-		return err
-	}
-
-	// Handle accounts
-	for _, acc := range accounts {
-		accMap := acc.(map[string]interface{})
-		accType := accMap["@type"]
-
-		accData := acc
-		if accType == ModuleAccount {
-			accData = accMap["base_account"]
-		}
-
-		accDataMap := accData.(map[string]interface{})
-		addr := accDataMap["address"].(string)
-
-		// All contract accounts should be already empty
-		_, contractExists := contractAccountMap[addr]
-		if contractExists {
+		if genesisAccount.accountType == ContractAccountType {
 			// All contracts balance should be handled already
-			if genesisAccountsMap[addr].balance.Empty() {
-				err = MarkAccountAsMigrated(genesisAccountsMap, addr)
+			if genesisAccountsMap[genesisAccountAddress].balance.Empty() {
+				err = MarkAccountAsMigrated(genesisAccountsMap, genesisAccountAddress)
 				if err != nil {
 					return err
 				}
 			} else {
-				return fmt.Errorf("Unresolved contract balance: %s %s", addr, genesisAccountsMap[addr].balance.String())
+				return fmt.Errorf("Unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
 			}
 			continue
 		}
-
-		// All module accounts should be already empty
-		if accType != BaseAccount {
-			var accName string
-			if name, ok := accMap["name"].(string); ok {
-				accName = name
-			} else {
-				accName = ""
-			}
-
-			if genesisAccountsMap[addr].balance.Empty() {
-				err = MarkAccountAsMigrated(genesisAccountsMap, addr)
+		if genesisAccount.accountType == ModuleAccountType {
+			if genesisAccountsMap[genesisAccountAddress].balance.Empty() {
+				err = MarkAccountAsMigrated(genesisAccountsMap, genesisAccountAddress)
 				if err != nil {
 					return err
 				}
 			} else {
-				println("Unresolved module balance: ", addr, genesisAccountsMap[addr].balance.String(), accName)
-			}
-
-			continue
-		}
-
-		// All IBC accounts should be already empty
-		_, ibcAccountExists := ibcAccountsMap[addr]
-		if ibcAccountExists {
-			if !genesisAccountsMap[addr].balance.Empty() {
-				return fmt.Errorf("Unresolved IBC balance: %s %s", addr, genesisAccountsMap[addr].balance.String())
+				println("Unresolved module balance: ", genesisAccountAddress, genesisAccount.balance.String(), genesisAccount.name)
 			}
 			continue
 		}
 
-		accRawAddr, err := convertAddressToRaw(addr, networkInfo)
-		if err != nil {
-			return err
+		if genesisAccount.accountType == IBCAccountType {
+			// All IBC balances should be handled already
+			if genesisAccountsMap[genesisAccountAddress].balance.Empty() {
+				err = MarkAccountAsMigrated(genesisAccountsMap, genesisAccountAddress)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("Unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
+			}
+			continue
 		}
 
 		// Get balance to mint
-		newBalance, err := convertBalance(genesisAccountsMap[addr].balance, networkInfo)
+		newBalance, err := convertBalance(genesisAccount.balance, networkInfo)
 		if err != nil {
 			return err
 		}
@@ -932,37 +910,27 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 		var newBaseAccount *authtypes.BaseAccount
 
 		// Check for collision
-		existingAccount := app.AccountKeeper.GetAccount(ctx, accRawAddr)
+		existingAccount := app.AccountKeeper.GetAccount(ctx, genesisAccount.rawAddress)
 		if existingAccount != nil {
 			// Handle collision
 
-			// Check that public keys are the same
-			var newAccPubKey cryptotypes.PubKey
-			if pk, ok := accDataMap["pub_key"]; ok {
-				if pk != nil {
-					newAccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
-					if err != nil {
-						return err
-					}
-				}
-			}
 			existingAccountPubkey := existingAccount.GetPubKey()
 
 			// Set pubkey from newAcc if is not in existingAccount
-			if existingAccountPubkey == nil && newAccPubKey != nil {
-				existingAccount.SetPubKey(newAccPubKey)
+			if existingAccountPubkey == nil && genesisAccount.pubkey != nil {
+				existingAccount.SetPubKey(genesisAccount.pubkey)
 			}
 
-			if newAccPubKey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(newAccPubKey) {
-				return fmt.Errorf("account already exists with different pubkey: %s", addr)
+			if genesisAccount.pubkey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(genesisAccount.pubkey) {
+				return fmt.Errorf("account already exists with different pubkey: %s", genesisAccountAddress)
 			}
 
-			newBaseAccount = authtypes.NewBaseAccount(accRawAddr, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
+			newBaseAccount = authtypes.NewBaseAccount(genesisAccount.rawAddress, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
 
 		} else {
 
 			// Handle regular migration
-			newBaseAccount, err = getNewBaseAccount(ctx, app, accDataMap, networkInfo)
+			newBaseAccount, err = getNewBaseAccount(ctx, app, genesisAccount)
 			if err != nil {
 				return err
 			}
@@ -973,7 +941,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 		if newBalance != nil {
 
 			// Account is vesting
-			if networkInfo.NotVestedAccounts[addr] {
+			if networkInfo.NotVestedAccounts[genesisAccountAddress] {
 				err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
 				if err != nil {
 					return err
@@ -986,7 +954,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 				}
 			}
 
-			err = mintToAccount(ctx, app, addr, accRawAddr, newBalance, manifest)
+			err = mintToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, newBalance, manifest)
 			if err != nil {
 				return err
 			}
@@ -999,7 +967,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 			}
 		}
 
-		err = MarkAccountAsMigrated(genesisAccountsMap, addr)
+		err = MarkAccountAsMigrated(genesisAccountsMap, genesisAccountAddress)
 		if err != nil {
 			return err
 		}
