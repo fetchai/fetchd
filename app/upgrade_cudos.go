@@ -17,7 +17,6 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"math/big"
-	"strconv"
 )
 
 const (
@@ -109,7 +108,6 @@ const (
 
 type AccountInfo struct {
 	name        string
-	sequence    int
 	pubkey      cryptotypes.PubKey
 	balance     sdk.Coins
 	migrated    bool
@@ -140,12 +138,6 @@ func getGenesisAccountMap(jsonData map[string]interface{}, contractAccountMap ma
 
 		accDataMap := accData.(map[string]interface{})
 		addr := accDataMap["address"].(string)
-		sequence := accDataMap["sequence"].(string)
-
-		sequenceInt, ok := strconv.Atoi(sequence)
-		if ok != nil {
-			panic("getGenesisAccountMap: failed to convert sequence to int")
-		}
 
 		// Check that public keys are the same
 		var AccPubKey cryptotypes.PubKey
@@ -175,7 +167,7 @@ func getGenesisAccountMap(jsonData map[string]interface{}, contractAccountMap ma
 			return nil, err
 		}
 
-		accountMap[addr] = AccountInfo{name: name, sequence: sequenceInt, pubkey: AccPubKey, balance: sdk.NewCoins(), migrated: false, accountType: accountType, rawAddress: accRawAddr}
+		accountMap[addr] = AccountInfo{name: name, pubkey: AccPubKey, balance: sdk.NewCoins(), migrated: false, accountType: accountType, rawAddress: accRawAddr}
 	}
 
 	// Add balances to accounts map
