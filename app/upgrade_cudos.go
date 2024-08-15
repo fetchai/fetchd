@@ -165,7 +165,7 @@ type ValidatorInfo struct {
 	Status string
 }
 
-func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo) (map[string]map[string]sdk.Coins, error) {
+func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, manifest *UpgradeManifest) (map[string]map[string]sdk.Coins, error) {
 
 	// Validator pubkey hex -> ValidatorInfo
 	validatorInfoMap := make(map[string]ValidatorInfo)
@@ -261,12 +261,12 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 
 		// Subtract balance from bonded or not-bonded pool
 		if currentValidatorInfo.Status == BondedStatus {
-			err := moveGenesisBalance(genesisBalances, bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance)
+			err := moveGenesisBalance(genesisBalances, bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance)
+			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
 			if err != nil {
 				return nil, err
 			}
@@ -327,7 +327,7 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 			unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, unbondingDelegationTokensInt))
 
 			// Move unbonding balance from not-bonded pool to delegator address
-			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance)
+			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, manifest)
 			if err != nil {
 				return nil, err
 			}
@@ -364,7 +364,7 @@ func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
 	return resBalance, nil
 }
 
-func withdrawGenesisContractBalances(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo) error {
+func withdrawGenesisContractBalances(genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, manifest *UpgradeManifest) error {
 
 	for contractAddress := range contractAccountMap {
 		resolvedAddress := resolveIfContractAddress(contractAddress, contractAccountMap)
@@ -375,7 +375,7 @@ func withdrawGenesisContractBalances(jsonData map[string]interface{}, genesisBal
 		contractBalance := genesisBalances[contractAddress]
 
 		if contractBalance != nil {
-			err := moveGenesisBalance(genesisBalances, contractAddress, resolvedAddress, contractBalance)
+			err := moveGenesisBalance(genesisBalances, contractAddress, resolvedAddress, contractBalance, manifest)
 			if err != nil {
 				return err
 			}
@@ -484,66 +484,36 @@ func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
 	return balance
 }
 
-func GenesisUpgradeWithdrawIBCChannelsBalances(jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest) {
+func GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountsMap map[string]IBCInfo, genesisBalances map[string]sdk.Coins, networkInfo NetworkConfig, manifest *UpgradeManifest) {
 	if networkInfo.IbcTargetAddr == "" {
-		return
+
+		panic("No IBC withdrawal address set")
 	}
 
-	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
-	balances := bank["balances"].([]interface{})
-	balanceIndexMap := getGenesisIndexBalancesMap(balances)
 	ibcWithdrawalAddress := networkInfo.IbcTargetAddr
 
 	manifest.IBC = &UpgradeIBCTransfers{
 		To: ibcWithdrawalAddress,
 	}
-	withdrawalBalanceIdx, ok := (*balanceIndexMap)[ibcWithdrawalAddress]
-	if !ok {
-		panic("failed to find ibc withdrawal address in genesis balances")
-	}
 
-	ibc := jsonData[ibccore.ModuleName].(map[string]interface{})
-	channelGenesis := ibc["channel_genesis"].(map[string]interface{})
-	ibcChannels := channelGenesis["channels"].([]interface{})
+	for IBCaccountAddress, IBCaccount := range IBCAccountsMap {
 
-	for _, channel := range ibcChannels {
-		channelMap := channel.(map[string]interface{})
-		channelId := channelMap["channel_id"].(string)
-		portId := channelMap["port_id"].(string)
+		channelBalance := genesisBalances[IBCaccountAddress]
+		moveGenesisBalance(genesisBalances, IBCaccountAddress, ibcWithdrawalAddress, channelBalance, manifest)
 
-		// close channel
-		channelMap["state"] = "STATE_CLOSED"
-
-		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
-		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
-		if err != nil {
-			panic(err)
-		}
-
-		balanceIdx, ok := (*balanceIndexMap)[channelAddr]
-		if !ok {
-			// channel address not found in genesis balances
-			continue
-		}
-
-		channelBalanceCoins := getCoinsFromInterfaceSlice(balances[balanceIdx])
-		withdrawalBalanceCoins := getCoinsFromInterfaceSlice(balances[withdrawalBalanceIdx])
-
-		// add channel balance to withdrawal balance
-		newWithdrawalBalanceCoins := withdrawalBalanceCoins.Add(channelBalanceCoins...)
-		balances[withdrawalBalanceIdx].(map[string]interface{})["coins"] = getInterfaceSliceFromCoins(newWithdrawalBalanceCoins)
-
-		// zero out the channel balance
-		balances[balanceIdx].(map[string]interface{})["coins"] = []interface{}{}
-
-		manifest.IBC.Transfers = append(manifest.IBC.Transfers, UpgradeIBCTransfer{From: channelAddr, ChannelID: fmt.Sprintf("%s/%s", portId, channelId), Amount: channelBalanceCoins})
-		manifest.IBC.AggregatedTransferredAmount = manifest.IBC.AggregatedTransferredAmount.Add(channelBalanceCoins...)
+		manifest.IBC.Transfers = append(manifest.IBC.Transfers, UpgradeIBCTransfer{From: IBCaccountAddress, ChannelID: fmt.Sprintf("%s/%s", IBCaccount.portId, IBCaccount.channelId), Amount: channelBalance})
+		manifest.IBC.AggregatedTransferredAmount = manifest.IBC.AggregatedTransferredAmount.Add(channelBalance...)
 		manifest.IBC.NumberOfTransfers += 1
 	}
 }
 
-func GetIBCAccountAddresses(jsonData map[string]interface{}) (map[string]bool, error) {
-	ibcAccountSet := make(map[string]bool)
+type IBCInfo struct {
+	channelId string
+	portId    string
+}
+
+func GetIBCAccountsMap(jsonData map[string]interface{}) (map[string]IBCInfo, error) {
+	ibcAccountSet := make(map[string]IBCInfo)
 
 	ibc, ok := jsonData[ibccore.ModuleName].(map[string]interface{})
 	if !ok {
@@ -582,7 +552,7 @@ func GetIBCAccountAddresses(jsonData map[string]interface{}) (map[string]bool, e
 			return nil, err
 		}
 
-		ibcAccountSet[channelAddr] = true
+		ibcAccountSet[channelAddr] = IBCInfo{channelId: channelId, portId: portId}
 	}
 
 	return ibcAccountSet, nil
@@ -788,7 +758,26 @@ func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.
 	return nil
 }
 
-func moveGenesisBalance(genesisBalances map[string]sdk.Coins, fromAddress, toAddress string, amount sdk.Coins) error {
+func moveGenesisBalance(genesisBalances map[string]sdk.Coins, fromAddress, toAddress string, amount sdk.Coins, manifest *UpgradeManifest) error {
+	// Check if fromAddress exists
+	if _, ok := genesisBalances[fromAddress]; !ok {
+		return fmt.Errorf("fromAddress does not exist in genesis balances")
+	}
+
+	if manifest.MoveBalance == nil {
+		manifest.MoveBalance = &UpgradeMoveBalance{}
+	}
+
+	movement := UpgradeBalanceMovement{
+		From:   fromAddress,
+		To:     toAddress,
+		Amount: amount,
+	}
+	manifest.MoveBalance.Movements = append(manifest.MoveBalance.Movements, movement)
+
+	manifest.MoveBalance.AggregatedMovedAmount = manifest.MoveBalance.AggregatedMovedAmount.Add(amount...)
+	manifest.MoveBalance.NumberOfMovements += 1
+
 	genesisBalances[toAddress] = genesisBalances[toAddress].Add(amount...)
 	genesisBalances[fromAddress] = genesisBalances[fromAddress].Sub(amount)
 	return nil
@@ -823,7 +812,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
 
-	ibcAccountsSet, err := GetIBCAccountAddresses(jsonData)
+	ibcAccountsMap, err := GetIBCAccountsMap(jsonData)
 	if err != nil {
 		return err
 	}
@@ -866,7 +855,8 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 			continue
 		}
 
-		if ibcAccountsSet[addr] {
+		_, ibcAccountExists := ibcAccountsMap[addr]
+		if ibcAccountExists {
 			if !genesisBalancesMap[addr].Empty() {
 				println("Unresolved IBC balance: ", addr, genesisBalancesMap[addr].String())
 			}

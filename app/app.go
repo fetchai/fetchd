@@ -721,36 +721,6 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func (app *App) PerformASIUpgradeTasks(ctx sdk.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	err := app.DeleteContractStates(ctx, networkInfo, manifest)
-	if err != nil {
-		return err
-	}
-
-	// Call the separate function to handle the admin upgrade
-	err = app.UpgradeContractAdmins(ctx, networkInfo, manifest)
-	if err != nil {
-		return err
-	}
-
-	err = app.ProcessReconciliation(ctx, networkInfo, manifest)
-	if err != nil {
-		return err
-	}
-
-	err = app.ChangeContractLabels(ctx, networkInfo, manifest)
-	if err != nil {
-		return err
-	}
-
-	err = app.ChangeContractVersions(ctx, networkInfo, manifest)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
@@ -787,12 +757,19 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
-		err = withdrawGenesisContractBalances(jsonData, genesisBalancesMap, contractAccountMap)
+		ibcAccountsMap, err := GetIBCAccountsMap(jsonData)
+		if err != nil {
+			panic(err)
+		}
+
+		GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisBalancesMap, networkInfo, manifest)
+
+		err = withdrawGenesisContractBalances(genesisBalancesMap, contractAccountMap, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
@@ -804,14 +781,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		// TODO: Delegate balances
 		println(delegatedBalanceMap)
-
-		/*
-			// Perform ASI upgrade tasks
-			err = app.PerformASIUpgradeTasks(ctx, &networkInfo, manifest)
-			if err != nil {
-				return nil, err
-			}
-		*/
 
 		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)
