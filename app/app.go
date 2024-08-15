@@ -372,7 +372,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -750,8 +750,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to unmarshal app state: %w", err))
 		}
 
-		genesisBalancesMap := getGenesisBalancesMap(jsonData)
-
 		contractAccountMap, err := GetWasmContractAccounts(jsonData)
 		if err != nil {
 			panic(err)
@@ -762,7 +760,18 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
-		GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisBalancesMap, networkInfo, manifest)
+		genesisAccountsMap, err := getGenesisAccountMap(jsonData)
+		if err != nil {
+			panic(fmt.Sprintf("failed to get accounts map: %w", err))
+		}
+
+		genesisBalancesMap := getGenesisBalancesMap(jsonData, genesisAccountsMap)
+		createNonExistingBalanceEntries(genesisBalancesMap, genesisAccountsMap)
+
+		err = GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisBalancesMap, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Sprintf("failed to withdraw IBC channels balances: %w", err))
+		}
 
 		err = withdrawGenesisContractBalances(genesisBalancesMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
