@@ -32,13 +32,6 @@ const (
 	ConsAddressPrefix = "valcons"
 
 	NewAddrPrefix = "fetch"
-	OldAddrPrefix = "cudos"
-
-	OriginalDenom  = "acudos"
-	ConvertedDenom = "afet"
-
-	MergeTime     = 123456                // Epoch time of merge
-	VestingPeriod = 3 * 30 * 24 * 60 * 60 // 3 months period
 
 	FlagGenesisTime = "genesis-time"
 
@@ -58,10 +51,6 @@ const (
 	MarketplaceAccName   = "marketplace"
 	FeeCollectorAccName  = "fee_collector"
 )
-
-var BalanceDivisionConstants = map[string]int{
-	OriginalDenom: 11,
-}
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
@@ -95,10 +84,10 @@ func convertAddressPrefix(addr string, newPrefix string) (string, error) {
 	return newAddress, nil
 }
 
-func convertAddressToRaw(addr string) (sdk.AccAddress, error) {
+func convertAddressToRaw(addr string, networkInfo NetworkConfig) (sdk.AccAddress, error) {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 
-	if prefix != OldAddrPrefix {
+	if prefix != networkInfo.OldAddrPrefix {
 		return nil, fmt.Errorf("Unknown prefix: %s", prefix)
 	}
 
@@ -135,21 +124,6 @@ func getGenesisAccountSequenceMap(accounts []interface{}) map[string]int {
 	return accountMap
 }
 
-func getGenesisIndexBalancesMap(balances []interface{}) *map[string]int {
-	balanceMap := make(map[string]int)
-
-	for i, balance := range balances {
-		addr := balance.(map[string]interface{})["address"]
-		if addr == nil {
-			fmt.Println(balance)
-		}
-		addrStr := addr.(string)
-		balanceMap[addrStr] = i
-	}
-
-	return &balanceMap
-}
-
 func getConsAddressFromValidator(validatorData map[string]interface{}) (sdk.ConsAddress, error) {
 	consensusPubkey := validatorData["consensus_pubkey"].(map[string]interface{})
 	decodedConsensusPubkey, err := decodePubKeyFromMap(consensusPubkey)
@@ -165,7 +139,7 @@ type ValidatorInfo struct {
 	Status string
 }
 
-func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, manifest *UpgradeManifest) (map[string]map[string]sdk.Coins, error) {
+func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, networkInfo NetworkConfig, manifest *UpgradeManifest) (map[string]map[string]sdk.Coins, error) {
 
 	// Validator pubkey hex -> ValidatorInfo
 	validatorInfoMap := make(map[string]ValidatorInfo)
@@ -257,7 +231,7 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 		delegatorTokens := (delegatorSharesDec.MulInt(currentValidatorInfo.Stake)).Quo(currentValidatorInfo.Shares).TruncateInt()
 
 		// Move balance to delegator address
-		delegatorBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, delegatorTokens))
+		delegatorBalance := sdk.NewCoins(sdk.NewCoin(networkInfo.OriginalDenom, delegatorTokens))
 
 		// Subtract balance from bonded or not-bonded pool
 		if currentValidatorInfo.Status == BondedStatus {
@@ -324,7 +298,7 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 				return nil, fmt.Errorf("Cannot parse balance to Int")
 			}
 
-			unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(OriginalDenom, unbondingDelegationTokensInt))
+			unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(networkInfo.OriginalDenom, unbondingDelegationTokensInt))
 
 			// Move unbonding balance from not-bonded pool to delegator address
 			err := moveGenesisBalance(genesisBalances, notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, manifest)
@@ -343,7 +317,7 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisB
 	return delegatedBalanceMap, nil
 }
 
-func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
+func getCoinsFromInterfaceSlice(coins []interface{}) (sdk.Coins, error) {
 	var resBalance sdk.Coins
 	for _, coin := range coins {
 
@@ -364,7 +338,18 @@ func parseGenesisBalance(coins []interface{}) (sdk.Coins, error) {
 	return resBalance, nil
 }
 
-func withdrawGenesisContractBalances(genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, manifest *UpgradeManifest) error {
+func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
+	var balance []interface{}
+	for _, coin := range coins {
+		balance = append(balance, map[string]interface{}{
+			"denom":  coin.Denom,
+			"amount": coin.Amount.String(),
+		})
+	}
+	return balance
+}
+
+func withdrawGenesisContractBalances(genesisBalances map[string]sdk.Coins, contractAccountMap map[string]ContractInfo, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
 
 	for contractAddress := range contractAccountMap {
 		resolvedAddress := resolveIfContractAddress(contractAddress, contractAccountMap)
@@ -385,15 +370,15 @@ func withdrawGenesisContractBalances(genesisBalances map[string]sdk.Coins, contr
 	return nil
 }
 
-func convertBalance(balance sdk.Coins) (sdk.Coins, error) {
+func convertBalance(balance sdk.Coins, networkInfo NetworkConfig) (sdk.Coins, error) {
 	var resBalance sdk.Coins
 
 	for _, coin := range balance {
-		if divisionConst, ok := BalanceDivisionConstants[coin.Denom]; ok {
+		if divisionConst, ok := networkInfo.BalanceConversionConstants[coin.Denom]; ok {
 			divisionConstBigInt := big.NewInt(int64(divisionConst))
 			newAmount := new(big.Int).Div(coin.Amount.BigInt(), divisionConstBigInt)
 
-			sdkCoin := sdk.NewCoin(ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
+			sdkCoin := sdk.NewCoin(networkInfo.ConvertedDenom, sdk.NewIntFromBigInt(newAmount))
 			resBalance = resBalance.Add(sdkCoin)
 		} else {
 			println("Unknown denom: ", coin.Denom)
@@ -441,7 +426,7 @@ func getGenesisBalancesMap(jsonData map[string]interface{}) map[string]sdk.Coins
 
 		coins := balance.(map[string]interface{})["coins"]
 
-		sdkBalance, err := parseGenesisBalance(coins.([]interface{}))
+		sdkBalance, err := getCoinsFromInterfaceSlice(coins.([]interface{}))
 		if err != nil {
 			panic(err)
 		}
@@ -453,35 +438,6 @@ func getGenesisBalancesMap(jsonData map[string]interface{}) map[string]sdk.Coins
 	}
 
 	return balanceMap
-}
-
-func getCoinsFromInterfaceSlice(data interface{}) sdk.Coins {
-	balance := data.(map[string]interface{})["coins"]
-	var balanceCoins sdk.Coins
-
-	for _, coin := range balance.([]interface{}) {
-		coinData := coin.(map[string]interface{})
-		coinDenom := coinData["denom"].(string)
-		coinAmount, ok := sdk.NewIntFromString(coinData["amount"].(string))
-		if !ok {
-			panic("ibc withdraw: failed to convert coin amount to int")
-		}
-		balanceCoins = append(balanceCoins, sdk.NewCoin(coinDenom, coinAmount))
-	}
-
-	balanceCoins = sdk.NewCoins(balanceCoins...)
-	return balanceCoins
-}
-
-func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
-	var balance []interface{}
-	for _, coin := range coins {
-		balance = append(balance, map[string]interface{}{
-			"denom":  coin.Denom,
-			"amount": coin.Amount.String(),
-		})
-	}
-	return balance
 }
 
 func GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountsMap map[string]IBCInfo, genesisBalances map[string]sdk.Coins, networkInfo NetworkConfig, manifest *UpgradeManifest) {
@@ -512,7 +468,7 @@ type IBCInfo struct {
 	portId    string
 }
 
-func GetIBCAccountsMap(jsonData map[string]interface{}) (map[string]IBCInfo, error) {
+func GetIBCAccountsMap(jsonData map[string]interface{}, networkInfo NetworkConfig) (map[string]IBCInfo, error) {
 	ibcAccountSet := make(map[string]IBCInfo)
 
 	ibc, ok := jsonData[ibccore.ModuleName].(map[string]interface{})
@@ -547,7 +503,7 @@ func GetIBCAccountsMap(jsonData map[string]interface{}) (map[string]IBCInfo, err
 		}
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
-		channelAddr, err := sdk.Bech32ifyAddressBytes(OldAddrPrefix+AccAddressPrefix, rawAddr)
+		channelAddr, err := sdk.Bech32ifyAddressBytes(networkInfo.OldAddrPrefix+AccAddressPrefix, rawAddr)
 		if err != nil {
 			return nil, err
 		}
@@ -701,10 +657,10 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 	}
 }
 
-func getNewBaseAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}) (*authtypes.BaseAccount, error) {
+func getNewBaseAccount(ctx sdk.Context, app *App, accDataMap map[string]interface{}, networkInfo NetworkConfig) (*authtypes.BaseAccount, error) {
 	// Get raw address
 	addr := accDataMap["address"].(string)
-	accRawAddr, err := convertAddressToRaw(addr)
+	accRawAddr, err := convertAddressToRaw(addr, networkInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -812,7 +768,7 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
 
-	ibcAccountsMap, err := GetIBCAccountsMap(jsonData)
+	ibcAccountsMap, err := GetIBCAccountsMap(jsonData, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -863,13 +819,13 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 			continue
 		}
 
-		accRawAddr, err := convertAddressToRaw(addr)
+		accRawAddr, err := convertAddressToRaw(addr, networkInfo)
 		if err != nil {
 			return err
 		}
 
 		// Get balance to mint
-		newBalance, err := convertBalance(genesisBalancesMap[addr])
+		newBalance, err := convertBalance(genesisBalancesMap[addr], networkInfo)
 		if err != nil {
 			return err
 		}
@@ -907,14 +863,14 @@ func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[stri
 		} else {
 
 			// Handle regular migration
-			newBaseAccount, err = getNewBaseAccount(ctx, app, accDataMap)
+			newBaseAccount, err = getNewBaseAccount(ctx, app, accDataMap, networkInfo)
 			if err != nil {
 				return err
 			}
 
 		}
 
-		createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, MergeTime, MergeTime+VestingPeriod)
+		createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, networkInfo.MergeTime, networkInfo.MergeTime+networkInfo.VestingPeriod)
 
 		err = mintToAccount(ctx, app, addr, accRawAddr, newBalance, manifest)
 		if err != nil {

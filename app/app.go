@@ -757,30 +757,38 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(err)
 		}
 
-		ibcAccountsMap, err := GetIBCAccountsMap(jsonData)
+		ibcAccountsMap, err := GetIBCAccountsMap(jsonData, networkInfo)
 		if err != nil {
 			panic(err)
 		}
 
 		GenesisUpgradeWithdrawIBCChannelsBalances(ibcAccountsMap, genesisBalancesMap, networkInfo, manifest)
 
-		err = withdrawGenesisContractBalances(genesisBalancesMap, contractAccountMap, manifest)
+		err = withdrawGenesisContractBalances(genesisBalancesMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap, manifest)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisBalancesMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
+
+		// TODO: Withdraw distribution module rewards
+
+		// TODO: Handle remaining account balances
 
 		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisBalancesMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
 
+		// TODO: Create validators
+
 		// TODO: Delegate balances
 		println(delegatedBalanceMap)
+
+		// TODO: Verify supply
 
 		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)

@@ -12,6 +12,8 @@ var NetworkInfos = map[string]NetworkConfig{
 		MergeTime:     123456,                // Epoch time of merge
 		VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
+		BalanceConversionConstants: map[string]int{
+			"acudos": 11},
 	},
 
 	"dorado-1": {
@@ -28,7 +30,8 @@ type NetworkConfig struct {
 	OriginalDenom  string
 	ConvertedDenom string
 
-	MergeTime     uint64 // Epoch time of merge
-	VestingPeriod uint64 // 3 months period
+	MergeTime     int64 // Epoch time of merge
+	VestingPeriod int64 // 3 months period
 
+	BalanceConversionConstants map[string]int
 }
