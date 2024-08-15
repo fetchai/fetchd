@@ -2,9 +2,10 @@ package app
 
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
-		IbcTargetAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		NewAddrPrefix: "fetch",
-		OldAddrPrefix: "cudos",
+		IbcTargetAddr:        "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		RemainingBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		NewAddrPrefix:        "fetch",
+		OldAddrPrefix:        "cudos",
 
 		OriginalDenom:  "acudos",
 		ConvertedDenom: "afet",
@@ -26,7 +27,8 @@ var NetworkInfos = map[string]NetworkConfig{
 }
 
 type NetworkConfig struct {
-	IbcTargetAddr string
+	IbcTargetAddr        string
+	RemainingBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 
 	NewAddrPrefix string
 	OldAddrPrefix string
@@ -34,8 +36,8 @@ type NetworkConfig struct {
 	OriginalDenom  string
 	ConvertedDenom string
 
-	MergeTime     int64 // Epoch time of merge
-	VestingPeriod int64 // 3 months period
+	MergeTime     int64 // Epoch time of merge - beginning of vesting period
+	VestingPeriod int64 // Vesting period
 
 	BalanceConversionConstants map[string]int
 

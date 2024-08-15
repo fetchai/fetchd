@@ -40,15 +40,17 @@ const (
 	UnbondingStatus = "BOND_STATUS_UNBONDING"
 	BondedStatus    = "BOND_STATUS_BONDED"
 
-	TransferAccName      = "transfer"
+	// Modules with balance
 	BondedPoolAccName    = "bonded_tokens_pool"
 	NotBondedPoolAccName = "not_bonded_tokens_pool"
-	MintAccName          = "cudoMint"
-	GovAccName           = "gov"
-	DistributionAccName  = "distribution"
 	GravityAccName       = "gravity"
-	MarketplaceAccName   = "marketplace"
-	FeeCollectorAccName  = "fee_collector"
+
+	// Modules without balance
+	MintAccName         = "cudoMint"
+	GovAccName          = "gov"
+	DistributionAccName = "distribution"
+	MarketplaceAccName  = "marketplace"
+	FeeCollectorAccName = "fee_collector"
 )
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
@@ -365,9 +367,19 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisA
 		}
 	}
 
-	println("Remaining not-bonded pool balance: ", genesisAccounts[notBondedPoolAddress].balance.String())
-
 	// Handle remaining pool balances
+
+	// Handle remaining bonded pool balance
+	err = moveGenesisBalance(genesisAccounts, bondedPoolAddress, networkInfo.RemainingBalanceAddr, genesisAccounts[bondedPoolAddress].balance, manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle remaining not-bonded pool balance
+	err = moveGenesisBalance(genesisAccounts, notBondedPoolAddress, networkInfo.RemainingBalanceAddr, genesisAccounts[notBondedPoolAddress].balance, manifest)
+	if err != nil {
+		return nil, err
+	}
 
 	return delegatedBalanceMap, nil
 }
@@ -852,7 +864,7 @@ func GetAddressByName(jsonData map[string]interface{}, name string) (string, err
 	return "", fmt.Errorf("address not found")
 }
 
-func ProcessBaseAccountsAndBalances(ctx sdk.Context, app *App, jsonData map[string]interface{}, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap map[string]AccountInfo, contractAccountMap map[string]ContractInfo) error {
+func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap map[string]AccountInfo, contractAccountMap map[string]ContractInfo) error {
 	var err error
 	for genesisAccountAddress, genesisAccount := range genesisAccountsMap {
 

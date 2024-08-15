@@ -783,9 +783,9 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		// TODO: Withdraw distribution module rewards
 
-		// TODO: Handle remaining account balances
+		// TODO: Handle remaining module account balances - gravity
 
-		err = ProcessBaseAccountsAndBalances(ctx, app, jsonData, networkInfo, manifest, genesisAccountsMap, contractAccountMap)
+		err = MigrateGenesisAccounts(ctx, app, networkInfo, manifest, genesisAccountsMap, contractAccountMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
