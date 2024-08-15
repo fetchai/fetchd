@@ -292,52 +292,36 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisA
 
 		// Subtract balance from bonded or not-bonded pool
 		if currentValidatorInfo.Status == BondedStatus {
+			// Store delegation to delegated map
+			if delegatedBalanceMap[resolvedDelegatorAddress] == nil {
+				delegatedBalanceMap[resolvedDelegatorAddress] = make(map[string]sdk.Coins)
+			}
+
+			if delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] == nil {
+				delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = sdk.NewCoins()
+			}
+
+			delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey].Add(delegatorBalance...)
+
+			// Move balance from bonded pool to delegator
 			err := moveGenesisBalance(genesisAccounts, bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
 			if err != nil {
 				return nil, err
 			}
+
 		} else {
+			// Delegations to unbonded/jailed/tombstoned validators are not re-delegated
+
+			// Move balance from not-bonded pool to delegator
 			err := moveGenesisBalance(genesisAccounts, notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		// Store delegation to delegated map
-		if delegatedBalanceMap[resolvedDelegatorAddress] == nil {
-			delegatedBalanceMap[resolvedDelegatorAddress] = make(map[string]sdk.Coins)
-		}
-
-		if delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] == nil {
-			delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = sdk.NewCoins()
-		}
-
-		delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey] = delegatedBalanceMap[resolvedDelegatorAddress][validatorPubkey].Add(delegatorBalance...)
-
 		// TODO: This balance should be delegated to new validator, but it needs to be minted first!
 
 	}
-
-	println("Remaining bonded pool balance: ", genesisAccounts[bondedPoolAddress].balance.String())
-
-	// Handle redelegations - Nothing to do here
-	/*
-		totalRedelegationStake := sdk.NewInt(0)
-		redelegations := staking["redelegations"].([]interface{})
-		for _, redelegation := range redelegations {
-			entries := redelegation.(map[string]interface{})["entries"].([]interface{})
-			for _, entry := range entries {
-				initialBalance := entry.(map[string]interface{})["initial_balance"].(string)
-
-				initialBalanceInt, ok := sdk.NewIntFromString(initialBalance)
-				if !ok {
-					return nil, fmt.Errorf("Cannot parse balance to Int")
-				}
-				totalRedelegationStake = totalRedelegationStake.Add(initialBalanceInt)
-			}
-		}
-		println(totalRedelegationStake.String())
-	*/
 
 	// Handle unbonding delegations
 	totalUnbondingDelegationsStake := sdk.NewInt(0)
@@ -864,7 +848,7 @@ func GetAddressByName(jsonData map[string]interface{}, name string) (string, err
 	return "", fmt.Errorf("address not found")
 }
 
-func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap map[string]AccountInfo, contractAccountMap map[string]ContractInfo) error {
+func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap map[string]AccountInfo) error {
 	var err error
 	for genesisAccountAddress, genesisAccount := range genesisAccountsMap {
 
@@ -887,6 +871,7 @@ func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig
 					return err
 				}
 			} else {
+				// TODO: Replace with return ERROR when all modules balances are handled
 				println("Unresolved module balance: ", genesisAccountAddress, genesisAccount.balance.String(), genesisAccount.name)
 			}
 			continue
@@ -977,6 +962,26 @@ func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig
 		}
 
 	}
+
+	return nil
+}
+
+func VerifySupply(jsonData map[string]interface{}, genesisAccounts map[string]AccountInfo, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+
+	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
+	supply := bank["supply"].([]interface{})
+	totalSupply, err := getCoinsFromInterfaceSlice(supply)
+	if err != nil {
+		return err
+	}
+
+	expectedMintedSupply, err := convertBalance(totalSupply, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	println(expectedMintedSupply.String())
+	println(manifest.Minting.AggregatedMintedAmount.String())
 
 	return nil
 }

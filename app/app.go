@@ -785,7 +785,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		// TODO: Handle remaining module account balances - gravity
 
-		err = MigrateGenesisAccounts(ctx, app, networkInfo, manifest, genesisAccountsMap, contractAccountMap)
+		err = MigrateGenesisAccounts(ctx, app, networkInfo, manifest, genesisAccountsMap)
 		if err != nil {
 			panic(fmt.Sprintf("failed process accounts: %w", err))
 		}
@@ -795,7 +795,10 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		// TODO: Delegate balances
 		println(delegatedBalanceMap)
 
-		// TODO: Verify supply
+		err = VerifySupply(jsonData, genesisAccountsMap, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Sprintf("failed to verify supply: %w", err))
+		}
 
 		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)
