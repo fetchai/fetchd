@@ -9,6 +9,7 @@ var NetworkInfos = map[string]NetworkConfig{
 
 		originalDenom:  "acudos",
 		convertedDenom: "afet",
+		stakingDenom:   "afet",
 
 		mergeTime:     123456,                // Epoch time of merge
 		vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
@@ -20,13 +21,14 @@ var NetworkInfos = map[string]NetworkConfig{
 			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
 		},
 
-		backupValidators: []string{"F9F8271C4C395A557DF85F460793278BB45E63D8"},
+		backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 		validatorsMap: map[string]string{
-			"2FB481C55D2B93F7AC832A4423E47A5569FF23DF": "F9F8271C4C395A557DF85F460793278BB45E63D8"},
+			"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
+			"cudosvaloper1ctcrpuyumt60733u0yd5htwzedgfae0n8gql5n": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 	},
 
 	"dorado-1": {
-		ibcTargetAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		ibcTargetAddr: "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel", // Replace!!
 	},
 }
 
@@ -39,6 +41,7 @@ type NetworkConfig struct {
 
 	originalDenom  string
 	convertedDenom string
+	stakingDenom   string
 
 	mergeTime     int64 // Epoch time of merge - beginning of vesting period
 	vestingPeriod int64 // Vesting period

@@ -14,6 +14,7 @@ type UpgradeManifest struct {
 	IBC         *UpgradeIBCTransfers `json:"ibc,omitempty"`
 	Minting     *UpgradeMinting      `json:"minting,omitempty"`
 	MoveBalance *UpgradeMoveBalance  `json:"move_balance,omitempty"`
+	Delegate    *UpgradeDelegate     `json:"delegate,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
@@ -55,6 +56,19 @@ type UpgradeMoveBalance struct {
 	Movements             []UpgradeBalanceMovement `json:"movements"`
 	AggregatedMovedAmount types.Coins              `json:"aggregated_minted_amount"`
 	NumberOfMovements     int                      `json:"number_of_mints"`
+}
+
+type UpgradeDelegate struct {
+	Delegations               []UpgradeDelegation `json:"delegation"`
+	AggregatedDelegatedAmount *types.Int          `json:"aggregated_minted_amount"`
+	NumberOfDelegations       int                 `json:"number_of_delegations"`
+}
+
+type UpgradeDelegation struct {
+	Validator string    `json:"validator"`
+	Delegator string    `json:"delegator"`
+	Tokens    types.Int `json:"tokens"`
+	NewShares types.Dec `json:"new_shares"`
 }
 
 func (app *App) GetManifestFilePath(prefix string) (string, error) {

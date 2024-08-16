@@ -766,7 +766,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to get accounts map: %w", err))
 		}
 
-		genesisValidatorsMap, validatorOperatorMap, err := getGenesisValidatorsMap(jsonData)
+		genesisValidatorsMap, err := getGenesisValidatorsMap(jsonData)
 		if err != nil {
 			panic(fmt.Sprintf("failed to get validators map: %w", err))
 		}
@@ -781,7 +781,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Sprintf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisValidatorsMap, validatorOperatorMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed to withdraw genesis staking rewards: %w", err))
 		}
@@ -796,7 +796,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		// TODO: Delegate balances
-		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, genesisValidatorsMap, validatorOperatorMap, networkInfo, manifest)
+		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, genesisValidatorsMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Sprintf("failed process delegations: %w", err))
 		}
