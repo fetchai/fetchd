@@ -2,44 +2,51 @@ package app
 
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
-		IbcTargetAddr:        "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		RemainingBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		NewAddrPrefix:        "fetch",
-		OldAddrPrefix:        "cudos",
+		ibcTargetAddr:        "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		remainingBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		newAddrPrefix:        "fetch",
+		oldAddrPrefix:        "cudos",
 
-		OriginalDenom:  "acudos",
-		ConvertedDenom: "afet",
+		originalDenom:  "acudos",
+		convertedDenom: "afet",
 
-		MergeTime:     123456,                // Epoch time of merge
-		VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+		mergeTime:     123456,                // Epoch time of merge
+		vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
-		BalanceConversionConstants: map[string]int{
+		balanceConversionConstants: map[string]int{
 			"acudos": 11},
 
-		NotVestedAccounts: map[string]bool{
+		notVestedAccounts: map[string]bool{
 			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
 		},
+
+		backupValidators: []string{"F9F8271C4C395A557DF85F460793278BB45E63D8"},
+		validatorsMap: map[string]string{
+			"2FB481C55D2B93F7AC832A4423E47A5569FF23DF": "F9F8271C4C395A557DF85F460793278BB45E63D8"},
 	},
 
 	"dorado-1": {
-		IbcTargetAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		ibcTargetAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 	},
 }
 
 type NetworkConfig struct {
-	IbcTargetAddr        string
-	RemainingBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
+	ibcTargetAddr        string
+	remainingBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 
-	NewAddrPrefix string
-	OldAddrPrefix string
+	newAddrPrefix string
+	oldAddrPrefix string
 
-	OriginalDenom  string
-	ConvertedDenom string
+	originalDenom  string
+	convertedDenom string
 
-	MergeTime     int64 // Epoch time of merge - beginning of vesting period
-	VestingPeriod int64 // Vesting period
+	mergeTime     int64 // Epoch time of merge - beginning of vesting period
+	vestingPeriod int64 // Vesting period
 
-	BalanceConversionConstants map[string]int
+	balanceConversionConstants map[string]int
 
-	NotVestedAccounts map[string]bool
+	notVestedAccounts map[string]bool
+
+	validatorsMap    map[string]string
+	backupValidators []string
 }
