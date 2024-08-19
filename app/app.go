@@ -796,7 +796,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		// TODO: Delegate balances
-		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, genesisValidatorsMap, networkInfo, manifest)
+		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed process delegations: %w", err))
 		}

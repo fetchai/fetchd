@@ -65,10 +65,11 @@ type UpgradeDelegate struct {
 }
 
 type UpgradeDelegation struct {
-	Validator string    `json:"validator"`
-	Delegator string    `json:"delegator"`
-	Tokens    types.Int `json:"tokens"`
-	NewShares types.Dec `json:"new_shares"`
+	OriginalDelegator string    `json:"original_delegator"`
+	Validator         string    `json:"validator"`
+	Delegator         string    `json:"delegator"`
+	Tokens            types.Int `json:"tokens"`
+	NewShares         types.Dec `json:"new_shares"`
 }
 
 func (app *App) GetManifestFilePath(prefix string) (string, error) {
