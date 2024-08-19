@@ -268,12 +268,12 @@ func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[strin
 func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisValidators *OrderedMap[string, ValidatorInfo], genesisAccounts *OrderedMap[string, AccountInfo], contractAccountMap *OrderedMap[string, ContractInfo], networkInfo NetworkConfig, manifest *UpgradeManifest) (*OrderedMap[string, OrderedMap[string, sdk.Coins]], error) {
 	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
 
-	bondedPoolAddress, err := GetAddressByName(jsonData, BondedPoolAccName)
+	bondedPoolAddress, err := GetAddressByName(genesisAccounts, BondedPoolAccName)
 	if err != nil {
 		return nil, err
 	}
 
-	notBondedPoolAddress, err := GetAddressByName(jsonData, NotBondedPoolAccName)
+	notBondedPoolAddress, err := GetAddressByName(genesisAccounts, NotBondedPoolAccName)
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +532,27 @@ func getCoinsFromInterfaceSlice(coins []interface{}) (sdk.Coins, error) {
 		}
 
 		sdkCoin := sdk.NewCoin(denom, sdkAmount)
+		resBalance = resBalance.Add(sdkCoin)
+
+	}
+
+	return resBalance, nil
+}
+
+func getDecCoinsFromInterfaceSlice(coins []interface{}) (sdk.DecCoins, error) {
+	var resBalance sdk.DecCoins
+	for _, coin := range coins {
+
+		amount := coin.(map[string]interface{})["amount"].(string)
+
+		denom := coin.(map[string]interface{})["denom"].(string)
+
+		sdkAmount, err := sdk.NewDecFromStr(amount)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to convert amount to sdk.Int")
+		}
+
+		sdkCoin := sdk.NewDecCoinFromDec(denom, sdkAmount)
 		resBalance = resBalance.Add(sdkCoin)
 
 	}
@@ -975,23 +996,13 @@ func moveGenesisBalance(genesisAccounts *OrderedMap[string, AccountInfo], fromAd
 	return nil
 }
 
-func GetAddressByName(jsonData map[string]interface{}, name string) (string, error) {
-	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
-	accounts := auth["accounts"].([]interface{})
+func GetAddressByName(genesisAccounts *OrderedMap[string, AccountInfo], name string) (string, error) {
 
-	for _, acc := range accounts {
-		accMap := acc.(map[string]interface{})
-		accType := accMap["@type"]
+	for _, accAddress := range genesisAccounts.Keys() {
+		acc, _ := genesisAccounts.Get(accAddress)
 
-		if accType == ModuleAccount {
-			accName := accMap["name"].(string)
-			if accName == name {
-
-				baseAccData := accMap["base_account"].(map[string]interface{})
-				accAddr := baseAccData["address"].(string)
-
-				return accAddr, nil
-			}
+		if acc.name == name {
+			return accAddress, nil
 		}
 
 	}
