@@ -771,11 +771,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("failed to get validators map: %w", err))
 		}
 
-		err = withdrawGenesisRewards(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw genesis rewards: %w", err))
-		}
-
 		err = GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountMap, genesisAccountsMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw IBC channels balances: %w", err))
@@ -792,6 +787,10 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		// TODO: Withdraw distribution module rewards
+		err = withdrawGenesisRewards(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Errorf("failed to withdraw genesis rewards: %w", err))
+		}
 
 		// TODO: Handle remaining module account balances - gravity
 

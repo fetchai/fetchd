@@ -241,31 +241,33 @@ func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[strin
 			return nil, err
 		}
 
-		// Map of delegatorAddress -> validatorPubkey -> sdk.coins balance
-		delegationInfo := NewOrderedMap[string, DelegationInfo]()
-		delegations := staking["delegations"].([]interface{})
-		for _, delegation := range delegations {
-			delegationMap := delegation.(map[string]interface{})
-			delegatorAddress := delegationMap["delegator_address"].(string)
-
-			delegatorSharesDec, err := sdk.NewDecFromStr(delegationMap["shares"].(string))
-			if err != nil {
-				return nil, err
-			}
-
-			delegationInfo.Set(delegatorAddress, DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
-		}
-
 		validatorInfoMap.Set(operatorAddress, ValidatorInfo{
 			stake:           tokensInt,
 			shares:          validatorSharesDec,
 			status:          status,
 			operatorAddress: operatorAddress,
 			consensusPubkey: decodedConsensusPubkey,
-			delegations:     *delegationInfo,
+			delegations:     *NewOrderedMap[string, DelegationInfo](),
 		})
 
 	}
+
+	// Map of delegatorAddress -> validatorPubkey -> sdk.coins balance
+	delegations := staking["delegations"].([]interface{})
+	for _, delegation := range delegations {
+		delegationMap := delegation.(map[string]interface{})
+		delegatorAddress := delegationMap["delegator_address"].(string)
+		validatorAddress := delegationMap["validator_address"].(string)
+
+		delegatorSharesDec, err := sdk.NewDecFromStr(delegationMap["shares"].(string))
+		if err != nil {
+			return nil, err
+		}
+
+		validator := validatorInfoMap.MustGet(validatorAddress)
+		validator.delegations.Set(delegatorAddress, DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
+	}
+
 	return validatorInfoMap, nil
 }
 
@@ -297,9 +299,8 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisV
 			return nil, err
 		}
 
-		currentValidatorInfo, _ := genesisValidators.Get(validatorOperatorAddress)
-
-		delegatorTokens := (delegatorSharesDec.MulInt(currentValidatorInfo.stake)).Quo(currentValidatorInfo.shares).TruncateInt()
+		currentValidatorInfo := genesisValidators.MustGet(validatorOperatorAddress)
+		delegatorTokens := currentValidatorInfo.TokensFromShares(delegatorSharesDec).TruncateInt()
 
 		// Move balance to delegator address
 		delegatorBalance := sdk.NewCoins(sdk.NewCoin(networkInfo.originalDenom, delegatorTokens))
@@ -317,13 +318,12 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisV
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, *NewOrderedMap[string, sdk.Coins]())
 			}
 
-			resolvedDelegatorMap, _ := delegatedBalanceMap.Get(resolvedDelegatorAddress)
+			resolvedDelegatorMap := delegatedBalanceMap.MustGet(resolvedDelegatorAddress)
 
 			if _, exists := resolvedDelegatorMap.Get(validatorOperatorAddress); !exists {
 				resolvedDelegatorMap.Set(validatorOperatorAddress, sdk.NewCoins())
 			}
-
-			resolvedDelegator, _ := resolvedDelegatorMap.Get(validatorOperatorAddress)
+			resolvedDelegator := resolvedDelegatorMap.MustGet(validatorOperatorAddress)
 
 			resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorBalance...))
 
@@ -380,14 +380,16 @@ func withdrawGenesisStakingDelegations(jsonData map[string]interface{}, genesisV
 	// Handle remaining pool balances
 
 	// Handle remaining bonded pool balance
-	bondedPool, _ := genesisAccounts.Get(bondedPoolAddress)
+	bondedPool := genesisAccounts.MustGet(bondedPoolAddress)
+	println("Remaining bonded pool balance: ", bondedPool.balance.String())
 	err = moveGenesisBalance(genesisAccounts, bondedPoolAddress, networkInfo.remainingBalanceAddr, bondedPool.balance, manifest)
 	if err != nil {
 		return nil, err
 	}
 
 	// Handle remaining not-bonded pool balance
-	notBondedPool, _ := genesisAccounts.Get(notBondedPoolAddress)
+	notBondedPool := genesisAccounts.MustGet(notBondedPoolAddress)
+	println("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
 	err = moveGenesisBalance(genesisAccounts, notBondedPoolAddress, networkInfo.remainingBalanceAddr, notBondedPool.balance, manifest)
 	if err != nil {
 		return nil, err
@@ -481,10 +483,10 @@ func createDelegation(ctx sdk.Context, app *App, OriginalDelegator string, NewDe
 func createGenesisDelegations(ctx sdk.Context, app *App, delegatedBalanceMap *OrderedMap[string, OrderedMap[string, sdk.Coins]], networkInfo NetworkConfig, manifest *UpgradeManifest) error {
 
 	for _, delegatorAddr := range delegatedBalanceMap.Keys() {
-		delegatorAddrMap, _ := delegatedBalanceMap.Get(delegatorAddr)
+		delegatorAddrMap := delegatedBalanceMap.MustGet(delegatorAddr)
 
 		for _, validatorOperatorStringAddr := range delegatorAddrMap.Keys() {
-			delegatedBalance, _ := delegatorAddrMap.Get(validatorOperatorStringAddr)
+			delegatedBalance := delegatorAddrMap.MustGet(validatorOperatorStringAddr)
 
 			validator, err := resolveValidator(ctx, app, validatorOperatorStringAddr, networkInfo)
 			if err != nil {
@@ -651,7 +653,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 		}
 
 		if !sdkBalance.Empty() {
-			accountInfoEntry, _ := genesisAccountsMap.Get(addrStr)
+			accountInfoEntry := genesisAccountsMap.MustGet(addrStr)
 			accountInfoEntry.balance = sdkBalance
 
 			genesisAccountsMap.Set(addrStr, accountInfoEntry)
@@ -676,7 +678,7 @@ func GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountsMap *OrderedMap[string
 	for _, IBCaccountAddress := range IBCAccountsMap.Keys() {
 
 		IBCaccount, IBCAccountExists := genesisAccounts.Get(IBCaccountAddress)
-		IBCinfo, _ := IBCAccountsMap.Get(IBCaccountAddress)
+		IBCinfo := IBCAccountsMap.MustGet(IBCaccountAddress)
 
 		var channelBalance sdk.Coins
 		if IBCAccountExists {
@@ -981,15 +983,15 @@ func moveGenesisBalance(genesisAccounts *OrderedMap[string, AccountInfo], fromAd
 	manifest.MoveBalance.AggregatedMovedAmount = manifest.MoveBalance.AggregatedMovedAmount.Add(amount...)
 	manifest.MoveBalance.NumberOfMovements += 1
 
-	if toAcc, _ := genesisAccounts.Get(toAddress); toAcc.migrated {
+	if toAcc := genesisAccounts.MustGet(toAddress); toAcc.migrated {
 		return fmt.Errorf("Genesis account %s already migrated", toAddress)
 	}
-	if fromAcc, _ := genesisAccounts.Get(fromAddress); fromAcc.migrated {
+	if fromAcc := genesisAccounts.MustGet(fromAddress); fromAcc.migrated {
 		return fmt.Errorf("Genesis account %s already migrated", fromAddress)
 	}
 
-	genesisToBalance, _ := genesisAccounts.Get(toAddress)
-	genesisFromBalance, _ := genesisAccounts.Get(fromAddress)
+	genesisToBalance := genesisAccounts.MustGet(toAddress)
+	genesisFromBalance := genesisAccounts.MustGet(fromAddress)
 
 	genesisToBalance.balance = genesisToBalance.balance.Add(amount...)
 	genesisFromBalance.balance = genesisFromBalance.balance.Sub(amount)
@@ -1003,7 +1005,7 @@ func moveGenesisBalance(genesisAccounts *OrderedMap[string, AccountInfo], fromAd
 func GetAddressByName(genesisAccounts *OrderedMap[string, AccountInfo], name string) (string, error) {
 
 	for _, accAddress := range genesisAccounts.Keys() {
-		acc, _ := genesisAccounts.Get(accAddress)
+		acc := genesisAccounts.MustGet(accAddress)
 
 		if acc.name == name {
 			return accAddress, nil
@@ -1017,7 +1019,7 @@ func GetAddressByName(genesisAccounts *OrderedMap[string, AccountInfo], name str
 func MigrateGenesisAccounts(ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest, genesisAccountsMap *OrderedMap[string, AccountInfo]) error {
 	var err error
 	for _, genesisAccountAddress := range genesisAccountsMap.Keys() {
-		genesisAccount, _ := genesisAccountsMap.Get(genesisAccountAddress)
+		genesisAccount := genesisAccountsMap.MustGet(genesisAccountAddress)
 
 		if genesisAccount.accountType == ContractAccountType {
 			// All contracts balance should be handled already

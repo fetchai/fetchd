@@ -35,8 +35,6 @@ type DistributionInfo struct {
 	// params
 	// previousProposer string
 	// validator_accumulated_comissions
-	// validator_current_rewards
-	//validatorCurrentRewards
 	validatorCurrentRewards    OrderedMap[string, ValidatorCurrentReward]
 	validatorHistoricalRewards OrderedMap[string, OrderedMap[uint64, ValidatorHistoricalReward]] // validator_addr -> period -> validator_historical_reward
 
@@ -54,11 +52,9 @@ func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedM
 
 		validatorAddress := delegatorStartingInfoMap["validator_address"].(string)
 		delegatorAddress := delegatorStartingInfoMap["delegator_address"].(string)
-
-		var delegatorStartingInfo DelegatorStartingInfo
-
 		startInfoMap := delegatorStartingInfoMap["starting_info"].(map[string]interface{})
 
+		var delegatorStartingInfo DelegatorStartingInfo
 		delegatorStartingInfo.height = cast.ToUint64(startInfoMap["height"].(string))
 		delegatorStartingInfo.previousPeriod = cast.ToUint64(startInfoMap["previous_period"].(string))
 
@@ -74,10 +70,7 @@ func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedM
 		}
 		valStartingInfo := delegatorStartingInfos.MustGet(validatorAddress)
 
-		if _, exists := valStartingInfo.Get(delegatorAddress); !exists {
-			valStartingInfo.Set(delegatorAddress, delegatorStartingInfo)
-		}
-
+		valStartingInfo.Set(delegatorAddress, delegatorStartingInfo)
 		delegatorStartingInfos.Set(validatorAddress, valStartingInfo)
 
 	}
@@ -108,10 +101,7 @@ func parseValidatorHistoricalRewards(distribution map[string]interface{}) (*Orde
 		}
 		valRewards := validatorHistoricalRewards.MustGet(validatorAddress)
 
-		if _, exists := valRewards.Get(period); !exists {
-			valRewards.Set(period, delegatorStartingInfo)
-		}
-
+		valRewards.Set(period, delegatorStartingInfo)
 		validatorHistoricalRewards.Set(validatorAddress, valRewards)
 
 	}
@@ -145,6 +135,45 @@ func parseValidatorCurrentRewards(distribution map[string]interface{}) (*Ordered
 	return validatorCurrentRewards, nil
 }
 
+func parseValidatorSlashEvents(distribution map[string]interface{}) (*OrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]], error) {
+
+	validatorSlashEvents := NewOrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]]()
+	validatorSlashEventsMap := distribution["validator_slash_events"].([]interface{})
+	for _, info := range validatorSlashEventsMap {
+		var delegatorStartingInfo ValidatorSlashEvent
+
+		delegatorStartingInfoMap := info.(map[string]interface{})
+		validatorAddress := delegatorStartingInfoMap["validator_address"].(string)
+		period := cast.ToUint64(delegatorStartingInfoMap["period"].(string))
+		height := cast.ToUint64(delegatorStartingInfoMap["height"].(string))
+
+		slashEvent := delegatorStartingInfoMap["validator_slash_event"].(map[string]interface{})
+
+		fraction, err := sdk.NewDecFromStr(slashEvent["fraction"].(string))
+		if err != nil {
+			return nil, err
+		}
+
+		delegatorStartingInfo.fraction = fraction
+		delegatorStartingInfo.period = period
+		delegatorStartingInfo.validatorPeriod = cast.ToUint64(slashEvent["validator_period"].(string))
+
+		if _, exists := validatorSlashEvents.Get(validatorAddress); !exists {
+			validatorSlashEvents.Set(validatorAddress, *NewOrderedMap[uint64, ValidatorSlashEvent]())
+		}
+		valEvents := validatorSlashEvents.MustGet(validatorAddress)
+
+		if delegatorStartingInfo.validatorPeriod != delegatorStartingInfo.period {
+			panic("erorr")
+		}
+
+		valEvents.Set(height, delegatorStartingInfo)
+		validatorSlashEvents.Set(validatorAddress, valEvents)
+
+	}
+	return validatorSlashEvents, nil
+}
+
 func parseGenesisDistrubution(jsonData map[string]interface{}) (*DistributionInfo, error) {
 	distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
 	distributionInfo := DistributionInfo{}
@@ -167,6 +196,12 @@ func parseGenesisDistrubution(jsonData map[string]interface{}) (*DistributionInf
 	}
 	distributionInfo.validatorCurrentRewards = *validatorCurrentRewards
 
+	validatorSlashEvents, err := parseValidatorSlashEvents(distribution)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.ValidatorSlashEvents = *validatorSlashEvents
+
 	return &distributionInfo, nil
 }
 
@@ -181,13 +216,30 @@ func withdrawGenesisRewards(jsonData map[string]interface{}, genesisValidators *
 		validator := genesisValidators.MustGet(validatorOpertorAddr)
 		delegatorStartInfo := distributionInfo.delegatorStartingInfos.MustGet(validatorOpertorAddr)
 
+		/*
+			if validator.status != BondedStatus {
+				continue
+			}
+		*/
+
+		blockHeight := uint64(11376855)
+		endingPeriod := distributionInfo.validatorCurrentRewards.MustGet(validatorOpertorAddr).period
+
+		maxPeriod := uint64(0)
+		historicalRewards := distributionInfo.validatorHistoricalRewards.MustGet(validatorOpertorAddr)
+		for _, period := range historicalRewards.Keys() {
+
+			if period > maxPeriod {
+				maxPeriod = period
+			}
+		}
+		println(maxPeriod, endingPeriod)
+
 		for _, delegatorAddr := range delegatorStartInfo.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddr)
-			blockHeight := uint64(11376855)
-			endingPeriod := distributionInfo.validatorCurrentRewards.MustGet(validatorOpertorAddr).period
 
-			reward := CalculateDelegationRewards(blockHeight, *distributionInfo, validator, delegation, endingPeriod)
-			print(reward)
+			reward := CalculateDelegationRewards(blockHeight, *distributionInfo, validator, delegation, maxPeriod)
+			println("reward", reward.String())
 		}
 
 	}
@@ -365,6 +417,9 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 	startingPeriod := startingInfo.previousPeriod
 	stake := startingInfo.stake
 
+	println(val.operatorAddress, del.delegatorAddress)
+	println("stake before", stake.String())
+
 	// Iterate through slashes and withdraw with calculated staking for
 	// distribution periods. These period offsets are dependent on *when* slashes
 	// happen - namely, in BeginBlock, after rewards are allocated...
@@ -393,11 +448,15 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 		)
 	}
 
+	println("stake after", stake.String())
+
 	// A total stake sanity check; Recalculated final stake should be less than or
 	// equal to current stake here. We cannot use Equals because stake is truncated
 	// when multiplied by slash fractions (see above). We could only use equals if
 	// we had arbitrary-precision rationals.
 	currentStake := val.TokensFromShares(del.shares)
+
+	println("current stake", currentStake.String())
 
 	if stake.GT(currentStake) {
 		// AccountI for rounding inconsistencies between:
