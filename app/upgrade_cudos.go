@@ -201,7 +201,11 @@ type ValidatorInfo struct {
 	status          string
 	operatorAddress string
 	consensusPubkey cryptotypes.PubKey
-	delegations     []DelegationInfo
+	delegations     OrderedMap[string, DelegationInfo]
+}
+
+func (v ValidatorInfo) TokensFromShares(shares sdk.Dec) sdk.Dec {
+	return (shares.MulInt(v.stake)).Quo(v.shares)
 }
 
 func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[string, ValidatorInfo], error) {
@@ -238,7 +242,7 @@ func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[strin
 		}
 
 		// Map of delegatorAddress -> validatorPubkey -> sdk.coins balance
-		var delegationInfo []DelegationInfo
+		delegationInfo := NewOrderedMap[string, DelegationInfo]()
 		delegations := staking["delegations"].([]interface{})
 		for _, delegation := range delegations {
 			delegationMap := delegation.(map[string]interface{})
@@ -249,7 +253,7 @@ func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[strin
 				return nil, err
 			}
 
-			delegationInfo = append(delegationInfo, DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
+			delegationInfo.Set(delegatorAddress, DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
 		}
 
 		validatorInfoMap.Set(operatorAddress, ValidatorInfo{
@@ -258,7 +262,7 @@ func getGenesisValidatorsMap(jsonData map[string]interface{}) (*OrderedMap[strin
 			status:          status,
 			operatorAddress: operatorAddress,
 			consensusPubkey: decodedConsensusPubkey,
-			delegations:     delegationInfo,
+			delegations:     *delegationInfo,
 		})
 
 	}
