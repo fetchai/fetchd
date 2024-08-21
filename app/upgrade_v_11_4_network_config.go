@@ -2,10 +2,13 @@ package app
 
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
-		ibcTargetAddr:        "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		remainingBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		newAddrPrefix:        "fetch",
-		oldAddrPrefix:        "cudos",
+		ibcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		remainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+
+		newAddrPrefix: "fetch",
+		oldAddrPrefix: "cudos",
 
 		originalDenom:  "acudos",
 		convertedDenom: "afet",
@@ -33,8 +36,10 @@ var NetworkInfos = map[string]NetworkConfig{
 }
 
 type NetworkConfig struct {
-	ibcTargetAddr        string
-	remainingBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
+	ibcTargetAddr                    string
+	remainingStakingBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
+	remainingGravityBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
+	remainingDistributionBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 
 	newAddrPrefix string
 	oldAddrPrefix string

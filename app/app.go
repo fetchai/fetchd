@@ -786,20 +786,21 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("failed to withdraw genesis staked tokens: %w", err))
 		}
 
-		// TODO: Withdraw distribution module rewards
-		err = withdrawGenesisRewards(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		err = withdrawGenesisDistributionRewards(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis rewards: %w", err))
 		}
 
-		// TODO: Handle remaining module account balances - gravity
+		err = WithdrawGenesisGravity(genesisAccountsMap, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Errorf("failed to withdraw gravity: %w", err))
+		}
 
-		err = MigrateGenesisAccounts(ctx, app, networkInfo, manifest, genesisAccountsMap)
+		err = MigrateGenesisAccounts(jsonData, ctx, app, networkInfo, manifest, genesisAccountsMap)
 		if err != nil {
 			panic(fmt.Errorf("failed process accounts: %w", err))
 		}
 
-		// TODO: Delegate balances
 		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed process delegations: %w", err))
@@ -815,8 +816,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			panic(err)
 		}
-
-		panic("Debug interruption")
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)

@@ -35,13 +35,18 @@ func (om *OrderedMap[K, V]) Get(key K) (V, bool) {
 	return value, exists
 }
 
-// Get retrieves the value associated with the key
+// Get retrieves the value associated with the key, panics otherwise
 func (om *OrderedMap[K, V]) MustGet(key K) V {
 	value, exists := om.values[key]
 	if !exists {
 		panic(fmt.Errorf("key %v not exists", key))
 	}
 	return value
+}
+
+func (om *OrderedMap[K, V]) Has(key K) bool {
+	_, exists := om.values[key]
+	return exists
 }
 
 // Delete removes a key-value pair from the map

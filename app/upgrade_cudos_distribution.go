@@ -29,18 +29,25 @@ type ValidatorCurrentReward struct {
 	reward sdk.DecCoins
 }
 
+type FeePool struct {
+	communityPool sdk.DecCoins
+}
+
 type DistributionInfo struct {
-	// fee_pool
-	// outstanding_rewards
+	feePool            FeePool
+	outstandingRewards OrderedMap[string, sdk.DecCoins]
+
 	// params
 	// previousProposer string
-	// validator_accumulated_comissions
-	validatorCurrentRewards    OrderedMap[string, ValidatorCurrentReward]
-	validatorHistoricalRewards OrderedMap[string, OrderedMap[uint64, ValidatorHistoricalReward]] // validator_addr -> period -> validator_historical_reward
 
-	delegatorStartingInfos OrderedMap[string, OrderedMap[string, DelegatorStartingInfo]] // validator_addr -> delegator_addr -> starting_info
-	//delegatorWithdrawInfos OrderedMap[string, string]                                    // delegator_address -> withdraw_address
-	ValidatorSlashEvents OrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]] // validatior_address -> height -> validator_slash_event
+	validatorAccumulatedCommissions OrderedMap[string, sdk.DecCoins]                                  // validator_addr -> validator_accumulated_commissions
+	validatorCurrentRewards         OrderedMap[string, ValidatorCurrentReward]                        // validator_addr -> validator_current_rewards
+	validatorHistoricalRewards      OrderedMap[string, OrderedMap[uint64, ValidatorHistoricalReward]] // validator_addr -> period -> validator_historical_reward
+
+	delegatorStartingInfos           OrderedMap[string, OrderedMap[string, DelegatorStartingInfo]] // validator_addr -> delegator_addr -> starting_info
+	delegatorWithdrawInfos           OrderedMap[string, string]                                    // delegator_address -> withdraw_address
+	validatorSlashEvents             OrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]]   // validatior_address -> height -> validator_slash_event
+	distributionModuleAccountAddress string
 }
 
 func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedMap[string, OrderedMap[string, DelegatorStartingInfo]], error) {
@@ -135,6 +142,46 @@ func parseValidatorCurrentRewards(distribution map[string]interface{}) (*Ordered
 	return validatorCurrentRewards, nil
 }
 
+func parseOutstandingRewards(distribution map[string]interface{}) (*OrderedMap[string, sdk.DecCoins], error) {
+
+	OutstandingRewards := NewOrderedMap[string, sdk.DecCoins]()
+	OutstandingRewardsMap := distribution["outstanding_rewards"].([]interface{})
+	for _, info := range OutstandingRewardsMap {
+
+		validatorCurrentRewardMap := info.(map[string]interface{})
+		validatorAddress := validatorCurrentRewardMap["validator_address"].(string)
+
+		outstandingRewardsCoins, err := getDecCoinsFromInterfaceSlice(validatorCurrentRewardMap["outstanding_rewards"].([]interface{}))
+		if err != nil {
+			return nil, err
+		}
+
+		OutstandingRewards.Set(validatorAddress, outstandingRewardsCoins)
+
+	}
+	return OutstandingRewards, nil
+}
+
+func parseValidatorAccumulatedCommissions(distribution map[string]interface{}) (*OrderedMap[string, sdk.DecCoins], error) {
+
+	validatorAccumulatedCommissions := NewOrderedMap[string, sdk.DecCoins]()
+	validatorAccumulatedCommissionsMap := distribution["validator_accumulated_commissions"].([]interface{})
+	for _, info := range validatorAccumulatedCommissionsMap {
+
+		validatorCurrentRewardMap := info.(map[string]interface{})
+		validatorAddress := validatorCurrentRewardMap["validator_address"].(string)
+
+		accumulatedCommissionsCoins, err := getDecCoinsFromInterfaceSlice(validatorCurrentRewardMap["accumulated"].(map[string]interface{})["commission"].([]interface{}))
+		if err != nil {
+			return nil, err
+		}
+
+		validatorAccumulatedCommissions.Set(validatorAddress, accumulatedCommissionsCoins)
+
+	}
+	return validatorAccumulatedCommissions, nil
+}
+
 func parseValidatorSlashEvents(distribution map[string]interface{}) (*OrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]], error) {
 
 	validatorSlashEvents := NewOrderedMap[string, OrderedMap[uint64, ValidatorSlashEvent]]()
@@ -174,7 +221,32 @@ func parseValidatorSlashEvents(distribution map[string]interface{}) (*OrderedMap
 	return validatorSlashEvents, nil
 }
 
-func parseGenesisDistrubution(jsonData map[string]interface{}) (*DistributionInfo, error) {
+func parseFeePool(distribution map[string]interface{}) (*FeePool, error) {
+	feePool := distribution["fee_pool"].(map[string]interface{})
+	communityPool, err := getDecCoinsFromInterfaceSlice(feePool["community_pool"].([]interface{}))
+	if err != nil {
+		return nil, err
+	}
+
+	return &FeePool{communityPool: communityPool}, nil
+}
+
+func parseDelegatorWithdrawInfos(distribution map[string]interface{}) (*OrderedMap[string, string], error) {
+	delegatorWithdrawInfos := NewOrderedMap[string, string]()
+
+	infos := distribution["delegator_withdraw_infos"].([]interface{})
+
+	for _, info := range infos {
+		delegatorWithdrawInfoMap := info.(map[string]interface{})
+		delegatorAddress := delegatorWithdrawInfoMap["delegator_address"].(string)
+		withdrawAddress := delegatorWithdrawInfoMap["withdraw_address"].(string)
+		delegatorWithdrawInfos.Set(delegatorAddress, withdrawAddress)
+	}
+
+	return delegatorWithdrawInfos, nil
+}
+
+func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *OrderedMap[string, AccountInfo]) (*DistributionInfo, error) {
 	distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
 	distributionInfo := DistributionInfo{}
 
@@ -200,52 +272,98 @@ func parseGenesisDistrubution(jsonData map[string]interface{}) (*DistributionInf
 	if err != nil {
 		return nil, err
 	}
-	distributionInfo.ValidatorSlashEvents = *validatorSlashEvents
+	distributionInfo.validatorSlashEvents = *validatorSlashEvents
+
+	outstandingRewards, err := parseOutstandingRewards(distribution)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.outstandingRewards = *outstandingRewards
+
+	feePool, err := parseFeePool(distribution)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.feePool = *feePool
+
+	delegatorWithdrawInfos, err := parseDelegatorWithdrawInfos(distribution)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.delegatorWithdrawInfos = *delegatorWithdrawInfos
+
+	validatorAccumulatedCommissions, err := parseValidatorAccumulatedCommissions(distribution)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.validatorAccumulatedCommissions = *validatorAccumulatedCommissions
+
+	distributionModuleAddress, err := GetAddressByName(genesisAccounts, DistributionAccName)
+	if err != nil {
+		return nil, err
+	}
+	distributionInfo.distributionModuleAccountAddress = distributionModuleAddress
 
 	return &distributionInfo, nil
 }
 
-func withdrawGenesisRewards(jsonData map[string]interface{}, genesisValidators *OrderedMap[string, ValidatorInfo], genesisAccounts *OrderedMap[string, AccountInfo], contractAccountMap *OrderedMap[string, ContractInfo], networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+func withdrawGenesisDistributionRewards(jsonData map[string]interface{}, genesisValidators *OrderedMap[string, ValidatorInfo], genesisAccounts *OrderedMap[string, AccountInfo], contractAccountMap *OrderedMap[string, ContractInfo], networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+	// We need to get this somehow
+	blockHeight := uint64(11376855)
 
-	distributionInfo, err := parseGenesisDistrubution(jsonData)
+	distributionInfo, err := parseGenesisDistribution(jsonData, genesisAccounts)
 	if err != nil {
 		return err
 	}
 
+	// Withdraw all delegation rewards
 	for _, validatorOpertorAddr := range distributionInfo.delegatorStartingInfos.Keys() {
 		validator := genesisValidators.MustGet(validatorOpertorAddr)
 		delegatorStartInfo := distributionInfo.delegatorStartingInfos.MustGet(validatorOpertorAddr)
 
-		/*
-			if validator.status != BondedStatus {
-				continue
-			}
-		*/
-
-		blockHeight := uint64(11376855)
-		endingPeriod := distributionInfo.validatorCurrentRewards.MustGet(validatorOpertorAddr).period
-
-		maxPeriod := uint64(0)
-		historicalRewards := distributionInfo.validatorHistoricalRewards.MustGet(validatorOpertorAddr)
-		for _, period := range historicalRewards.Keys() {
-
-			if period > maxPeriod {
-				maxPeriod = period
-			}
-		}
-		println(maxPeriod, endingPeriod)
+		endingPeriod := updateValidatorData(distributionInfo, validator)
 
 		for _, delegatorAddr := range delegatorStartInfo.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddr)
 
-			reward := CalculateDelegationRewards(blockHeight, *distributionInfo, validator, delegation, maxPeriod)
-			println("reward", reward.String())
+			_, err := withdrawDelegationRewards(genesisAccounts, distributionInfo, validator, delegation, endingPeriod, blockHeight, networkInfo, manifest)
+			if err != nil {
+				return err
+			}
 		}
 
 	}
 
-	println(distributionInfo.validatorHistoricalRewards.Keys())
+	// Withdraw validator accumulated comission
+	err = withdrawAccumulatedCommissions(distributionInfo, genesisAccounts, networkInfo, manifest)
+	if err != nil {
+		return err
+	}
 
+	// Withdraw remaining balance
+	distributionModuleAccount := genesisAccounts.MustGet(distributionInfo.distributionModuleAccountAddress)
+
+	distributionModuleAccount = genesisAccounts.MustGet(distributionInfo.distributionModuleAccountAddress)
+	println("Remaining dist balance: ", distributionModuleAccount.balance.String())
+
+	err = MoveGenesisBalance(genesisAccounts, distributionInfo.distributionModuleAccountAddress, networkInfo.remainingDistributionBalanceAddr, distributionModuleAccount.balance, manifest)
+	if err != nil {
+		return err
+	}
+
+	/*
+		totalOutstandingRewards := sdk.DecCoins{}
+		for _, validatorAddr := range distributionInfo.outstandingRewards.keys {
+			validatorReward := distributionInfo.outstandingRewards.MustGet(validatorAddr)
+
+			//validatorAddress := outstandingRewardMap["validator_address"].(string)
+
+			totalOutstandingRewards = totalOutstandingRewards.Add(validatorReward...)
+		}
+		println("Total outstanding rewards ", totalOutstandingRewards.String())
+		/*
+
+	*/
 	/*
 		distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
 		communityPoolBalance, err := getDecCoinsFromInterfaceSlice(distribution["fee_pool"].(map[string]interface{})["community_pool"].([]interface{}))
@@ -339,6 +457,27 @@ func withdrawGenesisRewards(jsonData map[string]interface{}, genesisValidators *
 	return nil
 }
 
+func withdrawAccumulatedCommissions(distributionInfo *DistributionInfo, genesisAccounts *OrderedMap[string, AccountInfo], networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+
+	for _, validatorAddress := range distributionInfo.validatorAccumulatedCommissions.Keys() {
+		accumulatedCommission := distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddress)
+
+		accountAddress, err := convertAddressPrefix(validatorAddress, networkInfo.oldAddrPrefix)
+		if err != nil {
+			return err
+		}
+
+		finalRewards, _ := accumulatedCommission.TruncateDecimal()
+
+		err = MoveGenesisBalance(genesisAccounts, distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, manifest)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // calculate the rewards accrued by a delegation between two periods
 func calculateDelegationRewardsBetween(distributionInfo DistributionInfo, val ValidatorInfo,
 	startingPeriod, endingPeriod uint64, stake sdk.Dec,
@@ -372,7 +511,7 @@ func calculateDelegationRewardsBetween(distributionInfo DistributionInfo, val Va
 func IterateValidatorSlashEventsBetween(distributionInfo DistributionInfo, val string, startingHeight uint64, endingHeight uint64,
 	handler func(height uint64, event ValidatorSlashEvent) (stop bool),
 ) {
-	slashEvents, exists := distributionInfo.ValidatorSlashEvents.Get(val)
+	slashEvents, exists := distributionInfo.validatorSlashEvents.Get(val)
 	// No slashing events
 	if !exists {
 		return
@@ -417,9 +556,6 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 	startingPeriod := startingInfo.previousPeriod
 	stake := startingInfo.stake
 
-	println(val.operatorAddress, del.delegatorAddress)
-	println("stake before", stake.String())
-
 	// Iterate through slashes and withdraw with calculated staking for
 	// distribution periods. These period offsets are dependent on *when* slashes
 	// happen - namely, in BeginBlock, after rewards are allocated...
@@ -448,15 +584,11 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 		)
 	}
 
-	println("stake after", stake.String())
-
 	// A total stake sanity check; Recalculated final stake should be less than or
 	// equal to current stake here. We cannot use Equals because stake is truncated
 	// when multiplied by slash fractions (see above). We could only use equals if
 	// we had arbitrary-precision rationals.
 	currentStake := val.TokensFromShares(del.shares)
-
-	println("current stake", currentStake.String())
 
 	if stake.GT(currentStake) {
 		// AccountI for rounding inconsistencies between:
@@ -470,7 +602,7 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 		// the smallest decimal place being one greater in stake than
 		// currentStake. When we calculated slashing by period, even if we
 		// round down for each slash fraction, it's possible due to how much is
-		// being rounded that we slash less when slashing by period instead of
+		// being rounded that we slash less when slashing by period insteafd of
 		// for when we slash without periods. In other words, the single slash,
 		// and the slashing by period could both be rounding down but the
 		// slashing by period is simply rounding down less, thus making stake >
@@ -493,4 +625,140 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo Distributio
 	// calculate rewards for final period
 	rewards = rewards.Add(calculateDelegationRewardsBetween(distributionInfo, val, startingPeriod, endingPeriod, stake)...)
 	return rewards
+}
+
+// get the delegator withdraw address, defaulting to the delegator address
+func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
+	b, exists := d.delegatorWithdrawInfos.Get(delAddr)
+	if !exists {
+		return delAddr
+	}
+	return b
+}
+
+func withdrawDelegationRewards(genesisAccounts *OrderedMap[string, AccountInfo], distributionInfo *DistributionInfo, val ValidatorInfo, del DelegationInfo, endingPeriod uint64, blockHeight uint64, networkInfo NetworkConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
+	distributionModuleAddress, err := GetAddressByName(genesisAccounts, DistributionAccName)
+	if err != nil {
+		return nil, err
+	}
+
+	// check existence of delegator starting info
+	distributionInfo.delegatorStartingInfos.Has(val.operatorAddress)
+	StartingInfoMap, exists := distributionInfo.delegatorStartingInfos.Get(val.operatorAddress)
+	if !exists || !StartingInfoMap.Has(del.delegatorAddress) {
+		return nil, fmt.Errorf("delegator starting info not found")
+	}
+
+	// end current period and calculate rewards
+	//endingPeriod := k.IncrementValidatorPeriod(ctx, val)
+	rewardsRaw := CalculateDelegationRewards(blockHeight, *distributionInfo, val, del, endingPeriod)
+	outstanding := distributionInfo.outstandingRewards.MustGet(val.operatorAddress)
+
+	// defensive edge case may happen on the very final digits
+	// of the decCoins due to operation order of the distribution mechanism.
+	rewards := rewardsRaw.Intersect(outstanding)
+	if !rewards.IsEqual(rewardsRaw) {
+		println(
+			"rounding error withdrawing rewards from validator",
+			"delegator", del.delegatorAddress,
+			"validator", val.operatorAddress,
+			"got", rewards.String(),
+			"expected", rewardsRaw.String(),
+		)
+	}
+
+	// truncate reward dec coins, return remainder to community pool
+	finalRewards, remainder := rewards.TruncateDecimal()
+
+	// add coins to user account
+	if !finalRewards.IsZero() {
+		withdrawAddr := distributionInfo.GetDelegatorWithdrawAddr(del.delegatorAddress)
+
+		// SendCoinsFromModuleToAccount
+		err := MoveGenesisBalance(genesisAccounts, distributionModuleAddress, withdrawAddr, finalRewards, manifest)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// update the outstanding rewards and the community pool only if the
+	// transaction was successful
+
+	distributionInfo.outstandingRewards.Set(val.operatorAddress, outstanding.Sub(rewards))
+	distributionInfo.feePool.communityPool = distributionInfo.feePool.communityPool.Add(remainder...)
+
+	// decrement reference count of starting period
+	//startingInfo := k.GetDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
+	//startingPeriod := startingInfo.PreviousPeriod
+	//k.decrementReferenceCount(ctx, del.GetValidatorAddr(), startingPeriod)
+
+	// remove delegator starting info
+	//k.DeleteDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
+
+	if finalRewards.IsZero() {
+		baseDenom, _ := sdk.GetBaseDenom()
+		if baseDenom == "" {
+			baseDenom = networkInfo.originalDenom
+		}
+
+		// Note, we do not call the NewCoins constructor as we do not want the zero
+		// coin removed.
+		finalRewards = sdk.Coins{sdk.NewCoin(baseDenom, sdk.ZeroInt())}
+	}
+
+	// TODO: manifest event
+	/*
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeWithdrawRewards,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, finalRewards.String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
+			),
+		)
+	*/
+
+	return finalRewards, nil
+}
+
+// Code based on IncrementValidatorPeriod
+func updateValidatorData(distributionInfo *DistributionInfo, val ValidatorInfo) uint64 {
+
+	// fetch current rewards
+	rewards := distributionInfo.validatorCurrentRewards.MustGet(val.operatorAddress)
+
+	// calculate current ratio
+	var current sdk.DecCoins
+	if val.stake.IsZero() {
+
+		// can't calculate ratio for zero-token validators
+		// ergo we instead add to the community pool
+
+		outstanding := distributionInfo.outstandingRewards.MustGet(val.operatorAddress)
+		distributionInfo.feePool.communityPool = distributionInfo.feePool.communityPool.Add(rewards.reward...)
+		outstanding = outstanding.Sub(rewards.reward)
+		distributionInfo.outstandingRewards.Set(val.operatorAddress, outstanding)
+
+		current = sdk.DecCoins{}
+	} else {
+		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
+		current = rewards.reward.QuoDecTruncate(val.stake.ToDec())
+	}
+
+	// fetch historical rewards for last period
+	//historical := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period-1).CumulativeRewardRatio
+	historicalValInfo := distributionInfo.validatorHistoricalRewards.MustGet(val.operatorAddress)
+	historical := historicalValInfo.MustGet(rewards.period - 1)
+
+	// decrement reference count
+	//k.decrementReferenceCount(ctx, val.GetOperator(), rewards.Period-1)
+
+	// set new historical rewards with reference count of 1
+	// k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period, types.NewValidatorHistoricalRewards(historical.Add(current...), 1))
+	historical.cumulativeRewardRatio = historical.cumulativeRewardRatio.Add(current...)
+	historicalValInfo.Set(rewards.period, historical)
+
+	// set current rewards, incrementing period by 1
+	//k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, rewards.Period+1))
+
+	return rewards.period
 }
