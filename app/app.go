@@ -750,53 +750,37 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("failed to unmarshal app state: %w", err))
 		}
 
-		contractAccountMap, err := GetWasmContractAccounts(jsonData)
+		genesisData, err := parseGenesisData(jsonData, networkInfo)
 		if err != nil {
 			panic(err)
 		}
 
-		IBCAccountMap, err := GetIBCAccountsMap(jsonData, networkInfo)
-		if err != nil {
-			panic(err)
-		}
-
-		// Get all accounts and balances into map
-		genesisAccountsMap, err := getGenesisAccountMap(jsonData, contractAccountMap, IBCAccountMap, networkInfo)
-		if err != nil {
-			panic(fmt.Errorf("failed to get accounts map: %w", err))
-		}
-
-		genesisValidatorsMap, err := getGenesisValidatorsMap(jsonData)
-		if err != nil {
-			panic(fmt.Errorf("failed to get validators map: %w", err))
-		}
-
-		err = GenesisUpgradeWithdrawIBCChannelsBalances(IBCAccountMap, genesisAccountsMap, networkInfo, manifest)
+		err = GenesisUpgradeWithdrawIBCChannelsBalances(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw IBC channels balances: %w", err))
 		}
 
-		err = withdrawGenesisContractBalances(genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		err = withdrawGenesisContractBalances(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis staked tokens: %w", err))
 		}
 
-		err = withdrawGenesisDistributionRewards(jsonData, genesisValidatorsMap, genesisAccountsMap, contractAccountMap, networkInfo, manifest)
+		err = withdrawGenesisDistributionRewards(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis rewards: %w", err))
 		}
 
-		err = WithdrawGenesisGravity(genesisAccountsMap, networkInfo, manifest)
+		err = WithdrawGenesisGravity(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw gravity: %w", err))
 		}
 
-		err = MigrateGenesisAccounts(jsonData, ctx, app, networkInfo, manifest, genesisAccountsMap)
+		err = MigrateGenesisAccounts(genesisData, ctx, app, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed process accounts: %w", err))
 		}
@@ -806,7 +790,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("failed process delegations: %w", err))
 		}
 
-		err = VerifySupply(jsonData, genesisAccountsMap, networkInfo, manifest)
+		err = VerifySupply(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to verify supply: %w", err))
 		}
