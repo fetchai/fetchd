@@ -760,12 +760,12 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("failed to withdraw IBC channels balances: %w", err))
 		}
 
-		err = withdrawGenesisContractBalances(genesisData, networkInfo, manifest)
+		err = withdrawGenesisContractBalances(genesisData, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis contracts balances: %w", err))
 		}
 
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(jsonData, genesisData, networkInfo, manifest)
+		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to withdraw genesis staked tokens: %w", err))
 		}
@@ -789,6 +789,13 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			panic(fmt.Errorf("failed process delegations: %w", err))
 		}
+
+		err = fundCommunityPool(ctx, app, genesisData, networkInfo, manifest)
+		if err != nil {
+			panic(fmt.Errorf("Failed to fund community pool: %w", err))
+		}
+
+		// TODO: Fund gravity bridge
 
 		err = VerifySupply(genesisData, networkInfo, manifest)
 		if err != nil {

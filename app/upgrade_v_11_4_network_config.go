@@ -1,5 +1,11 @@
 package app
 
+import sdk "github.com/cosmos/cosmos-sdk/types"
+
+var (
+	acudosToafet, _ = sdk.NewDecFromStr("0.0909090909")
+)
+
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
 		ibcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
@@ -17,8 +23,8 @@ var NetworkInfos = map[string]NetworkConfig{
 		mergeTime:     123456,                // Epoch time of merge
 		vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
-		balanceConversionConstants: map[string]int{
-			"acudos": 11},
+		balanceConversionConstants: map[string]sdk.Dec{
+			"acudos": acudosToafet},
 
 		notVestedAccounts: map[string]bool{
 			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
@@ -51,7 +57,7 @@ type NetworkConfig struct {
 	mergeTime     int64 // Epoch time of merge - beginning of vesting period
 	vestingPeriod int64 // Vesting period
 
-	balanceConversionConstants map[string]int
+	balanceConversionConstants map[string]sdk.Dec
 
 	notVestedAccounts map[string]bool
 

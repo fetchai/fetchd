@@ -78,7 +78,7 @@ func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedM
 		valStartingInfo := delegatorStartingInfos.MustGet(validatorAddress)
 
 		valStartingInfo.Set(delegatorAddress, delegatorStartingInfo)
-		delegatorStartingInfos.Set(validatorAddress, valStartingInfo)
+		delegatorStartingInfos.Set(validatorAddress, *valStartingInfo)
 
 	}
 	return delegatorStartingInfos, nil
@@ -108,8 +108,8 @@ func parseValidatorHistoricalRewards(distribution map[string]interface{}) (*Orde
 		}
 		valRewards := validatorHistoricalRewards.MustGet(validatorAddress)
 
-		valRewards.Set(period, delegatorStartingInfo)
-		validatorHistoricalRewards.Set(validatorAddress, valRewards)
+		valRewards.SetNew(period, delegatorStartingInfo)
+		//validatorHistoricalRewards.Set(validatorAddress, *valRewards)
 
 	}
 	return validatorHistoricalRewards, nil
@@ -136,7 +136,7 @@ func parseValidatorCurrentRewards(distribution map[string]interface{}) (*Ordered
 		validatorCurrentReward.reward = rewards
 		validatorCurrentReward.period = period
 
-		validatorCurrentRewards.Set(validatorAddress, validatorCurrentReward)
+		validatorCurrentRewards.SetNew(validatorAddress, validatorCurrentReward)
 
 	}
 	return validatorCurrentRewards, nil
@@ -156,7 +156,7 @@ func parseOutstandingRewards(distribution map[string]interface{}) (*OrderedMap[s
 			return nil, err
 		}
 
-		OutstandingRewards.Set(validatorAddress, outstandingRewardsCoins)
+		OutstandingRewards.SetNew(validatorAddress, outstandingRewardsCoins)
 
 	}
 	return OutstandingRewards, nil
@@ -176,7 +176,7 @@ func parseValidatorAccumulatedCommissions(distribution map[string]interface{}) (
 			return nil, err
 		}
 
-		validatorAccumulatedCommissions.Set(validatorAddress, accumulatedCommissionsCoins)
+		validatorAccumulatedCommissions.SetNew(validatorAddress, accumulatedCommissionsCoins)
 
 	}
 	return validatorAccumulatedCommissions, nil
@@ -214,8 +214,8 @@ func parseValidatorSlashEvents(distribution map[string]interface{}) (*OrderedMap
 			panic("erorr")
 		}
 
-		valEvents.Set(height, delegatorStartingInfo)
-		validatorSlashEvents.Set(validatorAddress, valEvents)
+		valEvents.SetNew(height, delegatorStartingInfo)
+		//validatorSlashEvents.Set(validatorAddress, *valEvents)
 
 	}
 	return validatorSlashEvents, nil
@@ -312,16 +312,16 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo Ne
 	blockHeight := uint64(11376855)
 
 	// Withdraw all delegation rewards
-	for _, validatorOpertorAddr := range genesisData.distributionInfo.delegatorStartingInfos.Keys() {
+	for _, validatorOpertorAddr := range *genesisData.distributionInfo.delegatorStartingInfos.Keys() {
 		validator := genesisData.validators.MustGet(validatorOpertorAddr)
 		delegatorStartInfo := genesisData.distributionInfo.delegatorStartingInfos.MustGet(validatorOpertorAddr)
 
-		endingPeriod := updateValidatorData(&genesisData.distributionInfo, validator)
+		endingPeriod := updateValidatorData(&genesisData.distributionInfo, *validator)
 
-		for _, delegatorAddr := range delegatorStartInfo.Keys() {
+		for _, delegatorAddr := range *delegatorStartInfo.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddr)
 
-			_, err := withdrawDelegationRewards(genesisData, validator, delegation, endingPeriod, blockHeight, networkInfo, manifest)
+			_, err := withdrawDelegationRewards(genesisData, *validator, *delegation, endingPeriod, blockHeight, networkInfo, manifest)
 			if err != nil {
 				return err
 			}
@@ -346,105 +346,105 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo Ne
 
 	/*
 		totalOutstandingRewards := sdk.DecCoins{}
-		for _, validatorAddr := range distributionInfo.outstandingRewards.keys {
-			validatorReward := distributionInfo.outstandingRewards.MustGet(validatorAddr)
+		for _, validatorAddr := range *genesisData.distributionInfo.outstandingRewards.Keys() {
+			validatorReward := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddr)
 
 			//validatorAddress := outstandingRewardMap["validator_address"].(string)
 
-			totalOutstandingRewards = totalOutstandingRewards.Add(validatorReward...)
+			totalOutstandingRewards = totalOutstandingRewards.Add(*validatorReward...)
 		}
 		println("Total outstanding rewards ", totalOutstandingRewards.String())
-		/*
-
 	*/
 	/*
-		distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
-		communityPoolBalance, err := getDecCoinsFromInterfaceSlice(distribution["fee_pool"].(map[string]interface{})["community_pool"].([]interface{}))
-		if err != nil {
-			return err
-		}
-		println("Community ", communityPoolBalance.String())
 
-		DistributionModuleAddress, err := GetAddressByName(genesisAccounts, DistributionAccName)
-		if err != nil {
-			return err
-		}
-		DistributionAcc, _ := genesisAccounts.Get(DistributionModuleAddress)
-		DistributionDecBalance := sdk.NewDecCoinsFromCoins(DistributionAcc.balance...)
-		println("Distribution ", DistributionDecBalance.String())
-
-		totalOutstandingRewards := sdk.NewDecCoins()
-		outstandingRewards := distribution["outstanding_rewards"].([]interface{})
-		for _, outstandingReward := range outstandingRewards {
-			outstandingRewardMap := outstandingReward.(map[string]interface{})
-
-			//validatorAddress := outstandingRewardMap["validator_address"].(string)
-
-			outstandingRewardBalance, err := getDecCoinsFromInterfaceSlice(outstandingRewardMap["outstanding_rewards"].([]interface{}))
+		/*
+			distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
+			communityPoolBalance, err := getDecCoinsFromInterfaceSlice(distribution["fee_pool"].(map[string]interface{})["community_pool"].([]interface{}))
 			if err != nil {
 				return err
 			}
+			println("Community ", communityPoolBalance.String())
 
-			totalOutstandingRewards = totalOutstandingRewards.Add(outstandingRewardBalance...)
-		}
-		println("Total outstanding rewards ", totalOutstandingRewards.String())
-
-		totalcurrentRewards := sdk.NewDecCoins()
-		currentRewards := distribution["validator_current_rewards"].([]interface{})
-		for _, currentReward := range currentRewards {
-			currentRewardMap := currentReward.(map[string]interface{})
-
-			//validatorAddress := currentRewardMap["validator_address"].(string)
-
-			rewardBalance, err := getDecCoinsFromInterfaceSlice(currentRewardMap["rewards"].(map[string]interface{})["rewards"].([]interface{}))
+			DistributionModuleAddress, err := GetAddressByName(genesisAccounts, DistributionAccName)
 			if err != nil {
 				return err
 			}
+			DistributionAcc, _ := genesisAccounts.Get(DistributionModuleAddress)
+			DistributionDecBalance := sdk.NewDecCoinsFromCoins(DistributionAcc.balance...)
+			println("Distribution ", DistributionDecBalance.String())
 
-			totalcurrentRewards = totalcurrentRewards.Add(rewardBalance...)
+			totalOutstandingRewards := sdk.NewDecCoins()
+			outstandingRewards := distribution["outstanding_rewards"].([]interface{})
+			for _, outstandingReward := range outstandingRewards {
+				outstandingRewardMap := outstandingReward.(map[string]interface{})
 
-		}
-		println("Total current rewards ", totalcurrentRewards.String())
+				//validatorAddress := outstandingRewardMap["validator_address"].(string)
 
-		totalAccumulatedComissions := sdk.NewDecCoins()
-		ValidatorAccumulatedCommissions := distribution["validator_accumulated_commissions"].([]interface{})
-		for _, validatorAccumulatedCommission := range ValidatorAccumulatedCommissions {
-			validatorAccumulatedCommissionMap := validatorAccumulatedCommission.(map[string]interface{})
+				outstandingRewardBalance, err := getDecCoinsFromInterfaceSlice(outstandingRewardMap["outstanding_rewards"].([]interface{}))
+				if err != nil {
+					return err
+				}
 
-			//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
+				totalOutstandingRewards = totalOutstandingRewards.Add(outstandingRewardBalance...)
+			}
+			println("Total outstanding rewards ", totalOutstandingRewards.String())
 
-			AccumulatedComissionsBalance, err := getDecCoinsFromInterfaceSlice(validatorAccumulatedCommissionMap["accumulated"].(map[string]interface{})["commission"].([]interface{}))
-			if err != nil {
-				return err
+			totalcurrentRewards := sdk.NewDecCoins()
+			currentRewards := distribution["validator_current_rewards"].([]interface{})
+			for _, currentReward := range currentRewards {
+				currentRewardMap := currentReward.(map[string]interface{})
+
+				//validatorAddress := currentRewardMap["validator_address"].(string)
+
+				rewardBalance, err := getDecCoinsFromInterfaceSlice(currentRewardMap["rewards"].(map[string]interface{})["rewards"].([]interface{}))
+				if err != nil {
+					return err
+				}
+
+				totalcurrentRewards = totalcurrentRewards.Add(rewardBalance...)
+
+			}
+			println("Total current rewards ", totalcurrentRewards.String())
+
+			totalAccumulatedComissions := sdk.NewDecCoins()
+			ValidatorAccumulatedCommissions := distribution["validator_accumulated_commissions"].([]interface{})
+			for _, validatorAccumulatedCommission := range ValidatorAccumulatedCommissions {
+				validatorAccumulatedCommissionMap := validatorAccumulatedCommission.(map[string]interface{})
+
+				//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
+
+				AccumulatedComissionsBalance, err := getDecCoinsFromInterfaceSlice(validatorAccumulatedCommissionMap["accumulated"].(map[string]interface{})["commission"].([]interface{}))
+				if err != nil {
+					return err
+				}
+
+				totalAccumulatedComissions = totalAccumulatedComissions.Add(AccumulatedComissionsBalance...)
+
+				//println(validatorAddress, AccumulatedComissionsBalance)
 			}
 
-			totalAccumulatedComissions = totalAccumulatedComissions.Add(AccumulatedComissionsBalance...)
+			println("Total accumulated comission ", totalAccumulatedComissions.String())
 
-			//println(validatorAddress, AccumulatedComissionsBalance)
-		}
+			totalStartingStake := sdk.NewDec(0)
+			delegatorStartingInfos := distribution["delegator_starting_infos"].([]interface{})
+			for _, delegatorStartingInfo := range delegatorStartingInfos {
+				delegatorStartingInfoMap := delegatorStartingInfo.(map[string]interface{})
 
-		println("Total accumulated comission ", totalAccumulatedComissions.String())
+				//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
 
-		totalStartingStake := sdk.NewDec(0)
-		delegatorStartingInfos := distribution["delegator_starting_infos"].([]interface{})
-		for _, delegatorStartingInfo := range delegatorStartingInfos {
-			delegatorStartingInfoMap := delegatorStartingInfo.(map[string]interface{})
+				delegatorStartingInfoStake, err := sdk.NewDecFromStr(delegatorStartingInfoMap["starting_info"].(map[string]interface{})["stake"].(string))
+				if err != nil {
+					return err
+				}
 
-			//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
+				totalStartingStake = totalStartingStake.Add(delegatorStartingInfoStake)
 
-			delegatorStartingInfoStake, err := sdk.NewDecFromStr(delegatorStartingInfoMap["starting_info"].(map[string]interface{})["stake"].(string))
-			if err != nil {
-				return err
+				//println(validatorAddress, AccumulatedComissionsBalance)
 			}
+			println("Total starting info stake ", totalStartingStake.String())
 
-			totalStartingStake = totalStartingStake.Add(delegatorStartingInfoStake)
-
-			//println(validatorAddress, AccumulatedComissionsBalance)
-		}
-		println("Total starting info stake ", totalStartingStake.String())
-
-		println(communityPoolBalance.Add(communityPoolBalance...).String())
-		println(DistributionDecBalance.Sub(communityPoolBalance.Add(totalOutstandingRewards...)).String())
+			println(communityPoolBalance.Add(communityPoolBalance...).String())
+			println(DistributionDecBalance.Sub(communityPoolBalance.Add(totalOutstandingRewards...)).String())
 	*/
 
 	return nil
@@ -452,7 +452,7 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo Ne
 
 func withdrawAccumulatedCommissions(genesisData *GenesisData, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
 
-	for _, validatorAddress := range genesisData.distributionInfo.validatorAccumulatedCommissions.Keys() {
+	for _, validatorAddress := range *genesisData.distributionInfo.validatorAccumulatedCommissions.Keys() {
 		accumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddress)
 
 		accountAddress, err := convertAddressPrefix(validatorAddress, networkInfo.oldAddrPrefix)
@@ -510,26 +510,24 @@ func IterateValidatorSlashEventsBetween(distributionInfo DistributionInfo, val s
 		return
 	}
 
-	slashEvents.SortKeys(func(i, j uint64) bool {
-		return i < j
-	})
+	sortUint64Keys(slashEvents)
 
 	keys := slashEvents.Keys()
 
 	// Perform binary search to find the starting point
-	startIdx := sort.Search(len(keys), func(i int) bool {
-		return keys[i] >= startingHeight
+	startIdx := sort.Search(len(*keys), func(i int) bool {
+		return (*keys)[i] >= startingHeight
 	})
 
 	// Iterate from the startIdx up to the ending height
-	for i := startIdx; i < len(keys); i++ {
-		height := keys[i]
+	for i := startIdx; i < len(*keys); i++ {
+		height := (*keys)[i]
 		if height > endingHeight {
 			break
 		}
 
 		event := slashEvents.MustGet(height)
-		if handler(height, event) {
+		if handler(height, *event) {
 			break
 		}
 	}
@@ -626,7 +624,7 @@ func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
 	if !exists {
 		return delAddr
 	}
-	return b
+	return *b
 }
 
 func withdrawDelegationRewards(genesisData *GenesisData, val ValidatorInfo, del DelegationInfo, endingPeriod uint64, blockHeight uint64, networkInfo NetworkConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
@@ -644,7 +642,7 @@ func withdrawDelegationRewards(genesisData *GenesisData, val ValidatorInfo, del 
 
 	// defensive edge case may happen on the very final digits
 	// of the decCoins due to operation order of the distribution mechanism.
-	rewards := rewardsRaw.Intersect(outstanding)
+	rewards := rewardsRaw.Intersect(*outstanding)
 	if !rewards.IsEqual(rewardsRaw) {
 		println(
 			"rounding error withdrawing rewards from validator",
@@ -721,7 +719,7 @@ func updateValidatorData(distributionInfo *DistributionInfo, val ValidatorInfo) 
 		// can't calculate ratio for zero-token validators
 		// ergo we instead add to the community pool
 
-		outstanding := distributionInfo.outstandingRewards.MustGet(val.operatorAddress)
+		outstanding := *distributionInfo.outstandingRewards.MustGet(val.operatorAddress)
 		distributionInfo.feePool.communityPool = distributionInfo.feePool.communityPool.Add(rewards.reward...)
 		outstanding = outstanding.Sub(rewards.reward)
 		distributionInfo.outstandingRewards.Set(val.operatorAddress, outstanding)
@@ -743,7 +741,7 @@ func updateValidatorData(distributionInfo *DistributionInfo, val ValidatorInfo) 
 	// set new historical rewards with reference count of 1
 	// k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period, types.NewValidatorHistoricalRewards(historical.Add(current...), 1))
 	historical.cumulativeRewardRatio = historical.cumulativeRewardRatio.Add(current...)
-	historicalValInfo.Set(rewards.period, historical)
+	historicalValInfo.Set(rewards.period, *historical)
 
 	// set current rewards, incrementing period by 1
 	//k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, rewards.Period+1))
