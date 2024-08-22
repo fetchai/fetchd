@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/spf13/cast"
+	"math"
 	"sort"
 )
 
@@ -307,9 +308,62 @@ func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *
 	return &distributionInfo, nil
 }
 
+func getMaxBlockHeight(genesisData *GenesisData) uint64 {
+	maxHeight := uint64(0)
+
+	for _, validatorOperatorAddress := range *genesisData.distributionInfo.delegatorStartingInfos.Keys() {
+		valStartingInfo := genesisData.distributionInfo.delegatorStartingInfos.MustGet(validatorOperatorAddress)
+		for _, DelegatorAddress := range *valStartingInfo.Keys() {
+			stargingInfo := valStartingInfo.MustGet(DelegatorAddress)
+			if stargingInfo.height > maxHeight {
+				maxHeight = stargingInfo.height
+			}
+		}
+	}
+
+	for _, validatorOperatorAddress := range *genesisData.distributionInfo.validatorSlashEvents.Keys() {
+		slashEvents := genesisData.distributionInfo.validatorSlashEvents.MustGet(validatorOperatorAddress)
+
+		for _, slashEventHeight := range *slashEvents.Keys() {
+			if slashEventHeight > maxHeight {
+				maxHeight = slashEventHeight
+			}
+		}
+
+	}
+
+	return maxHeight
+}
+
+func checkTolerance(coins sdk.Coins, maxToleratedDiff sdk.Int) error {
+	for _, coin := range coins {
+		if coin.Amount.GT(maxToleratedDiff) {
+			return fmt.Errorf("Remaining balance %s is too high", coin.String())
+		}
+	}
+	return nil
+}
+
+func verifyOutstandingBalances(genesisData *GenesisData) error {
+	for _, validatorAddr := range *genesisData.distributionInfo.outstandingRewards.Keys() {
+		validatorOutstandingReward := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddr)
+		validatorAccumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddr)
+
+		diff := validatorOutstandingReward.Sub(*validatorAccumulatedCommission)
+
+		err := checkDecTolerance(diff, maxToleratedRemainingDistributionBalance)
+		if err != nil {
+			return fmt.Errorf("Outstanding balance of validator %s is too high: %w", validatorAddr, err)
+		}
+	}
+
+	return nil
+}
+
 func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
-	// We need to get this somehow
-	blockHeight := uint64(11376855)
+	// block height is used only to early stop rewards calculation
+	//blockHeight := getMaxBlockHeight(genesisData) + 1
+	blockHeight := uint64(math.MaxUint64)
 
 	// Withdraw all delegation rewards
 	for _, validatorOpertorAddr := range *genesisData.distributionInfo.delegatorStartingInfos.Keys() {
@@ -329,123 +383,36 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo Ne
 
 	}
 
-	// Withdraw validator accumulated comission
-	err := withdrawAccumulatedCommissions(genesisData, networkInfo, manifest)
+	// Check that remaining balance is equal to AccumulatedCommissions
+	err := verifyOutstandingBalances(genesisData)
+	if err != nil {
+		return err
+	}
+
+	// Withdraw validator accumulated commission
+	//	err = withdrawAccumulatedCommissions(genesisData, networkInfo, manifest)
+	err = withdrawValidatorOutstandingRewards(genesisData, networkInfo, manifest)
 	if err != nil {
 		return err
 	}
 
 	// Withdraw remaining balance
 	distributionModuleAccount := genesisData.accounts.MustGet(genesisData.distributionInfo.distributionModuleAccountAddress)
-	println("Remaining dist balance: ", distributionModuleAccount.balance.String())
+
+	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
+	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
+	println("Remaining dist balance: ", remainingBalance.String())
+
+	// TODO: Write to manifest?
+	err = checkTolerance(remainingBalance, maxToleratedRemainingDistributionBalance)
+	if err != nil {
+		return fmt.Errorf("Remaining distribution balance %s is too high", remainingBalance.String())
+	}
 
 	err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, networkInfo.remainingDistributionBalanceAddr, distributionModuleAccount.balance, manifest)
 	if err != nil {
 		return err
 	}
-
-	/*
-		totalOutstandingRewards := sdk.DecCoins{}
-		for _, validatorAddr := range *genesisData.distributionInfo.outstandingRewards.Keys() {
-			validatorReward := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddr)
-
-			//validatorAddress := outstandingRewardMap["validator_address"].(string)
-
-			totalOutstandingRewards = totalOutstandingRewards.Add(*validatorReward...)
-		}
-		println("Total outstanding rewards ", totalOutstandingRewards.String())
-	*/
-	/*
-
-		/*
-			distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
-			communityPoolBalance, err := getDecCoinsFromInterfaceSlice(distribution["fee_pool"].(map[string]interface{})["community_pool"].([]interface{}))
-			if err != nil {
-				return err
-			}
-			println("Community ", communityPoolBalance.String())
-
-			DistributionModuleAddress, err := GetAddressByName(genesisAccounts, DistributionAccName)
-			if err != nil {
-				return err
-			}
-			DistributionAcc, _ := genesisAccounts.Get(DistributionModuleAddress)
-			DistributionDecBalance := sdk.NewDecCoinsFromCoins(DistributionAcc.balance...)
-			println("Distribution ", DistributionDecBalance.String())
-
-			totalOutstandingRewards := sdk.NewDecCoins()
-			outstandingRewards := distribution["outstanding_rewards"].([]interface{})
-			for _, outstandingReward := range outstandingRewards {
-				outstandingRewardMap := outstandingReward.(map[string]interface{})
-
-				//validatorAddress := outstandingRewardMap["validator_address"].(string)
-
-				outstandingRewardBalance, err := getDecCoinsFromInterfaceSlice(outstandingRewardMap["outstanding_rewards"].([]interface{}))
-				if err != nil {
-					return err
-				}
-
-				totalOutstandingRewards = totalOutstandingRewards.Add(outstandingRewardBalance...)
-			}
-			println("Total outstanding rewards ", totalOutstandingRewards.String())
-
-			totalcurrentRewards := sdk.NewDecCoins()
-			currentRewards := distribution["validator_current_rewards"].([]interface{})
-			for _, currentReward := range currentRewards {
-				currentRewardMap := currentReward.(map[string]interface{})
-
-				//validatorAddress := currentRewardMap["validator_address"].(string)
-
-				rewardBalance, err := getDecCoinsFromInterfaceSlice(currentRewardMap["rewards"].(map[string]interface{})["rewards"].([]interface{}))
-				if err != nil {
-					return err
-				}
-
-				totalcurrentRewards = totalcurrentRewards.Add(rewardBalance...)
-
-			}
-			println("Total current rewards ", totalcurrentRewards.String())
-
-			totalAccumulatedComissions := sdk.NewDecCoins()
-			ValidatorAccumulatedCommissions := distribution["validator_accumulated_commissions"].([]interface{})
-			for _, validatorAccumulatedCommission := range ValidatorAccumulatedCommissions {
-				validatorAccumulatedCommissionMap := validatorAccumulatedCommission.(map[string]interface{})
-
-				//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
-
-				AccumulatedComissionsBalance, err := getDecCoinsFromInterfaceSlice(validatorAccumulatedCommissionMap["accumulated"].(map[string]interface{})["commission"].([]interface{}))
-				if err != nil {
-					return err
-				}
-
-				totalAccumulatedComissions = totalAccumulatedComissions.Add(AccumulatedComissionsBalance...)
-
-				//println(validatorAddress, AccumulatedComissionsBalance)
-			}
-
-			println("Total accumulated comission ", totalAccumulatedComissions.String())
-
-			totalStartingStake := sdk.NewDec(0)
-			delegatorStartingInfos := distribution["delegator_starting_infos"].([]interface{})
-			for _, delegatorStartingInfo := range delegatorStartingInfos {
-				delegatorStartingInfoMap := delegatorStartingInfo.(map[string]interface{})
-
-				//validatorAddress := validatorAccumulatedCommissionMap["validator_address"].(string)
-
-				delegatorStartingInfoStake, err := sdk.NewDecFromStr(delegatorStartingInfoMap["starting_info"].(map[string]interface{})["stake"].(string))
-				if err != nil {
-					return err
-				}
-
-				totalStartingStake = totalStartingStake.Add(delegatorStartingInfoStake)
-
-				//println(validatorAddress, AccumulatedComissionsBalance)
-			}
-			println("Total starting info stake ", totalStartingStake.String())
-
-			println(communityPoolBalance.Add(communityPoolBalance...).String())
-			println(DistributionDecBalance.Sub(communityPoolBalance.Add(totalOutstandingRewards...)).String())
-	*/
 
 	return nil
 }
@@ -461,6 +428,27 @@ func withdrawAccumulatedCommissions(genesisData *GenesisData, networkInfo Networ
 		}
 
 		finalRewards, _ := accumulatedCommission.TruncateDecimal()
+
+		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, manifest)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func withdrawValidatorOutstandingRewards(genesisData *GenesisData, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+
+	for _, validatorAddress := range *genesisData.distributionInfo.outstandingRewards.Keys() {
+		outstandingRewards := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddress)
+
+		accountAddress, err := convertAddressPrefix(validatorAddress, networkInfo.oldAddrPrefix)
+		if err != nil {
+			return err
+		}
+
+		finalRewards, _ := outstandingRewards.TruncateDecimal()
 
 		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, manifest)
 		if err != nil {
@@ -510,6 +498,7 @@ func IterateValidatorSlashEventsBetween(distributionInfo DistributionInfo, val s
 		return
 	}
 
+	// Ensure correct order of iteration, won't have any effect if keys are already sorted
 	sortUint64Keys(slashEvents)
 
 	keys := slashEvents.Keys()

@@ -475,14 +475,28 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 
 	// Handle remaining bonded pool balance
 	bondedPool := genesisData.accounts.MustGet(genesisData.bondedPoolAddress)
+
+	// TODO: Write to manifest?
+	err := checkTolerance(bondedPool.balance, maxToleratedRemainingStakingBalance)
+	if err != nil {
+		return nil, fmt.Errorf("Remaining bonded pool balance %s is too high", bondedPool.balance.String())
+	}
+
 	println("Remaining bonded pool balance: ", bondedPool.balance.String())
-	err := MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, networkInfo.remainingStakingBalanceAddr, bondedPool.balance, manifest)
+	err = MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, networkInfo.remainingStakingBalanceAddr, bondedPool.balance, manifest)
 	if err != nil {
 		return nil, err
 	}
 
 	// Handle remaining not-bonded pool balance
 	notBondedPool := genesisData.accounts.MustGet(genesisData.notBondedPoolAddress)
+
+	// TODO: Write to manifest?
+	err = checkTolerance(notBondedPool.balance, maxToleratedRemainingStakingBalance)
+	if err != nil {
+		return nil, fmt.Errorf("Remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
+	}
+
 	println("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
 	err = MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, networkInfo.remainingStakingBalanceAddr, notBondedPool.balance, manifest)
 	if err != nil {
@@ -1120,6 +1134,15 @@ func GetAddressByName(genesisAccounts *OrderedMap[string, AccountInfo], name str
 	}
 
 	return "", fmt.Errorf("address not found")
+}
+
+func checkDecTolerance(coins sdk.DecCoins, maxToleratedDiff sdk.Int) error {
+	for _, coin := range coins {
+		if coin.Amount.TruncateInt().GT(maxToleratedDiff) {
+			return fmt.Errorf("Remaining balance %s is too high", coin.String())
+		}
+	}
+	return nil
 }
 
 func WithdrawGenesisGravity(genesisData *GenesisData, networkInfo NetworkConfig, manifest *UpgradeManifest) error {

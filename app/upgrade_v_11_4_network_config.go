@@ -3,7 +3,9 @@ package app
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
 var (
-	acudosToafet, _ = sdk.NewDecFromStr("0.0909090909")
+	acudosToafet, _                             = sdk.NewDecFromStr("0.0909090909")
+	maxToleratedRemainingDistributionBalance, _ = sdk.NewIntFromString("1000000000000000000")
+	maxToleratedRemainingStakingBalance, _      = sdk.NewIntFromString("100000000")
 )
 
 var NetworkInfos = map[string]NetworkConfig{
