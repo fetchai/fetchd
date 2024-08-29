@@ -16,8 +16,6 @@ require (
 	github.com/tendermint/tm-db v0.6.7
 )
 
-require github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-
 require (
 	filippo.io/edwards25519 v1.0.0-beta.2 // indirect
 	github.com/99designs/keyring v1.1.6 // indirect
