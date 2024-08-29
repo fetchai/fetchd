@@ -436,7 +436,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, *resolvedDelegatorMap)
 
 				// Move balance from bonded pool to delegator
-				err := MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
+				err := MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, "bonded_delegation", manifest)
 				if err != nil {
 					return nil, err
 				}
@@ -445,7 +445,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 				// Delegations to unbonded/jailed/tombstoned validators are not re-delegated
 
 				// Move balance from not-bonded pool to delegator
-				err := MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, manifest)
+				err := MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, "not_bonded_delegation", manifest)
 				if err != nil {
 					return nil, err
 				}
@@ -462,7 +462,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(networkInfo.originalDenom, entry.balance))
 
 				// Move unbonding balance from not-bonded pool to delegator address
-				err := MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, manifest)
+				err := MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, "unbonding_delegation", manifest)
 				if err != nil {
 					return nil, err
 				}
@@ -483,7 +483,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 	}
 
 	println("Remaining bonded pool balance: ", bondedPool.balance.String())
-	err = MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, networkInfo.remainingStakingBalanceAddr, bondedPool.balance, manifest)
+	err = MoveGenesisBalance(genesisData, genesisData.bondedPoolAddress, networkInfo.remainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, networkInfo Net
 	}
 
 	println("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
-	err = MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, networkInfo.remainingStakingBalanceAddr, notBondedPool.balance, manifest)
+	err = MoveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, networkInfo.remainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -601,7 +601,8 @@ func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, netw
 	if err != nil {
 		return err
 	}
-	// TODO: Update manifest
+
+	RegisterBalanceMovement(networkInfo.remainingDistributionBalanceAddr, "community_pool", communityPoolBalance, "community_pool_balance", manifest)
 
 	return nil
 }
@@ -624,6 +625,9 @@ func createGenesisDelegations(ctx sdk.Context, app *App, delegatedBalanceMap *Or
 			if err != nil {
 				return err
 			}
+
+			// Apply commission on delegated amount
+			convertedBalance = applyCommissionCeilInt(convertedBalance, networkInfo)
 
 			if convertedBalance.Empty() {
 				// Very small balance gets truncated to 0 during conversion
@@ -713,7 +717,7 @@ func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *Upgrade
 
 		contractBalance, contractBalancePresent := genesisData.accounts.Get(contractAddress)
 		if contractBalancePresent {
-			err := MoveGenesisBalance(genesisData, contractAddress, resolvedAddress, contractBalance.balance, manifest)
+			err := MoveGenesisBalance(genesisData, contractAddress, resolvedAddress, contractBalance.balance, "contract_balance", manifest)
 			if err != nil {
 				return err
 			}
@@ -750,6 +754,38 @@ func convertBalance(balance sdk.Coins, networkInfo NetworkConfig) (sdk.Coins, er
 	}
 
 	return resBalance, nil
+}
+
+func calculateCommissionDec(balance sdk.Coins, networkInfo NetworkConfig) sdk.DecCoins {
+	var resBalance sdk.DecCoins
+
+	for _, coin := range balance {
+		commission := networkInfo.commissionRate.MulInt(coin.Amount)
+		sdkCoin := sdk.NewDecCoinFromDec(coin.Denom, commission)
+		resBalance = resBalance.Add(sdkCoin)
+	}
+
+	return resBalance
+}
+
+func calculateCommissionFloorInt(balance sdk.Coins, networkInfo NetworkConfig) sdk.Coins {
+	commissionInt, _ := calculateCommissionDec(balance, networkInfo).TruncateDecimal()
+	return commissionInt
+}
+
+func ceilDectoInt(balance sdk.DecCoins) sdk.Coins {
+	var resBalance sdk.Coins
+
+	for _, coin := range balance {
+		sdkCoin := sdk.NewCoin(coin.Denom, coin.Amount.Ceil().TruncateInt())
+		resBalance = resBalance.Add(sdkCoin)
+	}
+
+	return resBalance
+}
+
+func applyCommissionCeilInt(balance sdk.Coins, networkInfo NetworkConfig) sdk.Coins {
+	return balance.Sub(ceilDectoInt(calculateCommissionDec(balance, networkInfo)))
 }
 
 func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, AccountInfo]) error {
@@ -808,7 +844,7 @@ func GenesisUpgradeWithdrawIBCChannelsBalances(genesisData *GenesisData, network
 		if IBCAccountExists {
 
 			channelBalance = IBCaccount.balance
-			err := MoveGenesisBalance(genesisData, IBCaccountAddress, ibcWithdrawalAddress, channelBalance, manifest)
+			err := MoveGenesisBalance(genesisData, IBCaccountAddress, ibcWithdrawalAddress, channelBalance, "ibc_balance", manifest)
 			if err != nil {
 				return err
 			}
@@ -1038,7 +1074,7 @@ func createNewNormalAccountFromBaseAccount(ctx sdk.Context, app *App, account *a
 	return nil
 }
 
-func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.AccAddress, newCoins sdk.Coins, manifest *UpgradeManifest) error {
+func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.AccAddress, newCoins sdk.Coins, memo string, manifest *UpgradeManifest) error {
 
 	err := app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, toAddress, newCoins)
 	if err != nil {
@@ -1049,10 +1085,11 @@ func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.
 		manifest.Minting = &UpgradeMinting{}
 	}
 
-	mint := UpgradeMint{
+	mint := UpgradeBalanceMovement{
 		From:   fromAddress,
 		To:     toAddress.String(),
 		Amount: newCoins,
+		Memo:   memo,
 	}
 	manifest.Minting.Mints = append(manifest.Minting.Mints, mint)
 
@@ -1079,7 +1116,22 @@ func MarkAccountAsMigrated(genesisData *GenesisData, accountAddress string) erro
 	return nil
 }
 
-func MoveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string, amount sdk.Coins, manifest *UpgradeManifest) error {
+func RegisterBalanceMovement(fromAddress, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest) {
+
+	if manifest.MoveMintedBalance == nil {
+		manifest.MoveMintedBalance = &UpgradeMoveMintedBalance{}
+	}
+
+	movement := UpgradeBalanceMovement{
+		From:   fromAddress,
+		To:     toAddress,
+		Amount: amount,
+		Memo:   memo,
+	}
+	manifest.MoveMintedBalance.Movements = append(manifest.MoveMintedBalance.Movements, movement)
+}
+
+func MoveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest) error {
 	// Check if fromAddress exists
 	if _, ok := genesisData.accounts.Get(fromAddress); !ok {
 		return fmt.Errorf("fromAddress %s does not exist in genesis balances", fromAddress)
@@ -1089,19 +1141,20 @@ func MoveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 		return fmt.Errorf("toAddress %s does not exist in genesis balances", toAddress)
 	}
 
-	if manifest.MoveBalance == nil {
-		manifest.MoveBalance = &UpgradeMoveBalance{}
+	if manifest.MoveGenesisBalance == nil {
+		manifest.MoveGenesisBalance = &UpgradeMoveGenesisBalance{}
 	}
 
 	movement := UpgradeBalanceMovement{
 		From:   fromAddress,
 		To:     toAddress,
 		Amount: amount,
+		Memo:   memo,
 	}
-	manifest.MoveBalance.Movements = append(manifest.MoveBalance.Movements, movement)
+	manifest.MoveGenesisBalance.Movements = append(manifest.MoveGenesisBalance.Movements, movement)
 
-	manifest.MoveBalance.AggregatedMovedAmount = manifest.MoveBalance.AggregatedMovedAmount.Add(amount...)
-	manifest.MoveBalance.NumberOfMovements += 1
+	manifest.MoveGenesisBalance.AggregatedMovedAmount = manifest.MoveGenesisBalance.AggregatedMovedAmount.Add(amount...)
+	manifest.MoveGenesisBalance.NumberOfMovements += 1
 
 	if toAcc := genesisData.accounts.MustGet(toAddress); toAcc.migrated {
 		return fmt.Errorf("Genesis account %s already migrated", toAddress)
@@ -1148,7 +1201,7 @@ func checkDecTolerance(coins sdk.DecCoins, maxToleratedDiff sdk.Int) error {
 func WithdrawGenesisGravity(genesisData *GenesisData, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
 
 	gravityBalance := genesisData.accounts.MustGet(genesisData.gravityModuleAccountAddress).balance
-	err := MoveGenesisBalance(genesisData, genesisData.gravityModuleAccountAddress, networkInfo.remainingGravityBalanceAddr, gravityBalance, manifest)
+	err := MoveGenesisBalance(genesisData, genesisData.gravityModuleAccountAddress, networkInfo.remainingGravityBalanceAddr, gravityBalance, "gravity_balance", manifest)
 	if err != nil {
 		return err
 	}
@@ -1168,6 +1221,17 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		return err
 	}
 
+	// Move commission to specific account
+	totalCommission := calculateCommissionFloorInt(totalSupplyToMint, networkInfo)
+
+	commissionRawAcc, err := sdk.AccAddressFromBech32(networkInfo.commissionFetchAddr)
+	if err != nil {
+		return fmt.Errorf("failed to get commission account raw address: %w", err)
+	}
+
+	err = mintToAccount(ctx, app, "mint_module", commissionRawAcc, totalCommission, "total_commission", manifest)
+
+	// Mint the rest of the supply
 	for _, genesisAccountAddress := range *genesisData.accounts.Keys() {
 		genesisAccount := genesisData.accounts.MustGet(genesisAccountAddress)
 
@@ -1179,7 +1243,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 					return err
 				}
 			} else {
-				return fmt.Errorf("Unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
+				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
 			}
 			continue
 		}
@@ -1190,7 +1254,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 					return err
 				}
 			} else {
-				return fmt.Errorf("Unresolved module balance: %s %s %s", genesisAccountAddress, genesisAccount.balance.String(), genesisAccount.name)
+				return fmt.Errorf("unresolved module balance: %s %s %s", genesisAccountAddress, genesisAccount.balance.String(), genesisAccount.name)
 			}
 			continue
 		}
@@ -1203,7 +1267,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 					return err
 				}
 			} else {
-				return fmt.Errorf("Unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
+				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
 			}
 			continue
 		}
@@ -1213,6 +1277,9 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		if err != nil {
 			return err
 		}
+
+		// Apply commission
+		newBalance = applyCommissionCeilInt(newBalance, networkInfo)
 
 		var newBaseAccount *authtypes.BaseAccount
 
@@ -1261,7 +1328,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 				}
 			}
 
-			err = mintToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, newBalance, manifest)
+			err = mintToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, newBalance, "regular_account", manifest)
 			if err != nil {
 				return err
 			}
@@ -1280,6 +1347,16 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		}
 
 	}
+
+	// Move remaining mint module balance
+	mintModuleAddr := app.AccountKeeper.GetModuleAddress(minttypes.ModuleName)
+	remainingMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
+	err = checkTolerance(remainingMintBalance, maxToleratedRemainingMintBalance)
+	if err != nil {
+		return err
+	}
+
+	err = mintToAccount(ctx, app, networkInfo.commissionFetchAddr, commissionRawAcc, remainingMintBalance, "remaining_mint_module_balance", manifest)
 
 	return nil
 }

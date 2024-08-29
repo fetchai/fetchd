@@ -726,7 +726,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.3-8-g929563a", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.4-rc0-40-g62459c7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
 		manifest := NewUpgradeManifest()
 
@@ -795,8 +795,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic(fmt.Errorf("Failed to fund community pool: %w", err))
 		}
 
-		// TODO: Fund gravity bridge
-
 		err = VerifySupply(genesisData, networkInfo, manifest)
 		if err != nil {
 			panic(fmt.Errorf("failed to verify supply: %w", err))
@@ -807,6 +805,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			panic(err)
 		}
+
+		panic("Debug interruption")
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)

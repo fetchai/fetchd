@@ -409,7 +409,7 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, networkInfo Ne
 		return fmt.Errorf("Remaining distribution balance %s is too high", remainingBalance.String())
 	}
 
-	err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, networkInfo.remainingDistributionBalanceAddr, distributionModuleAccount.balance, manifest)
+	err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, networkInfo.remainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest)
 	if err != nil {
 		return err
 	}
@@ -429,7 +429,7 @@ func withdrawAccumulatedCommissions(genesisData *GenesisData, networkInfo Networ
 
 		finalRewards, _ := accumulatedCommission.TruncateDecimal()
 
-		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, manifest)
+		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, "accumulated_commission", manifest)
 		if err != nil {
 			return err
 		}
@@ -450,7 +450,7 @@ func withdrawValidatorOutstandingRewards(genesisData *GenesisData, networkInfo N
 
 		finalRewards, _ := outstandingRewards.TruncateDecimal()
 
-		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, manifest)
+		err = MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, accountAddress, finalRewards, "outstanding_rewards", manifest)
 		if err != nil {
 			return err
 		}
@@ -650,7 +650,7 @@ func withdrawDelegationRewards(genesisData *GenesisData, val ValidatorInfo, del 
 		withdrawAddr := genesisData.distributionInfo.GetDelegatorWithdrawAddr(del.delegatorAddress)
 
 		// SendCoinsFromModuleToAccount
-		err := MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, withdrawAddr, finalRewards, manifest)
+		err := MoveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, withdrawAddr, finalRewards, "delegation_reward", manifest)
 		if err != nil {
 			return nil, err
 		}
@@ -681,7 +681,6 @@ func withdrawDelegationRewards(genesisData *GenesisData, val ValidatorInfo, del 
 		finalRewards = sdk.Coins{sdk.NewCoin(baseDenom, sdk.ZeroInt())}
 	}
 
-	// TODO: manifest event
 	/*
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(

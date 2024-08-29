@@ -4,8 +4,10 @@ import sdk "github.com/cosmos/cosmos-sdk/types"
 
 var (
 	acudosToafet, _                             = sdk.NewDecFromStr("0.0909090909")
+	commissionRate, _                           = sdk.NewDecFromStr("0.05")
 	maxToleratedRemainingDistributionBalance, _ = sdk.NewIntFromString("1000000000000000000")
 	maxToleratedRemainingStakingBalance, _      = sdk.NewIntFromString("100000000")
+	maxToleratedRemainingMintBalance, _         = sdk.NewIntFromString("100000000")
 )
 
 var NetworkInfos = map[string]NetworkConfig{
@@ -14,6 +16,7 @@ var NetworkInfos = map[string]NetworkConfig{
 		remainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 		remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 		remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 
 		newAddrPrefix: "fetch",
 		oldAddrPrefix: "cudos",
@@ -27,6 +30,8 @@ var NetworkInfos = map[string]NetworkConfig{
 
 		balanceConversionConstants: map[string]sdk.Dec{
 			"acudos": acudosToafet},
+
+		commissionRate: commissionRate,
 
 		notVestedAccounts: map[string]bool{
 			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
@@ -48,6 +53,7 @@ type NetworkConfig struct {
 	remainingStakingBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 	remainingGravityBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 	remainingDistributionBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
+	commissionFetchAddr              string
 
 	newAddrPrefix string
 	oldAddrPrefix string
@@ -60,6 +66,7 @@ type NetworkConfig struct {
 	vestingPeriod int64 // Vesting period
 
 	balanceConversionConstants map[string]sdk.Dec
+	commissionRate             sdk.Dec
 
 	notVestedAccounts map[string]bool
 

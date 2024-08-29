@@ -11,10 +11,11 @@ import (
 const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
-	IBC         *UpgradeIBCTransfers `json:"ibc,omitempty"`
-	Minting     *UpgradeMinting      `json:"minting,omitempty"`
-	MoveBalance *UpgradeMoveBalance  `json:"move_balance,omitempty"`
-	Delegate    *UpgradeDelegate     `json:"delegate,omitempty"`
+	IBC                *UpgradeIBCTransfers       `json:"ibc,omitempty"`
+	Minting            *UpgradeMinting            `json:"minting,omitempty"`
+	MoveGenesisBalance *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
+	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
+	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
@@ -27,16 +28,11 @@ type UpgradeIBCTransfer struct {
 	Amount    types.Coins `json:"amount"`
 }
 
-type UpgradeMint struct {
-	From   string      `json:"from"`
-	To     string      `json:"to"`
-	Amount types.Coins `json:"amount"`
-}
-
 type UpgradeBalanceMovement struct {
 	From   string      `json:"from"`
 	To     string      `json:"to"`
 	Amount types.Coins `json:"amount"`
+	Memo   string      `json:"memo"`
 }
 
 type UpgradeIBCTransfers struct {
@@ -47,12 +43,12 @@ type UpgradeIBCTransfers struct {
 }
 
 type UpgradeMinting struct {
-	Mints                  []UpgradeMint `json:"mint"`
-	AggregatedMintedAmount types.Coins   `json:"aggregated_minted_amount"`
-	NumberOfMints          int           `json:"number_of_mints"`
+	Mints                  []UpgradeBalanceMovement `json:"mint"`
+	AggregatedMintedAmount types.Coins              `json:"aggregated_minted_amount"`
+	NumberOfMints          int                      `json:"number_of_mints"`
 }
 
-type UpgradeMoveBalance struct {
+type UpgradeMoveGenesisBalance struct {
 	Movements             []UpgradeBalanceMovement `json:"movements"`
 	AggregatedMovedAmount types.Coins              `json:"aggregated_minted_amount"`
 	NumberOfMovements     int                      `json:"number_of_mints"`
@@ -70,6 +66,10 @@ type UpgradeDelegation struct {
 	Delegator         string    `json:"delegator"`
 	Tokens            types.Int `json:"tokens"`
 	NewShares         types.Dec `json:"new_shares"`
+}
+
+type UpgradeMoveMintedBalance struct {
+	Movements []UpgradeBalanceMovement `json:"movements"`
 }
 
 func (app *App) GetManifestFilePath(prefix string) (string, error) {
