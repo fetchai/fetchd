@@ -557,7 +557,7 @@ func getIntAmountFromCoins(balance sdk.Coins, expectedDenom string) (*sdk.Int, e
 	return nil, fmt.Errorf("denom %s not found in balance", expectedDenom)
 }
 
-func createDelegation(ctx sdk.Context, app *App, OriginalDelegator string, NewDelegatorRawAddr sdk.AccAddress, validator stakingtypes.Validator, tokensToDelegate sdk.Int, manifest *UpgradeManifest) error {
+func createDelegation(ctx sdk.Context, app *App, OriginalValidator string, NewDelegatorRawAddr sdk.AccAddress, validator stakingtypes.Validator, originalBalance sdk.Coins, tokensToDelegate sdk.Int, manifest *UpgradeManifest) error {
 
 	newShares, err := app.StakingKeeper.Delegate(ctx, NewDelegatorRawAddr, tokensToDelegate, stakingtypes.Unbonded, validator, true)
 	if err != nil {
@@ -569,11 +569,12 @@ func createDelegation(ctx sdk.Context, app *App, OriginalDelegator string, NewDe
 	}
 
 	delegation := UpgradeDelegation{
-		Delegator:         NewDelegatorRawAddr.String(),
-		Validator:         validator.OperatorAddress,
-		Tokens:            tokensToDelegate,
+		NewDelegator:      NewDelegatorRawAddr.String(),
+		NewValidator:      validator.OperatorAddress,
+		OriginalTokens:    originalBalance,
+		NewTokens:         tokensToDelegate,
 		NewShares:         newShares,
-		OriginalDelegator: OriginalDelegator,
+		OriginalValidator: OriginalValidator,
 	}
 	manifest.Delegate.Delegations = append(manifest.Delegate.Delegations, delegation)
 
@@ -644,7 +645,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, delegatedBalanceMap *Or
 			}
 
 			// Create delegation
-			err = createDelegation(ctx, app, validatorOperatorStringAddr, NewDelegatorRawAddr, *destValidator, *tokensToDelegate, manifest)
+			err = createDelegation(ctx, app, validatorOperatorStringAddr, NewDelegatorRawAddr, *destValidator, *delegatedBalance, *tokensToDelegate, manifest)
 			if err != nil {
 				return err
 			}
@@ -773,19 +774,11 @@ func calculateCommissionFloorInt(balance sdk.Coins, networkInfo NetworkConfig) s
 	return commissionInt
 }
 
-func ceilDectoInt(balance sdk.DecCoins) sdk.Coins {
-	var resBalance sdk.Coins
-
-	for _, coin := range balance {
-		sdkCoin := sdk.NewCoin(coin.Denom, coin.Amount.Ceil().TruncateInt())
-		resBalance = resBalance.Add(sdkCoin)
-	}
-
-	return resBalance
-}
-
 func applyCommissionCeilInt(balance sdk.Coins, networkInfo NetworkConfig) sdk.Coins {
-	return balance.Sub(ceilDectoInt(calculateCommissionDec(balance, networkInfo)))
+	commission := calculateCommissionDec(balance, networkInfo)
+	decBalance := sdk.NewDecCoinsFromCoins(balance...)
+	result, _ := decBalance.Sub(commission).TruncateDecimal()
+	return result
 }
 
 func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, AccountInfo]) error {
@@ -1074,27 +1067,28 @@ func createNewNormalAccountFromBaseAccount(ctx sdk.Context, app *App, account *a
 	return nil
 }
 
-func mintToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.AccAddress, newCoins sdk.Coins, memo string, manifest *UpgradeManifest) error {
+func migrateToAccount(ctx sdk.Context, app *App, fromAddress string, toAddress sdk.AccAddress, sourceCoins sdk.Coins, destCoins sdk.Coins, memo string, manifest *UpgradeManifest) error {
 
-	err := app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, toAddress, newCoins)
+	err := app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, toAddress, destCoins)
 	if err != nil {
 		return err
 	}
 
-	if manifest.Minting == nil {
-		manifest.Minting = &UpgradeMinting{}
+	if manifest.Migration == nil {
+		manifest.Migration = &UpgradeMigation{}
 	}
 
-	mint := UpgradeBalanceMovement{
-		From:   fromAddress,
-		To:     toAddress.String(),
-		Amount: newCoins,
-		Memo:   memo,
+	migrate := UpgradeBalanceMovement{
+		From:          fromAddress,
+		To:            toAddress.String(),
+		SourceBalance: sourceCoins,
+		DestBalance:   destCoins,
+		Memo:          memo,
 	}
-	manifest.Minting.Mints = append(manifest.Minting.Mints, mint)
+	manifest.Migration.Migrations = append(manifest.Migration.Migrations, migrate)
 
-	manifest.Minting.AggregatedMintedAmount = manifest.Minting.AggregatedMintedAmount.Add(newCoins...)
-	manifest.Minting.NumberOfMints += 1
+	manifest.Migration.AggregatedMigratedAmount = manifest.Migration.AggregatedMigratedAmount.Add(destCoins...)
+	manifest.Migration.NumberOfMigrations += 1
 
 	return nil
 }
@@ -1123,10 +1117,10 @@ func RegisterBalanceMovement(fromAddress, toAddress string, amount sdk.Coins, me
 	}
 
 	movement := UpgradeBalanceMovement{
-		From:   fromAddress,
-		To:     toAddress,
-		Amount: amount,
-		Memo:   memo,
+		From:        fromAddress,
+		To:          toAddress,
+		DestBalance: amount,
+		Memo:        memo,
 	}
 	manifest.MoveMintedBalance.Movements = append(manifest.MoveMintedBalance.Movements, movement)
 }
@@ -1146,10 +1140,10 @@ func MoveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 	}
 
 	movement := UpgradeBalanceMovement{
-		From:   fromAddress,
-		To:     toAddress,
-		Amount: amount,
-		Memo:   memo,
+		From:        fromAddress,
+		To:          toAddress,
+		DestBalance: amount,
+		Memo:        memo,
 	}
 	manifest.MoveGenesisBalance.Movements = append(manifest.MoveGenesisBalance.Movements, movement)
 
@@ -1229,7 +1223,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		return fmt.Errorf("failed to get commission account raw address: %w", err)
 	}
 
-	err = mintToAccount(ctx, app, "mint_module", commissionRawAcc, totalCommission, "total_commission", manifest)
+	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
 	// Mint the rest of the supply
 	for _, genesisAccountAddress := range *genesisData.accounts.Keys() {
@@ -1328,7 +1322,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 				}
 			}
 
-			err = mintToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, newBalance, "regular_account", manifest)
+			err = migrateToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, genesisAccount.balance, newBalance, "regular_account", manifest)
 			if err != nil {
 				return err
 			}
@@ -1356,7 +1350,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		return err
 	}
 
-	err = mintToAccount(ctx, app, networkInfo.commissionFetchAddr, commissionRawAcc, remainingMintBalance, "remaining_mint_module_balance", manifest)
+	err = migrateToAccount(ctx, app, mintModuleAddr.String(), commissionRawAcc, sdk.NewCoins(), remainingMintBalance, "remaining_mint_module_balance", manifest)
 
 	return nil
 }
@@ -1380,7 +1374,7 @@ func VerifySupply(genesisData *GenesisData, networkInfo NetworkConfig, manifest 
 		return err
 	}
 
-	mintedSupply := manifest.Minting.AggregatedMintedAmount
+	mintedSupply := manifest.Migration.AggregatedMigratedAmount
 
 	maximumDifference, ok := sdk.NewIntFromString("10000000000")
 	if !ok {

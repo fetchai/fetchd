@@ -12,7 +12,7 @@ const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
 	IBC                *UpgradeIBCTransfers       `json:"ibc,omitempty"`
-	Minting            *UpgradeMinting            `json:"minting,omitempty"`
+	Migration          *UpgradeMigation           `json:"migration,omitempty"`
 	MoveGenesisBalance *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
 	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
 	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
@@ -29,10 +29,11 @@ type UpgradeIBCTransfer struct {
 }
 
 type UpgradeBalanceMovement struct {
-	From   string      `json:"from"`
-	To     string      `json:"to"`
-	Amount types.Coins `json:"amount"`
-	Memo   string      `json:"memo"`
+	From          string      `json:"from"`
+	To            string      `json:"to"`
+	SourceBalance types.Coins `json:"source_balance,omitempty""`
+	DestBalance   types.Coins `json:"dest_balance"`
+	Memo          string      `json:"memo,omitempty""`
 }
 
 type UpgradeIBCTransfers struct {
@@ -42,30 +43,31 @@ type UpgradeIBCTransfers struct {
 	NumberOfTransfers           int                  `json:"number_of_transfers"`
 }
 
-type UpgradeMinting struct {
-	Mints                  []UpgradeBalanceMovement `json:"mint"`
-	AggregatedMintedAmount types.Coins              `json:"aggregated_minted_amount"`
-	NumberOfMints          int                      `json:"number_of_mints"`
+type UpgradeMigation struct {
+	Migrations               []UpgradeBalanceMovement `json:"migration"`
+	AggregatedMigratedAmount types.Coins              `json:"aggregated_migrated_amount"`
+	NumberOfMigrations       int                      `json:"number_of_migrations"`
 }
 
 type UpgradeMoveGenesisBalance struct {
 	Movements             []UpgradeBalanceMovement `json:"movements"`
-	AggregatedMovedAmount types.Coins              `json:"aggregated_minted_amount"`
-	NumberOfMovements     int                      `json:"number_of_mints"`
+	AggregatedMovedAmount types.Coins              `json:"aggregated_moved_amount"`
+	NumberOfMovements     int                      `json:"number_of_movements"`
 }
 
 type UpgradeDelegate struct {
 	Delegations               []UpgradeDelegation `json:"delegation"`
-	AggregatedDelegatedAmount *types.Int          `json:"aggregated_minted_amount"`
+	AggregatedDelegatedAmount *types.Int          `json:"aggregated_delegated_amount"`
 	NumberOfDelegations       int                 `json:"number_of_delegations"`
 }
 
 type UpgradeDelegation struct {
-	OriginalDelegator string    `json:"original_delegator"`
-	Validator         string    `json:"validator"`
-	Delegator         string    `json:"delegator"`
-	Tokens            types.Int `json:"tokens"`
-	NewShares         types.Dec `json:"new_shares"`
+	OriginalValidator string      `json:"original_validator"`
+	NewValidator      string      `json:"new_validator"`
+	NewDelegator      string      `json:"new_delegator"`
+	OriginalTokens    types.Coins `json:"original_tokens"`
+	NewTokens         types.Int   `json:"new_tokens"`
+	NewShares         types.Dec   `json:"new_shares"`
 }
 
 type UpgradeMoveMintedBalance struct {
