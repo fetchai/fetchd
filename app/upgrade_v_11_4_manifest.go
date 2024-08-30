@@ -31,9 +31,9 @@ type UpgradeIBCTransfer struct {
 type UpgradeBalanceMovement struct {
 	From          string      `json:"from"`
 	To            string      `json:"to"`
-	SourceBalance types.Coins `json:"source_balance,omitempty""`
+	SourceBalance types.Coins `json:"source_balance,omitempty"`
 	DestBalance   types.Coins `json:"dest_balance"`
-	Memo          string      `json:"memo,omitempty""`
+	Memo          string      `json:"memo,omitempty"`
 }
 
 type UpgradeIBCTransfers struct {
