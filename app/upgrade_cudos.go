@@ -259,15 +259,6 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	return accountMap, nil
 }
 
-func getConsAddressFromValidator(validatorData map[string]interface{}) (sdk.ConsAddress, error) {
-	consensusPubkey := validatorData["consensus_pubkey"].(map[string]interface{})
-	decodedConsensusPubkey, err := decodePubKeyFromMap(consensusPubkey)
-	if err != nil {
-		return nil, err
-	}
-	return sdk.ConsAddress(decodedConsensusPubkey.Address()), nil
-}
-
 type DelegationInfo struct {
 	delegatorAddress string
 	shares           sdk.Dec
@@ -597,13 +588,16 @@ func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, netw
 		return err
 	}
 
+	// Apply commission
+	convertedCommunityPoolBalance = applyCommissionCeilInt(convertedCommunityPoolBalance, networkInfo)
+
 	communityPoolSourceAccountRawAddress := genesisData.accounts.MustGet(networkInfo.remainingDistributionBalanceAddr).rawAddress
 	err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, communityPoolSourceAccountRawAddress)
 	if err != nil {
 		return err
 	}
 
-	RegisterBalanceMovement(networkInfo.remainingDistributionBalanceAddr, "community_pool", communityPoolBalance, "community_pool_balance", manifest)
+	RegisterBalanceMovement(networkInfo.remainingDistributionBalanceAddr, communityPoolSourceAccountRawAddress.String(), communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
 
 	return nil
 }
@@ -1110,17 +1104,18 @@ func MarkAccountAsMigrated(genesisData *GenesisData, accountAddress string) erro
 	return nil
 }
 
-func RegisterBalanceMovement(fromAddress, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest) {
+func RegisterBalanceMovement(fromAddress, toAddress string, sourceAmount sdk.Coins, destAmount sdk.Coins, memo string, manifest *UpgradeManifest) {
 
 	if manifest.MoveMintedBalance == nil {
 		manifest.MoveMintedBalance = &UpgradeMoveMintedBalance{}
 	}
 
 	movement := UpgradeBalanceMovement{
-		From:        fromAddress,
-		To:          toAddress,
-		DestBalance: amount,
-		Memo:        memo,
+		From:          fromAddress,
+		To:            toAddress,
+		SourceBalance: sourceAmount,
+		DestBalance:   destAmount,
+		Memo:          memo,
 	}
 	manifest.MoveMintedBalance.Movements = append(manifest.MoveMintedBalance.Movements, movement)
 }
@@ -1204,6 +1199,9 @@ func WithdrawGenesisGravity(genesisData *GenesisData, networkInfo NetworkConfig,
 }
 
 func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+	mintModuleAddr := app.AccountKeeper.GetModuleAddress(minttypes.ModuleName)
+	initialMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
+
 	// Mint donor chain total supply
 	totalSupplyToMint, err := convertBalance(genesisData.totalSupply, networkInfo)
 	if err != nil {
@@ -1343,8 +1341,9 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	}
 
 	// Move remaining mint module balance
-	mintModuleAddr := app.AccountKeeper.GetModuleAddress(minttypes.ModuleName)
 	remainingMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
+	remainingMintBalance = remainingMintBalance.Sub(initialMintBalance)
+
 	err = checkTolerance(remainingMintBalance, maxToleratedRemainingMintBalance)
 	if err != nil {
 		return err
