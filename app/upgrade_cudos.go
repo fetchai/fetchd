@@ -34,8 +34,13 @@ const (
 
 	FlagGenesisTime = "genesis-time"
 
-	ModuleAccount   = "/cosmos.auth.v1beta1.ModuleAccount"
-	BaseAccount     = "/cosmos.auth.v1beta1.BaseAccount"
+	ModuleAccount            = "/cosmos.auth.v1beta1.ModuleAccount"
+	BaseAccount              = "/cosmos.auth.v1beta1.BaseAccount"
+	DelayedVestingAccount    = "/cosmos.vesting.v1beta1.DelayedVestingAccount"
+	ContinuousVestingAccount = "/cosmos.vesting.v1beta1.ContinuousVestingAccount"
+	PermanentLockedAccount   = "/cosmos.vesting.v1beta1.PermanentLockedAccount"
+	PeriodicVestingAccount   = "/cosmos.vesting.v1beta1.PeriodicVestingAccount"
+
 	UnbondedStatus  = "BOND_STATUS_UNBONDED"
 	UnbondingStatus = "BOND_STATUS_UNBONDING"
 	BondedStatus    = "BOND_STATUS_BONDED"
@@ -102,10 +107,14 @@ func convertAddressToRaw(addr string, networkInfo NetworkConfig) (sdk.AccAddress
 type AccountType string
 
 const (
-	BaseAccountType     AccountType = "base_acc"
-	ModuleAccountType   AccountType = "module_acc"
-	ContractAccountType AccountType = "contract_acc"
-	IBCAccountType      AccountType = "IBC_acc"
+	BaseAccountType              AccountType = "base_acc"
+	ModuleAccountType            AccountType = "module_acc"
+	ContractAccountType          AccountType = "contract_acc"
+	IBCAccountType               AccountType = "IBC_acc"
+	DelayedVestingAccountType    AccountType = "delayed_vesting_acc"
+	ContinuousVestingAccountType AccountType = "continuous_vesting_acc"
+	PermanentLockedAccountType   AccountType = "permanent_locked_vesting_acc"
+	PeriodicVestingAccountType   AccountType = "periodic_vesting_acc"
 )
 
 type GenesisData struct {
@@ -187,12 +196,192 @@ func parseGenesisData(jsonData map[string]interface{}, networkInfo NetworkConfig
 }
 
 type AccountInfo struct {
-	name        string
-	pubkey      cryptotypes.PubKey
-	balance     sdk.Coins
-	migrated    bool
+	// Base
+	pubkey     cryptotypes.PubKey
+	address    string
+	rawAddress sdk.AccAddress
+
+	// Bank
+	balance sdk.Coins
+
+	// Module
+	name string
+
+	// BaseVesting
+	endTime         uint64
+	originalVesting sdk.Coins
+	//delegated_free
+	//delegated_vesting
+
+	// DelayedVesting
+	// --
+
+	// ContinuousVesting
+	startTime uint64
+
+	// Custom
 	accountType AccountType
-	rawAddress  sdk.AccAddress
+	migrated    bool
+}
+
+func parseBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	// Parse specific base vesting account types
+	accountInfo.endTime = cast.ToUint64(baseVestingAccData["end_time"].(string))
+
+	originalVesting, err := getCoinsFromInterfaceSlice(baseVestingAccData["original_vesting"].([]interface{}))
+	if err != nil {
+		return err
+	}
+	accountInfo.originalVesting = originalVesting
+
+	// Parse inner base account
+	baseAccData := baseVestingAccData["base_account"].(map[string]interface{})
+	err = parseBaseAccount(baseAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	accountInfo.address = baseAccData["address"].(string)
+
+	// Parse pubkey
+	var AccPubKey cryptotypes.PubKey
+	var err error
+	if pk, ok := baseAccData["pub_key"]; ok {
+		if pk != nil {
+			AccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	accountInfo.pubkey = AccPubKey
+
+	// Get raw address
+	accRawAddr, err := convertAddressToRaw(accountInfo.address, networkInfo)
+	accountInfo.rawAddress = accRawAddr
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseDelayedVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	// Specific delayed vesting stuff
+	// Nothing
+
+	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
+	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	// Specific continuous vesting stuff
+
+	accountInfo.startTime = cast.ToUint64(accMap["start_time"].(string))
+
+	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
+	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parsePermanentLockedAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
+	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parsePeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	// Specific periodic stuff
+	accountInfo.startTime = cast.ToUint64(accMap["start_time"].(string))
+
+	// parse periods
+	// Do we care?
+
+	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
+	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	// Specific module account values
+	accountInfo.name = accMap["name"].(string)
+
+	// parse inner base account
+	baseAccData := accMap["base_account"].(map[string]interface{})
+	err := parseBaseAccount(baseAccData, accountInfo, networkInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+	accType := accMap["@type"]
+
+	// Extract base account and special values
+	if accType == ModuleAccount {
+		err := parseModuleAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = ModuleAccountType
+	} else if accType == DelayedVestingAccount {
+		err := parseDelayedVestingAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = DelayedVestingAccountType
+	} else if accType == ContinuousVestingAccount {
+		err := parseContinuousVestingAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = ContinuousVestingAccountType
+	} else if accType == PermanentLockedAccount {
+		err := parsePermanentLockedAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = PermanentLockedAccountType
+	} else if accType == PeriodicVestingAccount {
+		err := parsePeriodicVestingAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = PeriodicVestingAccountType
+	} else if accType == BaseAccount {
+		err := parseBaseAccount(accMap, accountInfo, networkInfo)
+		if err != nil {
+			return err
+		}
+		accountInfo.accountType = BaseAccountType
+
+	} else {
+		return fmt.Errorf("Unknown account type %s", accType)
+	}
+	return nil
 }
 
 func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, ContractInfo], IBCAccountsMap *OrderedMap[string, IBCInfo], networkInfo NetworkConfig) (*OrderedMap[string, AccountInfo], error) {
@@ -201,53 +390,25 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	// Map to verify that account exists in auth module
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
-
 	accountMap := NewOrderedMap[string, AccountInfo]()
 
 	for _, acc := range accounts {
+		accInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false}
+
 		accMap := acc.(map[string]interface{})
-		accType := accMap["@type"]
-
-		var name string
-		accData := acc
-		if accType == ModuleAccount {
-			accData = accMap["base_account"]
-			name = accMap["name"].(string)
-
-		}
-
-		accDataMap := accData.(map[string]interface{})
-		addr := accDataMap["address"].(string)
-
-		// Check that public keys are the same
-		var AccPubKey cryptotypes.PubKey
-		if pk, ok := accDataMap["pub_key"]; ok {
-			if pk != nil {
-				AccPubKey, err = decodePubKeyFromMap(pk.(map[string]interface{}))
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		var accountType AccountType
-		if accType == ModuleAccount {
-			accountType = ModuleAccountType
-		} else if _, exists := contractAccountMap.Get(addr); exists {
-			accountType = ContractAccountType
-		} else if _, exists := IBCAccountsMap.Get(addr); exists {
-			accountType = IBCAccountType
-		} else {
-			accountType = BaseAccountType
-		}
-
-		// Get raw address
-		accRawAddr, err := convertAddressToRaw(addr, networkInfo)
+		err := parseAccount(accMap, &accInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 
-		accountMap.SetNew(addr, AccountInfo{name: name, pubkey: AccPubKey, balance: sdk.NewCoins(), migrated: false, accountType: accountType, rawAddress: accRawAddr})
+		// Check if not contract or IBC type
+		if _, exists := contractAccountMap.Get(accInfo.address); exists {
+			accInfo.accountType = ContractAccountType
+		} else if _, exists := IBCAccountsMap.Get(accInfo.address); exists {
+			accInfo.accountType = IBCAccountType
+		}
+
+		accountMap.SetNew(accInfo.address, accInfo)
 	}
 
 	// Add balances to accounts map
