@@ -136,19 +136,19 @@ type GenesisData struct {
 func parseGenesisData(jsonData map[string]interface{}, networkInfo NetworkConfig) (*GenesisData, error) {
 	genesisData := GenesisData{}
 
-	totalSupply, err := parseTotalSupply(jsonData)
+	totalSupply, err := parseGenesisTotalSupply(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to total supply: %w", err)
 	}
 	genesisData.totalSupply = totalSupply
 
-	contracts, err := parseWasmContracts(jsonData)
+	contracts, err := parseGenesisWasmContracts(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contracts: %w", err)
 	}
 	genesisData.contracts = *contracts
 
-	IBCAccounts, err := parseIBCAccounts(jsonData, networkInfo)
+	IBCAccounts, err := parseGenesisIBCAccounts(jsonData, networkInfo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ibc accounts: %w", err)
 	}
@@ -224,7 +224,7 @@ type AccountInfo struct {
 	migrated    bool
 }
 
-func parseBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Parse specific base vesting account types
 	accountInfo.endTime = cast.ToInt64(baseVestingAccData["end_time"].(string))
 
@@ -236,7 +236,7 @@ func parseBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *Ac
 
 	// Parse inner base account
 	baseAccData := baseVestingAccData["base_account"].(map[string]interface{})
-	err = parseBaseAccount(baseAccData, accountInfo, networkInfo)
+	err = parseGenesisBaseAccount(baseAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func parseBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *Ac
 	return nil
 }
 
-func parseBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	accountInfo.address = baseAccData["address"].(string)
 
 	// Parse pubkey
@@ -270,12 +270,12 @@ func parseBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountIn
 	return nil
 }
 
-func parseDelayedVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisDelayedVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific delayed vesting stuff
 	// Nothing
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -283,13 +283,13 @@ func parseDelayedVestingAccount(accMap map[string]interface{}, accountInfo *Acco
 	return nil
 }
 
-func parseContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific continuous vesting stuff
 
 	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -297,9 +297,9 @@ func parseContinuousVestingAccount(accMap map[string]interface{}, accountInfo *A
 	return nil
 }
 
-func parsePermanentLockedAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisPermanentLockedAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -307,7 +307,7 @@ func parsePermanentLockedAccount(accMap map[string]interface{}, accountInfo *Acc
 	return nil
 }
 
-func parsePeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific periodic stuff
 	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
@@ -315,7 +315,7 @@ func parsePeriodicVestingAccount(accMap map[string]interface{}, accountInfo *Acc
 	// Do we care?
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -323,13 +323,13 @@ func parsePeriodicVestingAccount(accMap map[string]interface{}, accountInfo *Acc
 	return nil
 }
 
-func parseModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific module account values
 	accountInfo.name = accMap["name"].(string)
 
 	// parse inner base account
 	baseAccData := accMap["base_account"].(map[string]interface{})
-	err := parseBaseAccount(baseAccData, accountInfo, networkInfo)
+	err := parseGenesisBaseAccount(baseAccData, accountInfo, networkInfo)
 	if err != nil {
 		return err
 	}
@@ -337,43 +337,43 @@ func parseModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo,
 	return nil
 }
 
-func parseAccount(accMap map[string]interface{}, networkInfo NetworkConfig) (*AccountInfo, error) {
+func parseGenesisAccount(accMap map[string]interface{}, networkInfo NetworkConfig) (*AccountInfo, error) {
 	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false}
 	accType := accMap["@type"]
 
 	// Extract base account and special values
 	if accType == ModuleAccount {
-		err := parseModuleAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisModuleAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = ModuleAccountType
 	} else if accType == DelayedVestingAccount {
-		err := parseDelayedVestingAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisDelayedVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = DelayedVestingAccountType
 	} else if accType == ContinuousVestingAccount {
-		err := parseContinuousVestingAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisContinuousVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = ContinuousVestingAccountType
 	} else if accType == PermanentLockedAccount {
-		err := parsePermanentLockedAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisPermanentLockedAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = PermanentLockedAccountType
 	} else if accType == PeriodicVestingAccount {
-		err := parsePeriodicVestingAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisPeriodicVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = PeriodicVestingAccountType
 	} else if accType == BaseAccount {
-		err := parseBaseAccount(accMap, &accountInfo, networkInfo)
+		err := parseGenesisBaseAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +395,7 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 
 	for _, acc := range accounts {
 		accMap := acc.(map[string]interface{})
-		accountInfo, err := parseAccount(accMap, networkInfo)
+		accountInfo, err := parseGenesisAccount(accMap, networkInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -1010,7 +1010,7 @@ type IBCInfo struct {
 	portId    string
 }
 
-func parseIBCAccounts(jsonData map[string]interface{}, networkInfo NetworkConfig) (*OrderedMap[string, IBCInfo], error) {
+func parseGenesisIBCAccounts(jsonData map[string]interface{}, networkInfo NetworkConfig) (*OrderedMap[string, IBCInfo], error) {
 	ibcAccountMap := NewOrderedMap[string, IBCInfo]()
 
 	ibc, ok := jsonData[ibccore.ModuleName].(map[string]interface{})
@@ -1061,7 +1061,7 @@ type ContractInfo struct {
 	Creator string
 }
 
-func parseWasmContracts(jsonData map[string]interface{}) (*OrderedMap[string, ContractInfo], error) {
+func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[string, ContractInfo], error) {
 	contractAccountMap := NewOrderedMap[string, ContractInfo]()
 
 	// Navigate to the "wasm" module
@@ -1591,7 +1591,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	return nil
 }
 
-func parseTotalSupply(jsonData map[string]interface{}) (sdk.Coins, error) {
+func parseGenesisTotalSupply(jsonData map[string]interface{}) (sdk.Coins, error) {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	supply := bank["supply"].([]interface{})
 	totalSupply, err := getCoinsFromInterfaceSlice(supply)
