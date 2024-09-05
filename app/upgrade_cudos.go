@@ -208,7 +208,7 @@ type AccountInfo struct {
 	name string
 
 	// BaseVesting
-	endTime         uint64
+	endTime         int64
 	originalVesting sdk.Coins
 	//delegated_free
 	//delegated_vesting
@@ -217,7 +217,7 @@ type AccountInfo struct {
 	// --
 
 	// ContinuousVesting
-	startTime uint64
+	startTime int64
 
 	// Custom
 	accountType AccountType
@@ -226,7 +226,7 @@ type AccountInfo struct {
 
 func parseBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Parse specific base vesting account types
-	accountInfo.endTime = cast.ToUint64(baseVestingAccData["end_time"].(string))
+	accountInfo.endTime = cast.ToInt64(baseVestingAccData["end_time"].(string))
 
 	originalVesting, err := getCoinsFromInterfaceSlice(baseVestingAccData["original_vesting"].([]interface{}))
 	if err != nil {
@@ -286,7 +286,7 @@ func parseDelayedVestingAccount(accMap map[string]interface{}, accountInfo *Acco
 func parseContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific continuous vesting stuff
 
-	accountInfo.startTime = cast.ToUint64(accMap["start_time"].(string))
+	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
 	err := parseBaseVesting(baseVestingAccData, accountInfo, networkInfo)
@@ -309,7 +309,7 @@ func parsePermanentLockedAccount(accMap map[string]interface{}, accountInfo *Acc
 
 func parsePeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
 	// Specific periodic stuff
-	accountInfo.startTime = cast.ToUint64(accMap["start_time"].(string))
+	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
 	// parse periods
 	// Do we care?
@@ -337,51 +337,52 @@ func parseModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo,
 	return nil
 }
 
-func parseAccount(accMap map[string]interface{}, accountInfo *AccountInfo, networkInfo NetworkConfig) error {
+func parseAccount(accMap map[string]interface{}, networkInfo NetworkConfig) (*AccountInfo, error) {
+	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false}
 	accType := accMap["@type"]
 
 	// Extract base account and special values
 	if accType == ModuleAccount {
-		err := parseModuleAccount(accMap, accountInfo, networkInfo)
+		err := parseModuleAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = ModuleAccountType
 	} else if accType == DelayedVestingAccount {
-		err := parseDelayedVestingAccount(accMap, accountInfo, networkInfo)
+		err := parseDelayedVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = DelayedVestingAccountType
 	} else if accType == ContinuousVestingAccount {
-		err := parseContinuousVestingAccount(accMap, accountInfo, networkInfo)
+		err := parseContinuousVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = ContinuousVestingAccountType
 	} else if accType == PermanentLockedAccount {
-		err := parsePermanentLockedAccount(accMap, accountInfo, networkInfo)
+		err := parsePermanentLockedAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = PermanentLockedAccountType
 	} else if accType == PeriodicVestingAccount {
-		err := parsePeriodicVestingAccount(accMap, accountInfo, networkInfo)
+		err := parsePeriodicVestingAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = PeriodicVestingAccountType
 	} else if accType == BaseAccount {
-		err := parseBaseAccount(accMap, accountInfo, networkInfo)
+		err := parseBaseAccount(accMap, &accountInfo, networkInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		accountInfo.accountType = BaseAccountType
 
 	} else {
-		return fmt.Errorf("Unknown account type %s", accType)
+		return nil, fmt.Errorf("Unknown account type %s", accType)
 	}
-	return nil
+	return &accountInfo, nil
 }
 
 func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, ContractInfo], IBCAccountsMap *OrderedMap[string, IBCInfo], networkInfo NetworkConfig) (*OrderedMap[string, AccountInfo], error) {
@@ -393,22 +394,20 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	accountMap := NewOrderedMap[string, AccountInfo]()
 
 	for _, acc := range accounts {
-		accInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false}
-
 		accMap := acc.(map[string]interface{})
-		err := parseAccount(accMap, &accInfo, networkInfo)
+		accountInfo, err := parseAccount(accMap, networkInfo)
 		if err != nil {
 			return nil, err
 		}
 
 		// Check if not contract or IBC type
-		if _, exists := contractAccountMap.Get(accInfo.address); exists {
-			accInfo.accountType = ContractAccountType
-		} else if _, exists := IBCAccountsMap.Get(accInfo.address); exists {
-			accInfo.accountType = IBCAccountType
+		if _, exists := contractAccountMap.Get(accountInfo.address); exists {
+			accountInfo.accountType = ContractAccountType
+		} else if _, exists := IBCAccountsMap.Get(accountInfo.address); exists {
+			accountInfo.accountType = IBCAccountType
 		}
 
-		accountMap.SetNew(accInfo.address, accInfo)
+		accountMap.SetNew(accountInfo.address, *accountInfo)
 	}
 
 	// Add balances to accounts map
@@ -1359,6 +1358,117 @@ func WithdrawGenesisGravity(genesisData *GenesisData, networkInfo NetworkConfig,
 	return nil
 }
 
+func AccountIToAccountInfo(existingAccount authtypes.AccountI) (*AccountInfo, error) {
+	accountInfo := AccountInfo{}
+
+	// Get existing account type
+	if existingAccount != nil {
+		accountInfo.pubkey = existingAccount.GetPubKey()
+		accountInfo.rawAddress = existingAccount.GetAddress()
+		accountInfo.address = accountInfo.rawAddress.String()
+
+		if periodicVestingAccount, ok := existingAccount.(*authvesting.PeriodicVestingAccount); ok {
+			accountInfo.accountType = PeriodicVestingAccountType
+			accountInfo.endTime = periodicVestingAccount.EndTime
+			accountInfo.originalVesting = periodicVestingAccount.OriginalVesting
+		} else if delayedVestingAccount, ok := existingAccount.(*authvesting.DelayedVestingAccount); ok {
+			accountInfo.accountType = DelayedVestingAccountType
+			accountInfo.endTime = delayedVestingAccount.EndTime
+			accountInfo.originalVesting = delayedVestingAccount.OriginalVesting
+		} else if continuousVestingAccount, ok := existingAccount.(*authvesting.ContinuousVestingAccount); ok {
+			accountInfo.accountType = ContinuousVestingAccountType
+			accountInfo.endTime = continuousVestingAccount.EndTime
+			accountInfo.startTime = continuousVestingAccount.StartTime
+			accountInfo.originalVesting = continuousVestingAccount.OriginalVesting
+		} else if permanentLockedAccount, ok := existingAccount.(*authvesting.PermanentLockedAccount); ok {
+			accountInfo.accountType = PermanentLockedAccount
+			accountInfo.originalVesting = permanentLockedAccount.OriginalVesting
+		} else if _, ok := existingAccount.(*authtypes.BaseAccount); ok {
+			// Handle base account
+			accountInfo.accountType = BaseAccountType
+		} else {
+			return nil, fmt.Errorf("unexpected account type")
+		}
+	}
+
+	return &accountInfo, nil
+}
+
+func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount AccountInfo, existingAccount authtypes.AccountI) (*authtypes.BaseAccount, error) {
+	var newBaseAccount *authtypes.BaseAccount
+	var err error
+
+	// Check for pubkey collision
+	if existingAccount != nil {
+		// Handle collision
+
+		// Set pubkey from newAcc if is not in existingAccount
+		if existingAccount.GetPubKey() == nil && genesisAccount.pubkey != nil {
+			err := existingAccount.SetPubKey(genesisAccount.pubkey)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if genesisAccount.pubkey != nil && existingAccount.GetPubKey() != nil && !existingAccount.GetPubKey().Equals(genesisAccount.pubkey) {
+			return nil, fmt.Errorf("account already exists with different pubkey: %s", genesisAccount.address)
+		}
+
+		newBaseAccount = authtypes.NewBaseAccount(genesisAccount.rawAddress, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
+
+	} else {
+
+		// Handle regular migration
+		newBaseAccount, err = getNewBaseAccount(ctx, app, genesisAccount)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return newBaseAccount, nil
+}
+
+func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
+	// Get base account and check for public keys collision
+	newBaseAccount, err := resolveNewBaseAccount(ctx, app, genesisAccount, existingAccount)
+	if err != nil {
+		return err
+	}
+
+	// If there is anything to mint
+	if newBalance != nil {
+
+		// Account is vesting
+		if networkInfo.notVestedAccounts[genesisAccount.address] {
+			err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Account is not vesting
+			err := createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, networkInfo.mergeTime, networkInfo.mergeTime+networkInfo.vestingPeriod)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = migrateToAccount(ctx, app, genesisAccount.address, genesisAccount.rawAddress, genesisAccount.balance, newBalance, "regular_account", manifest)
+		if err != nil {
+			return err
+		}
+		// There is nothing to mint
+	} else {
+		// Just create account if it's base account, but there is no balance for vesting
+		err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App, networkInfo NetworkConfig, manifest *UpgradeManifest) error {
 	mintModuleAddr := app.AccountKeeper.GetModuleAddress(minttypes.ModuleName)
 	initialMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
@@ -1386,7 +1496,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 
 	// Mint the rest of the supply
 	for _, genesisAccountAddress := range *genesisData.accounts.Keys() {
-		genesisAccount := genesisData.accounts.MustGet(genesisAccountAddress)
+		genesisAccount := *genesisData.accounts.MustGet(genesisAccountAddress)
 
 		if genesisAccount.accountType == ContractAccountType {
 			// All contracts balance should be handled already
@@ -1425,6 +1535,12 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 			continue
 		}
 
+		existingAccount := app.AccountKeeper.GetAccount(ctx, genesisAccount.rawAddress)
+		existingAccountInfo, err := AccountIToAccountInfo(existingAccount)
+		if err != nil {
+			return err
+		}
+
 		// Get balance to mint
 		newBalance, err := convertBalance(genesisAccount.balance, networkInfo)
 		if err != nil {
@@ -1434,64 +1550,24 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		// Apply commission
 		newBalance = applyCommissionCeilInt(newBalance, networkInfo)
 
-		var newBaseAccount *authtypes.BaseAccount
-
-		// Check for collision
-		existingAccount := app.AccountKeeper.GetAccount(ctx, genesisAccount.rawAddress)
-		if existingAccount != nil {
-			// Handle collision
-
-			existingAccountPubkey := existingAccount.GetPubKey()
-
-			// Set pubkey from newAcc if is not in existingAccount
-			if existingAccountPubkey == nil && genesisAccount.pubkey != nil {
-				existingAccount.SetPubKey(genesisAccount.pubkey)
-			}
-
-			if genesisAccount.pubkey != nil && existingAccountPubkey != nil && !existingAccountPubkey.Equals(genesisAccount.pubkey) {
-				return fmt.Errorf("account already exists with different pubkey: %s", genesisAccountAddress)
-			}
-
-			newBaseAccount = authtypes.NewBaseAccount(genesisAccount.rawAddress, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
-
-		} else {
-
-			// Handle regular migration
-			newBaseAccount, err = getNewBaseAccount(ctx, app, *genesisAccount)
-			if err != nil {
-				return err
-			}
-
+		// Handle all collision cases
+		regularMigration := true
+		if existingAccount != nil && existingAccountInfo.accountType != BaseAccountType {
+			regularMigration = false
 		}
 
-		// If there is anything to mint
-		if newBalance != nil {
+		if genesisAccount.accountType != BaseAccountType {
+			regularMigration = false
+		}
 
-			// Account is vesting
-			if networkInfo.notVestedAccounts[genesisAccountAddress] {
-				err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
-				if err != nil {
-					return err
-				}
-			} else {
-				// Account is not vesting
-				err := createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, networkInfo.mergeTime, networkInfo.mergeTime+networkInfo.vestingPeriod)
-				if err != nil {
-					return err
-				}
-			}
-
-			err = migrateToAccount(ctx, app, genesisAccountAddress, genesisAccount.rawAddress, genesisAccount.balance, newBalance, "regular_account", manifest)
+		if regularMigration {
+			err := doRegularAccountMigration(ctx, app, genesisAccount, existingAccount, newBalance, networkInfo, manifest)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to migrate account %s: %w", genesisAccountAddress, err)
 			}
-			// There is nothing to mint
 		} else {
-			// Just create account if it's base account, but there is no balance for vesting
-			err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
-			if err != nil {
-				return err
-			}
+			// New balance goes to foundation wallet
+			panic("Not yet implemented")
 		}
 
 		err = MarkAccountAsMigrated(genesisData, genesisAccountAddress)
