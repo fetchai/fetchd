@@ -22,7 +22,7 @@ var reconciliationData []byte
 var reconciliationDataTestnet []byte
 
 var (
-	cw20ContractInfoKey                    = []byte("contract_info")
+	contractInfoKey                        = []byte("contract_info")
 	reconciliationTotalBalanceKey          = []byte("total_balance")
 	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
 	reconciliationStateKey                 = []byte("state")
@@ -101,11 +101,11 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		return err
 	}
 
-	wasPresent := prefixStore.Has(cw20ContractInfoKey)
+	wasPresent := prefixStore.Has(contractInfoKey)
 
 	var origVersion *ContractVersion
 	if wasPresent {
-		storeVal := prefixStore.Get(cw20ContractInfoKey)
+		storeVal := prefixStore.Get(contractInfoKey)
 		var val ContractVersion
 		if err := json.Unmarshal(storeVal, val); err != nil {
 			return err
@@ -118,9 +118,9 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		if err != nil {
 			return err
 		}
-		prefixStore.Set(cw20ContractInfoKey, newVersionStoreValue)
+		prefixStore.Set(contractInfoKey, newVersionStoreValue)
 	} else if wasPresent {
-		prefixStore.Delete(cw20ContractInfoKey)
+		prefixStore.Delete(contractInfoKey)
 	}
 
 	manifestVersionUpdate := ContractVersionUpdate{
