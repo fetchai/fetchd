@@ -372,7 +372,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -739,6 +739,32 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			panic("Network info not found for chain id: " + ctx.ChainID())
 		}
 
+		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		// Call the separate function to handle the admin upgrade
+		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractLabels(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractVersions(ctx, &networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
 		_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
 		if err != nil {
 			panic(fmt.Errorf("failed to unmarshal genesis state: %w", err))
@@ -792,7 +818,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		err = fundCommunityPool(ctx, app, genesisData, networkInfo, manifest)
 		if err != nil {
-			panic(fmt.Errorf("Failed to fund community pool: %w", err))
+			panic(fmt.Errorf("failed to fund community pool: %w", err))
 		}
 
 		err = VerifySupply(genesisData, networkInfo, manifest)
