@@ -34,7 +34,7 @@ func (om *OrderedMap[K, V]) Set(key K, value V) {
 // Set adds a key-value pair to the map - it must not exist before
 func (om *OrderedMap[K, V]) SetNew(key K, value V) {
 	if om.Has(key) {
-		panic(fmt.Errorf("Key %s already exist", key))
+		panic(fmt.Errorf("key %v already exist", key))
 	}
 	om.Set(key, value)
 }
