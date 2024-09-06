@@ -440,12 +440,24 @@ func (app *App) DeleteContractState(ctx types.Context, contractAddr string, mani
 }
 
 func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	contractsToWipe := []string{
-		networkInfo.Contracts.Reconciliation.Addr,
-		networkInfo.Contracts.Almanac.ProdAddr,
-		networkInfo.Contracts.Almanac.DevAddr,
-		networkInfo.Contracts.AName.DevAddr,
-		networkInfo.Contracts.AName.ProdAddr,
+	var contractsToWipe []string
+
+	if networkInfo.Contracts.Reconciliation != nil {
+		contractsToWipe = append(contractsToWipe, networkInfo.Contracts.Reconciliation.Addr)
+	}
+
+	if networkInfo.Contracts.Almanac != nil {
+		contractsToWipe = append(contractsToWipe,
+			networkInfo.Contracts.Almanac.ProdAddr,
+			networkInfo.Contracts.Almanac.DevAddr,
+		)
+	}
+
+	if networkInfo.Contracts.AName != nil {
+		contractsToWipe = append(contractsToWipe,
+			networkInfo.Contracts.AName.ProdAddr,
+			networkInfo.Contracts.AName.DevAddr,
+		)
 	}
 
 	for _, contract := range contractsToWipe {

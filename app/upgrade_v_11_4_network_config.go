@@ -22,7 +22,7 @@ var NetworkInfos = map[string]NetworkConfig{
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 				NewLabel: getStringPtr("reconciliation-contract"),
 				NewContractVersion: &ContractVersion{
-					Contract: "contract-fetch-asi-reconciliation",
+					Contract: "contract-fetch-reconciliation",
 					Version:  "1.0.0",
 				},
 			},
@@ -77,7 +77,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			Reconciliation: &Reconciliation{
 				Addr: "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 				NewContractVersion: &ContractVersion{
-					Contract: "contract-fetch-asi-reconciliation",
+					Contract: "contract-fetch-reconciliation",
 					Version:  "1.0.0",
 				},
 			},
@@ -95,8 +95,8 @@ var NetworkInfos = map[string]NetworkConfig{
 }
 
 type NetworkConfig struct {
-	ReconciliationInfo *ReconciliationInfo
-	Contracts          *ContractSet
+	ReconciliationInfo               *ReconciliationInfo
+	Contracts                        *ContractSet
 	ibcTargetAddr                    string
 	remainingStakingBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 	remainingGravityBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
