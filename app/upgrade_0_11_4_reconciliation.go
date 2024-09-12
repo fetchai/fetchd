@@ -87,7 +87,12 @@ func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, new
 	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
 	(*store).Set(contractAddrKey, contractBz)
 
+	if manifest.Contracts == nil {
+		manifest.Contracts = new(Contracts)
+	}
+
 	manifest.Contracts.LabelUpdated = append(manifest.Contracts.LabelUpdated, ContractValueUpdate{*contractAddr, oldLabel, *newLabel})
+
 	return nil
 }
 
@@ -129,17 +134,22 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		To:      newVersion,
 	}
 
+	if manifest.Contracts == nil {
+		manifest.Contracts = new(Contracts)
+	}
+
 	manifest.Contracts.VersionUpdated = append(manifest.Contracts.VersionUpdated, manifestVersionUpdate)
 
 	return nil
 }
 
 func (app *App) ChangeContractLabels(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	contracts := []struct{ addr, newLabel *string }{
-		{addr: &networkInfo.Contracts.Reconciliation.Addr, newLabel: networkInfo.Contracts.Reconciliation.NewLabel},
-	}
+	contracts := []IContractLabel{networkInfo.Contracts.Reconciliation}
 	for _, contract := range contracts {
-		err := app.ChangeContractLabel(ctx, contract.addr, contract.newLabel, manifest)
+		if contract == nil {
+			continue
+		}
+		err := app.ChangeContractLabel(ctx, contract.GetPrimaryContractAddr(), contract.GetNewLabel(), manifest)
 		if err != nil {
 			return err
 		}
@@ -149,15 +159,12 @@ func (app *App) ChangeContractLabels(ctx types.Context, networkInfo *NetworkConf
 }
 
 func (app *App) ChangeContractVersions(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	contracts := []struct {
-		addr       *string
-		newVersion *ContractVersion
-	}{
-		{addr: &networkInfo.Contracts.Reconciliation.Addr, newVersion: networkInfo.Contracts.Reconciliation.NewContractVersion},
-	}
+	contracts := []IContractVersion{networkInfo.Contracts.Reconciliation}
 	for _, contract := range contracts {
-
-		err := app.ChangeContractVersion(ctx, contract.addr, contract.newVersion, manifest)
+		if contract == nil {
+			continue
+		}
+		err := app.ChangeContractVersion(ctx, contract.GetPrimaryContractAddr(), contract.GetNewVersion(), manifest)
 		if err != nil {
 			return err
 		}
@@ -375,7 +382,7 @@ func DropHexPrefix(hexEncodedData string) string {
 	return hexEncodedData
 }
 
-func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contractAddr *string, manifest *UpgradeManifest) error {
+func (app *App) UpgradeContractAdmin(ctx types.Context, contractAddr *string, newAdmin *string, manifest *UpgradeManifest) error {
 	if newAdmin == nil || contractAddr == nil {
 		return nil
 	}
@@ -399,18 +406,22 @@ func (app *App) UpgradeContractAdmin(ctx types.Context, newAdmin *string, contra
 	contractAddrKey := append(wasmTypes.ContractKeyPrefix, *addr...)
 	(*store).Set(contractAddrKey, contractBz)
 
+	if manifest.Contracts == nil {
+		manifest.Contracts = new(Contracts)
+	}
+
 	manifest.Contracts.AdminUpdated = append(manifest.Contracts.AdminUpdated, ContractValueUpdate{*contractAddr, oldAdmin, *newAdmin})
+
 	return nil
 }
 
 func (app *App) UpgradeContractAdmins(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
-	contracts := []struct{ Addr, NewAdmin *string }{
-		{Addr: &networkInfo.Contracts.Reconciliation.Addr, NewAdmin: networkInfo.Contracts.Reconciliation.NewAdmin},
-		{Addr: &networkInfo.Contracts.TokenBridge.Addr, NewAdmin: networkInfo.Contracts.TokenBridge.NewAdmin},
-	}
-
+	contracts := []IContractAdmin{networkInfo.Contracts.Reconciliation, networkInfo.Contracts.TokenBridge}
 	for _, contract := range contracts {
-		err := app.UpgradeContractAdmin(ctx, contract.NewAdmin, contract.Addr, manifest)
+		if contract == nil {
+			continue
+		}
+		err := app.UpgradeContractAdmin(ctx, contract.GetPrimaryContractAddr(), contract.GetNewAdminAddr(), manifest)
 		if err != nil {
 			return err
 		}
@@ -435,30 +446,22 @@ func (app *App) DeleteContractState(ctx types.Context, contractAddr string, mani
 	for ; iter.Valid(); iter.Next() {
 		prefixStore.Delete(iter.Key())
 	}
+
+	if manifest.Contracts == nil {
+		manifest.Contracts = new(Contracts)
+	}
+
 	manifest.Contracts.StateCleaned = append(manifest.Contracts.StateCleaned, contractAddr)
+
 	return nil
 }
 
 func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	var contractsToWipe []string
 
-	if networkInfo.Contracts.Reconciliation != nil {
-		contractsToWipe = append(contractsToWipe, networkInfo.Contracts.Reconciliation.Addr)
-	}
-
-	if networkInfo.Contracts.Almanac != nil {
-		contractsToWipe = append(contractsToWipe,
-			networkInfo.Contracts.Almanac.ProdAddr,
-			networkInfo.Contracts.Almanac.DevAddr,
-		)
-	}
-
-	if networkInfo.Contracts.AName != nil {
-		contractsToWipe = append(contractsToWipe,
-			networkInfo.Contracts.AName.ProdAddr,
-			networkInfo.Contracts.AName.DevAddr,
-		)
-	}
+	contractsToWipe = networkInfo.Contracts.Reconciliation.GetContracts(contractsToWipe)
+	contractsToWipe = networkInfo.Contracts.Almanac.GetContracts(contractsToWipe)
+	contractsToWipe = networkInfo.Contracts.AName.GetContracts(contractsToWipe)
 
 	for _, contract := range contractsToWipe {
 		err := app.DeleteContractState(ctx, contract, manifest)

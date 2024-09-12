@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -731,12 +730,12 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		manifest := NewUpgradeManifest()
 
 		if app.cudosPath == "" {
-			panic("cudos path not set")
+			return nil, fmt.Errorf("cudos path not set")
 		}
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
-			panic("Network info not found for chain id: " + ctx.ChainID())
+			return nil, fmt.Errorf("Network info not found for chain id: " + ctx.ChainID())
 		}
 
 		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
@@ -744,13 +743,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, err
 		}
 
-		// Call the separate function to handle the admin upgrade
 		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
@@ -765,73 +758,22 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, err
 		}
 
-		_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
+		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
 		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal genesis state: %w", err))
+			return nil, err
 		}
 
-		// unmarshal the app state
-		var jsonData map[string]interface{}
-		if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
-			panic(fmt.Errorf("failed to unmarshal app state: %w", err))
-		}
-
-		genesisData, err := parseGenesisData(jsonData, networkInfo)
+		err = CudosMergeUpgradeHandler(app, ctx, networkInfo.CudosMerge, manifest)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		err = GenesisUpgradeWithdrawIBCChannelsBalances(genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw IBC channels balances: %w", err))
-		}
-
-		err = withdrawGenesisContractBalances(genesisData, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw genesis contracts balances: %w", err))
-		}
-
-		delegatedBalanceMap, err := withdrawGenesisStakingDelegations(genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw genesis staked tokens: %w", err))
-		}
-
-		err = withdrawGenesisDistributionRewards(genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw genesis rewards: %w", err))
-		}
-
-		err = WithdrawGenesisGravity(genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to withdraw gravity: %w", err))
-		}
-
-		err = MigrateGenesisAccounts(genesisData, ctx, app, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed process accounts: %w", err))
-		}
-
-		err = createGenesisDelegations(ctx, app, delegatedBalanceMap, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed process delegations: %w", err))
-		}
-
-		err = fundCommunityPool(ctx, app, genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to fund community pool: %w", err))
-		}
-
-		err = VerifySupply(genesisData, networkInfo, manifest)
-		if err != nil {
-			panic(fmt.Errorf("failed to verify supply: %w", err))
-		}
-
-		// Save the manifest
 		err = app.SaveManifest(manifest, plan.Name)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
+		// TODO(pb): ! Drop this in release version !
 		panic("Debug interruption")
 
 		// End of migration

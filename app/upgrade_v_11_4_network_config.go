@@ -26,10 +26,10 @@ var NetworkInfos = map[string]NetworkConfig{
 					Version:  "1.0.0",
 				},
 			},
-			Almanac: &Almanac{
+			Almanac: &ProdDevContract{
 				ProdAddr: "fetch1mezzhfj7qgveewzwzdk6lz5sae4dunpmmsjr9u7z0tpmdsae8zmquq3y0y",
 			},
-			AName: &AName{
+			AName: &ProdDevContract{
 				ProdAddr: "fetch1479lwv5vy8skute5cycuz727e55spkhxut0valrcm38x9caa2x8q99ef0q",
 			},
 			TokenBridge: &TokenBridge{
@@ -37,35 +37,37 @@ var NetworkInfos = map[string]NetworkConfig{
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 			},
 		},
-		ibcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		remainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-		commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+		CudosMerge: &CudosMergeConfig{
+			ibcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			remainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 
-		newAddrPrefix: "fetch",
-		oldAddrPrefix: "cudos",
+			newAddrPrefix: "fetch",
+			oldAddrPrefix: "cudos",
 
-		originalDenom:  "acudos",
-		convertedDenom: "afet",
-		stakingDenom:   "afet",
+			originalDenom:  "acudos",
+			convertedDenom: "afet",
+			stakingDenom:   "afet",
 
-		mergeTime:     123456,                // Epoch time of merge
-		vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+			mergeTime:     123456,                // Epoch time of merge
+			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
-		balanceConversionConstants: map[string]sdk.Dec{
-			"acudos": acudosToafet},
+			balanceConversionConstants: map[string]sdk.Dec{
+				"acudos": acudosToafet},
 
-		commissionRate: commissionRate,
+			commissionRate: commissionRate,
 
-		notVestedAccounts: map[string]bool{
-			"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
+			notVestedAccounts: map[string]bool{
+				"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
+			},
+
+			backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
+			validatorsMap: map[string]string{
+				"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
+				"cudosvaloper1ctcrpuyumt60733u0yd5htwzedgfae0n8gql5n": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 		},
-
-		backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
-		validatorsMap: map[string]string{
-			"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
-			"cudosvaloper1ctcrpuyumt60733u0yd5htwzedgfae0n8gql5n": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 	},
 
 	"dorado-1": {
@@ -81,22 +83,28 @@ var NetworkInfos = map[string]NetworkConfig{
 					Version:  "1.0.0",
 				},
 			},
-			Almanac: &Almanac{
+			Almanac: &ProdDevContract{
 				ProdAddr: "fetch1tjagw8g8nn4cwuw00cf0m5tl4l6wfw9c0ue507fhx9e3yrsck8zs0l3q4w",
 				DevAddr:  "fetch135h26ys2nwqealykzey532gamw4l4s07aewpwc0cyd8z6m92vyhsplf0vp",
 			},
-			AName: &AName{
+			AName: &ProdDevContract{
 				ProdAddr: "fetch1mxz8kn3l5ksaftx8a9pj9a6prpzk2uhxnqdkwuqvuh37tw80xu6qges77l",
 				DevAddr:  "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 			},
 		},
-		ibcTargetAddr: "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel", // Replace!!
+		CudosMerge: &CudosMergeConfig{
+			ibcTargetAddr: "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel", // Replace!!
+		},
 	},
 }
 
 type NetworkConfig struct {
-	ReconciliationInfo               *ReconciliationInfo
-	Contracts                        *ContractSet
+	ReconciliationInfo *ReconciliationInfo
+	Contracts          *ContractSet
+	CudosMerge         *CudosMergeConfig
+}
+
+type CudosMergeConfig struct {
 	ibcTargetAddr                    string
 	remainingStakingBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
 	remainingGravityBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
@@ -130,13 +138,63 @@ type ReconciliationInfo struct {
 type ContractSet struct {
 	Reconciliation *Reconciliation
 	TokenBridge    *TokenBridge
-	Almanac        *Almanac
-	AName          *AName
+	Almanac        *ProdDevContract
+	AName          *ProdDevContract
+}
+
+type IContractBase interface {
+	GetPrimaryContractAddr() *string
+	GetContracts(contracts []string) []string
+}
+
+type IContractAdmin interface {
+	IContractBase
+	GetNewAdminAddr() *string
+}
+
+type IContractLabel interface {
+	IContractBase
+	GetNewLabel() *string
+}
+
+type IContractVersion interface {
+	IContractBase
+	GetNewVersion() *ContractVersion
 }
 
 type TokenBridge struct {
 	Addr     string
 	NewAdmin *string
+}
+
+func (c *TokenBridge) GetPrimaryContractAddr() *string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+	return &c.Addr
+}
+
+func (c *TokenBridge) GetContracts(contracts []string) []string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return contracts
+	}
+
+	if c.Addr != "" {
+		contracts = append(contracts, c.Addr)
+	}
+
+	return contracts
+}
+
+func (c *TokenBridge) GetNewAdminAddr() *string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+
+	return c.NewAdmin
 }
 
 type ContractVersion struct {
@@ -151,12 +209,71 @@ type Reconciliation struct {
 	NewContractVersion *ContractVersion
 }
 
-type Almanac struct {
+func (c *Reconciliation) GetPrimaryContractAddr() *string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+	return &c.Addr
+}
+
+func (c *Reconciliation) GetContracts(contracts []string) []string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return contracts
+	}
+
+	if c.Addr != "" {
+		contracts = append(contracts, c.Addr)
+	}
+
+	return contracts
+}
+
+func (c *Reconciliation) GetNewAdminAddr() *string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+
+	return c.NewAdmin
+}
+
+func (c *Reconciliation) GetNewLabel() *string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+
+	return c.NewLabel
+}
+
+func (c *Reconciliation) GetNewVersion() *ContractVersion {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return nil
+	}
+
+	return c.NewContractVersion
+}
+
+type ProdDevContract struct {
 	DevAddr  string
 	ProdAddr string
 }
 
-type AName struct {
-	DevAddr  string
-	ProdAddr string
+func (c *ProdDevContract) GetContracts(contracts []string) []string {
+	// NOTE(pb): This is a bit unorthodox approach allowing to call method for null pointer struct:
+	if c == nil {
+		return contracts
+	}
+
+	if c.DevAddr != "" {
+		contracts = append(contracts, c.DevAddr)
+	}
+	if c.ProdAddr != "" {
+		contracts = append(contracts, c.ProdAddr)
+	}
+
+	return contracts
 }
