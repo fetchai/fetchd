@@ -3,7 +3,9 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"os"
 	"path"
 )
@@ -18,6 +20,7 @@ type UpgradeManifest struct {
 	MoveGenesisBalance *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
 	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
 	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
+	VestingCollision   *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
@@ -110,6 +113,11 @@ type UpgradeMoveGenesisBalance struct {
 	NumberOfMovements     int                      `json:"number_of_movements"`
 }
 
+type UpgradeVestingCollision struct {
+	Collisions         []VestingCollision `json:"collisions"`
+	NumberOfCollisions int                `json:"number_of_collisions"`
+}
+
 type UpgradeDelegate struct {
 	Delegations               []UpgradeDelegation `json:"delegation"`
 	AggregatedDelegatedAmount *types.Int          `json:"aggregated_delegated_amount"`
@@ -123,6 +131,13 @@ type UpgradeDelegation struct {
 	OriginalTokens    types.Coins `json:"original_tokens"`
 	NewTokens         types.Int   `json:"new_tokens"`
 	NewShares         types.Dec   `json:"new_shares"`
+}
+
+type VestingCollision struct {
+	OriginalAccount      any         `json:"original_account"`
+	OriginalAccountFunds types.Coins `json:"original_account_funds"`
+	TargetAccount        any         `json:"target_account,omitempty"`
+	TargetAccountFunds   types.Coins `json:"target_account_funds,omitempty"`
 }
 
 type UpgradeMoveMintedBalance struct {
@@ -172,5 +187,38 @@ func (app *App) SaveManifest(manifest *UpgradeManifest, upgradeLabel string) err
 		return fmt.Errorf("failed to write manifest to the \"%s\" file : %w", manifestFilePath, err)
 	}
 
+	return nil
+}
+
+func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount AccountInfo, targetAccountFunds types.Coins, targetAccount authtypes.AccountI) error {
+	if manifest.VestingCollision == nil {
+		manifest.VestingCollision = &UpgradeVestingCollision{}
+	}
+
+	collision := VestingCollision{
+		OriginalAccountFunds: originalAccount.balance,
+		OriginalAccount:      originalAccount.rawAccData,
+	}
+	if targetAccount != nil {
+		res, err := codec.MarshalJSONIndent(authtypes.ModuleCdc.LegacyAmino, targetAccount)
+		if err != nil {
+			return err
+		}
+
+		var resultMap map[string]interface{}
+
+		// Unmarshal the JSON into the map
+		err = json.Unmarshal(res, &resultMap)
+		if err != nil {
+			return err
+		}
+		collision.TargetAccount = resultMap
+
+		collision.TargetAccountFunds = targetAccountFunds
+	}
+
+	manifest.VestingCollision.Collisions = append(manifest.VestingCollision.Collisions, collision)
+
+	manifest.VestingCollision.NumberOfCollisions += 1
 	return nil
 }

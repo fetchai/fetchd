@@ -133,6 +133,8 @@ type GenesisData struct {
 	distributionInfo DistributionInfo
 
 	gravityModuleAccountAddress string
+
+	collisionMap OrderedMap[string, string]
 }
 
 func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
@@ -186,7 +188,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("failed process accounts: %w", err)
 	}
 
-	err = createGenesisDelegations(ctx, app, delegatedBalanceMap, cudosCfg, manifest)
+	err = createGenesisDelegations(ctx, app, genesisData, delegatedBalanceMap, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("failed process delegations: %w", err)
 	}
@@ -263,6 +265,7 @@ func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfi
 	}
 	genesisData.gravityModuleAccountAddress = gravityModuleAccountAddress
 
+	genesisData.collisionMap = *NewOrderedMap[string, string]()
 	return &genesisData, nil
 }
 
@@ -293,6 +296,8 @@ type AccountInfo struct {
 	// Custom
 	accountType AccountType
 	migrated    bool
+
+	rawAccData map[string]interface{}
 }
 
 func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
@@ -409,7 +414,7 @@ func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *Accou
 }
 
 func parseGenesisAccount(accMap map[string]interface{}, cudosCfg *CudosMergeConfig) (*AccountInfo, error) {
-	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false}
+	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false, rawAccData: accMap}
 	accType := accMap["@type"]
 
 	// Extract base account and special values
@@ -839,7 +844,7 @@ func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, cudo
 	return nil
 }
 
-func createGenesisDelegations(ctx sdk.Context, app *App, delegatedBalanceMap *OrderedMap[string, OrderedMap[string, sdk.Coins]], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisData, delegatedBalanceMap *OrderedMap[string, OrderedMap[string, sdk.Coins]], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
 	for _, delegatorAddr := range *delegatedBalanceMap.Keys() {
 		delegatorAddrMap := delegatedBalanceMap.MustGet(delegatorAddr)
@@ -870,16 +875,27 @@ func createGenesisDelegations(ctx sdk.Context, app *App, delegatedBalanceMap *Or
 			if err != nil {
 				return err
 			}
-			NewDelegatorRawAddr, err := convertAddressToRaw(delegatorAddr, cudosCfg)
+
+			var delegatorRawAddr []byte
+			if remappedDelegatorAddr, exists := genesisData.collisionMap.Get(delegatorAddr); exists {
+				// Vesting collision
+				_, delegatorRawAddr, err = bech32.DecodeAndConvert(*remappedDelegatorAddr)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Regular case
+				delegatorRawAddr, err = convertAddressToRaw(delegatorAddr, cudosCfg)
+				if err != nil {
+					return err
+				}
+			}
+
+			err = createDelegation(ctx, app, validatorOperatorStringAddr, delegatorRawAddr, *destValidator, *delegatedBalance, *tokensToDelegate, manifest)
 			if err != nil {
 				return err
 			}
 
-			// Create delegation
-			err = createDelegation(ctx, app, validatorOperatorStringAddr, NewDelegatorRawAddr, *destValidator, *delegatedBalance, *tokensToDelegate, manifest)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -1528,7 +1544,7 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount Account
 			}
 		} else {
 			// Account is not vesting
-			err := createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, cudosCfg.mergeTime, cudosCfg.mergeTime+cudosCfg.vestingPeriod)
+			err := createNewVestingAccountFromBaseAccount(ctx, app, newBaseAccount, newBalance, ctx.BlockTime().Unix(), ctx.BlockTime().Unix()+cudosCfg.vestingPeriod)
 			if err != nil {
 				return err
 			}
@@ -1545,6 +1561,23 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount Account
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func doCollisionMigration(ctx sdk.Context, app *App, genesisData *GenesisData, genesisAccount AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+	// Keep existing account intact and move cudos balance to account specified in config
+	genesisData.collisionMap.SetNew(genesisAccount.address, cudosCfg.vestingCollisionDestAddr)
+
+	_, destRawAddr, err := bech32.DecodeAndConvert(cudosCfg.vestingCollisionDestAddr)
+	if err != nil {
+		return err
+	}
+
+	err = migrateToAccount(ctx, app, genesisAccount.address, destRawAddr, genesisAccount.balance, newBalance, "vesting_collision_account", manifest)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -1647,9 +1680,16 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 				return fmt.Errorf("failed to migrate account %s: %w", genesisAccountAddress, err)
 			}
 		} else {
+			err := RegisterVestingCollision(manifest, genesisAccount, newBalance, existingAccount)
+			if err != nil {
+				return err
+			}
+
 			// New balance goes to foundation wallet
-			// TODO(pb): Resolve
-			panic("Not yet implemented")
+			err = doCollisionMigration(ctx, app, genesisData, genesisAccount, existingAccount, newBalance, cudosCfg, manifest)
+			if err != nil {
+				return fmt.Errorf("failed to migrate account %s: %w", genesisAccountAddress, err)
+			}
 		}
 
 		err = MarkAccountAsMigrated(genesisData, genesisAccountAddress)

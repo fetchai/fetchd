@@ -43,6 +43,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			vestingCollisionDestAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 
 			newAddrPrefix: "fetch",
 			oldAddrPrefix: "cudos",
@@ -51,7 +52,6 @@ var NetworkInfos = map[string]NetworkConfig{
 			convertedDenom: "afet",
 			stakingDenom:   "afet",
 
-			mergeTime:     123456,                // Epoch time of merge
 			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
 			balanceConversionConstants: map[string]sdk.Dec{
@@ -105,11 +105,12 @@ type NetworkConfig struct {
 }
 
 type CudosMergeConfig struct {
-	ibcTargetAddr                    string
-	remainingStakingBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
-	remainingGravityBalanceAddr      string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
-	remainingDistributionBalanceAddr string // Account for remaining bonded and not-bonded pool balances and balances from all other module accounts
-	commissionFetchAddr              string
+	ibcTargetAddr                    string // Cudos address
+	remainingStakingBalanceAddr      string // Cudos account for remaining bonded and not-bonded pool balances
+	remainingGravityBalanceAddr      string // Cudos address
+	remainingDistributionBalanceAddr string // Cudos address
+	commissionFetchAddr              string // Fetch address for comission
+	vestingCollisionDestAddr         string // This gets converted to raw address, so it can be fetch or cudos address
 
 	newAddrPrefix string
 	oldAddrPrefix string
@@ -118,7 +119,6 @@ type CudosMergeConfig struct {
 	convertedDenom string
 	stakingDenom   string
 
-	mergeTime     int64 // Epoch time of merge - beginning of vesting period
 	vestingPeriod int64 // Vesting period
 
 	balanceConversionConstants map[string]sdk.Dec
