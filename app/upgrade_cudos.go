@@ -740,16 +740,6 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 }
 
 func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress string, cudosCfg *CudosMergeConfig) (*stakingtypes.Validator, error) {
-
-	/*
-		vals := app.StakingKeeper.GetValidators(ctx, 1234)
-		for _, val := range vals {
-			if val.Status.String() == BondedStatus {
-				println(val.GetOperator().String())
-			}
-		}
-	*/
-
 	if targetOperatorStringAddress, exists := cudosCfg.validatorsMap[operatorAddress]; exists {
 		targetOperatorAddress, err := sdk.ValAddressFromBech32(targetOperatorStringAddress)
 		if err != nil {
@@ -830,9 +820,6 @@ func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, cudo
 		return err
 	}
 
-	// Apply commission
-	convertedCommunityPoolBalance = applyCommissionCeilInt(convertedCommunityPoolBalance, cudosCfg)
-
 	communityPoolSourceAccountRawAddress := genesisData.accounts.MustGet(cudosCfg.remainingDistributionBalanceAddr).rawAddress
 	err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, communityPoolSourceAccountRawAddress)
 	if err != nil {
@@ -862,9 +849,6 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 			if err != nil {
 				return err
 			}
-
-			// Apply commission on delegated amount
-			convertedBalance = applyCommissionCeilInt(convertedBalance, cudosCfg)
 
 			if convertedBalance.Empty() {
 				// Very small balance gets truncated to 0 during conversion
@@ -984,7 +968,7 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 
 	for _, coin := range balance {
 		if conversionConstant, ok := cudosCfg.balanceConversionConstants[coin.Denom]; ok {
-			newAmount := coin.Amount.ToDec().Mul(conversionConstant).TruncateInt()
+			newAmount := coin.Amount.ToDec().Quo(conversionConstant).TruncateInt()
 			sdkCoin := sdk.NewCoin(cudosCfg.convertedDenom, newAmount)
 			resBalance = resBalance.Add(sdkCoin)
 		} else {
@@ -1006,30 +990,6 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 	}
 
 	return resBalance, nil
-}
-
-func calculateCommissionDec(balance sdk.Coins, cudosCfg *CudosMergeConfig) sdk.DecCoins {
-	var resBalance sdk.DecCoins
-
-	for _, coin := range balance {
-		commission := cudosCfg.commissionRate.MulInt(coin.Amount)
-		sdkCoin := sdk.NewDecCoinFromDec(coin.Denom, commission)
-		resBalance = resBalance.Add(sdkCoin)
-	}
-
-	return resBalance
-}
-
-func calculateCommissionFloorInt(balance sdk.Coins, cudosCfg *CudosMergeConfig) sdk.Coins {
-	commissionInt, _ := calculateCommissionDec(balance, cudosCfg).TruncateDecimal()
-	return commissionInt
-}
-
-func applyCommissionCeilInt(balance sdk.Coins, cudosCfg *CudosMergeConfig) sdk.Coins {
-	commission := calculateCommissionDec(balance, cudosCfg)
-	decBalance := sdk.NewDecCoinsFromCoins(balance...)
-	result, _ := decBalance.Sub(commission).TruncateDecimal()
-	return result
 }
 
 func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, AccountInfo]) error {
@@ -1588,18 +1548,20 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	initialMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
 
 	// Mint donor chain total supply
-	totalSupplyToMint, err := convertBalance(genesisData.totalSupply, cudosCfg)
+	totalSupplyToMint := sdk.NewCoins(sdk.NewCoin(cudosCfg.convertedDenom, cudosCfg.totalFetchSupplyToMint))
+	totalCudosSupply := sdk.NewCoins(sdk.NewCoin(cudosCfg.originalDenom, cudosCfg.totalCudosSupply))
+
+	err := app.MintKeeper.MintCoins(ctx, totalSupplyToMint)
 	if err != nil {
 		return err
 	}
 
-	err = app.MintKeeper.MintCoins(ctx, totalSupplyToMint)
+	totalSupplyReducedByCommission, err := convertBalance(totalCudosSupply, cudosCfg)
 	if err != nil {
 		return err
 	}
 
-	// Move commission to specific account
-	totalCommission := calculateCommissionFloorInt(totalSupplyToMint, cudosCfg)
+	totalCommission := totalSupplyToMint.Sub(totalSupplyReducedByCommission)
 
 	commissionRawAcc, err := sdk.AccAddressFromBech32(cudosCfg.commissionFetchAddr)
 	if err != nil {
@@ -1607,6 +1569,20 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	}
 
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
+
+	totalGenesisFetchSupplyReducedByCommission, err := convertBalance(genesisData.totalSupply, cudosCfg)
+	if err != nil {
+		return err
+	}
+
+	extraSupplyReducedByCommission := totalSupplyToMint.Sub(totalCommission).Sub(totalGenesisFetchSupplyReducedByCommission)
+
+	extraSupplyRawAcc, err := sdk.AccAddressFromBech32(cudosCfg.extraSupplyFetchAddr)
+	if err != nil {
+		return fmt.Errorf("failed to get commission account raw address: %w", err)
+	}
+
+	err = migrateToAccount(ctx, app, "mint_module", extraSupplyRawAcc, sdk.NewCoins(), extraSupplyReducedByCommission, "extra_supply", manifest)
 
 	// Mint the rest of the supply
 	for _, genesisAccountAddress := range *genesisData.accounts.Keys() {
@@ -1660,9 +1636,6 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		if err != nil {
 			return err
 		}
-
-		// Apply commission
-		newBalance = applyCommissionCeilInt(newBalance, cudosCfg)
 
 		// Handle all collision cases
 		regularMigration := true
@@ -1727,10 +1700,7 @@ func parseGenesisTotalSupply(jsonData map[string]interface{}) (sdk.Coins, error)
 
 func VerifySupply(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
-	expectedMintedSupply, err := convertBalance(genesisData.totalSupply, cudosCfg)
-	if err != nil {
-		return err
-	}
+	expectedMintedSupply := sdk.NewCoins(sdk.NewCoin(cudosCfg.convertedDenom, cudosCfg.totalFetchSupplyToMint))
 
 	mintedSupply := manifest.Migration.AggregatedMigratedAmount
 

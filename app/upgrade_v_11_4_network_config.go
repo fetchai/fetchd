@@ -3,11 +3,12 @@ package app
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
 var (
-	acudosToafet, _                             = sdk.NewDecFromStr("0.0909090909")
-	commissionRate, _                           = sdk.NewDecFromStr("0.05")
-	maxToleratedRemainingDistributionBalance, _ = sdk.NewIntFromString("1000000000000000000")
-	maxToleratedRemainingStakingBalance, _      = sdk.NewIntFromString("100000000")
-	maxToleratedRemainingMintBalance, _         = sdk.NewIntFromString("100000000")
+	acudosToafetExchangeRateReducedByCommission, _ = sdk.NewDecFromStr("118.344")
+	maxToleratedRemainingDistributionBalance, _    = sdk.NewIntFromString("1000000000000000000")
+	maxToleratedRemainingStakingBalance, _         = sdk.NewIntFromString("100000000")
+	maxToleratedRemainingMintBalance, _            = sdk.NewIntFromString("100000000")
+	totalCudosSupply, _                            = sdk.NewIntFromString("10000000000000000000000000000")
+	totalFetchSupplyToMint, _                      = sdk.NewIntFromString("88946755672000000000000000")
 )
 
 var NetworkInfos = map[string]NetworkConfig{
@@ -43,6 +44,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			extraSupplyFetchAddr:             "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
 			vestingCollisionDestAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 
 			newAddrPrefix: "fetch",
@@ -55,9 +57,10 @@ var NetworkInfos = map[string]NetworkConfig{
 			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
 			balanceConversionConstants: map[string]sdk.Dec{
-				"acudos": acudosToafet},
+				"acudos": acudosToafetExchangeRateReducedByCommission},
 
-			commissionRate: commissionRate,
+			totalCudosSupply:       totalCudosSupply,
+			totalFetchSupplyToMint: totalFetchSupplyToMint,
 
 			notVestedAccounts: map[string]bool{
 				"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
@@ -110,6 +113,7 @@ type CudosMergeConfig struct {
 	remainingGravityBalanceAddr      string // Cudos address
 	remainingDistributionBalanceAddr string // Cudos address
 	commissionFetchAddr              string // Fetch address for comission
+	extraSupplyFetchAddr             string // Fetch address for extra supply
 	vestingCollisionDestAddr         string // This gets converted to raw address, so it can be fetch or cudos address
 
 	newAddrPrefix string
@@ -122,7 +126,8 @@ type CudosMergeConfig struct {
 	vestingPeriod int64 // Vesting period
 
 	balanceConversionConstants map[string]sdk.Dec
-	commissionRate             sdk.Dec
+	totalCudosSupply           sdk.Int
+	totalFetchSupplyToMint     sdk.Int
 
 	notVestedAccounts map[string]bool
 
