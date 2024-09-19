@@ -735,7 +735,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		networkInfo, ok := NetworkInfos[ctx.ChainID()]
 		if !ok {
-			return nil, fmt.Errorf("Network info not found for chain id: " + ctx.ChainID())
+			return nil, fmt.Errorf("network info not found for chain id: " + ctx.ChainID())
 		}
 
 		err := app.DeleteContractStates(ctx, &networkInfo, manifest)

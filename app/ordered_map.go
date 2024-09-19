@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -26,15 +27,15 @@ func NewOrderedMap[K comparable, V any]() *OrderedMap[K, V] {
 func (om *OrderedMap[K, V]) Set(key K, value V) {
 	if _, exists := om.values[key]; !exists {
 		*om.keys = append(*om.keys, key)
+		*om.sorted = false
 	}
 	om.values[key] = value
-	*om.sorted = false
 }
 
 // Set adds a key-value pair to the map - it must not exist before
 func (om *OrderedMap[K, V]) SetNew(key K, value V) {
 	if om.Has(key) {
-		panic(fmt.Errorf("key %v already exist", key))
+		log.Panicf("key %v already exist", key)
 	}
 	om.Set(key, value)
 }
@@ -47,15 +48,15 @@ func (om *OrderedMap[K, V]) Get(key K) (*V, bool) {
 
 // Get retrieves the value associated with the key, panics otherwise
 func (om *OrderedMap[K, V]) MustGet(key K) *V {
-	value, exists := om.values[key]
+	value, exists := om.Get(key)
 	if !exists {
-		panic(fmt.Errorf("key %v not exists", key))
+		log.Panicf("key %v does not exist", key)
 	}
-	return &value
+	return value
 }
 
 func (om *OrderedMap[K, V]) Has(key K) bool {
-	_, exists := om.values[key]
+	_, exists := om.Get(key)
 	return exists
 }
 
@@ -78,7 +79,7 @@ func (om *OrderedMap[K, V]) Keys() *[]K {
 	return om.keys
 }
 
-// PrintOrdered prints the map in order
+// PrintOrdered prints the map in current order
 func (om *OrderedMap[K, V]) PrintOrdered() {
 	for _, key := range *om.keys {
 		fmt.Printf("%v: %v\n", key, om.values[key])

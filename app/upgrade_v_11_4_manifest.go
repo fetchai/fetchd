@@ -144,7 +144,7 @@ type UpgradeMoveMintedBalance struct {
 	Movements []UpgradeBalanceMovement `json:"movements"`
 }
 
-func (app *App) GetManifestFilePath(prefix string) (string, error) {
+func (app *App) getManifestFilePath(prefix string) (string, error) {
 	var upgradeFilePath string
 	var err error
 
@@ -169,7 +169,7 @@ func (app *App) SaveManifest(manifest *UpgradeManifest, upgradeLabel string) err
 	var err error
 
 	var manifestFilePath string
-	if manifestFilePath, err = app.GetManifestFilePath(upgradeLabel); err != nil {
+	if manifestFilePath, err = app.getManifestFilePath(upgradeLabel); err != nil {
 		return err
 	}
 

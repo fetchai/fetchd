@@ -9,6 +9,9 @@ var (
 	maxToleratedRemainingMintBalance, _            = sdk.NewIntFromString("100000000")
 	totalCudosSupply, _                            = sdk.NewIntFromString("10000000000000000000000000000")
 	totalFetchSupplyToMint, _                      = sdk.NewIntFromString("88946755672000000000000000")
+
+	totalCudosTestnetSupply, _       = sdk.NewIntFromString("20845618401448224096752009000")
+	totalFetchTestnetSupplyToMint, _ = sdk.NewIntFromString("185415012678536211688587264")
 )
 
 var NetworkInfos = map[string]NetworkConfig{
@@ -96,7 +99,37 @@ var NetworkInfos = map[string]NetworkConfig{
 			},
 		},
 		CudosMerge: &CudosMergeConfig{
-			ibcTargetAddr: "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel", // Replace!!
+			ibcTargetAddr:                    "cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz", // Replace!!
+			remainingStakingBalanceAddr:      "cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz", // Replace!!
+			remainingGravityBalanceAddr:      "cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz", // Replace!!
+			remainingDistributionBalanceAddr: "cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz", // Replace!!
+			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			extraSupplyFetchAddr:             "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
+			vestingCollisionDestAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+
+			newAddrPrefix: "fetch",
+			oldAddrPrefix: "cudos",
+
+			originalDenom:  "acudos",
+			convertedDenom: "atestfet",
+			stakingDenom:   "atestfet",
+
+			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+
+			balanceConversionConstants: map[string]sdk.Dec{
+				"acudos": acudosToafetExchangeRateReducedByCommission},
+
+			totalCudosSupply:       totalCudosTestnetSupply,
+			totalFetchSupplyToMint: totalFetchTestnetSupplyToMint,
+
+			notVestedAccounts: map[string]bool{
+				"cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz": true,
+			},
+
+			backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
+			validatorsMap: map[string]string{
+				"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
+				"cudosvaloper1ctcrpuyumt60733u0yd5htwzedgfae0n8gql5n": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 		},
 	},
 }
