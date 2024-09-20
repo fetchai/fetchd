@@ -122,19 +122,19 @@ const (
 type GenesisData struct {
 	totalSupply sdk.Coins
 
-	accounts    OrderedMap[string, AccountInfo]
-	contracts   OrderedMap[string, ContractInfo]
-	ibcAccounts OrderedMap[string, IBCInfo]
+	accounts    *OrderedMap[string, *AccountInfo]
+	contracts   *OrderedMap[string, *ContractInfo]
+	ibcAccounts *OrderedMap[string, *IBCInfo]
 
-	validators           OrderedMap[string, ValidatorInfo]
+	validators           *OrderedMap[string, *ValidatorInfo]
 	bondedPoolAddress    string
 	notBondedPoolAddress string
 
-	distributionInfo DistributionInfo
+	distributionInfo *DistributionInfo
 
 	gravityModuleAccountAddress string
 
-	collisionMap OrderedMap[string, string]
+	collisionMap *OrderedMap[string, string]
 }
 
 func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
@@ -215,57 +215,52 @@ func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfi
 	}
 	genesisData.totalSupply = totalSupply
 
-	contracts, err := parseGenesisWasmContracts(jsonData)
+	genesisData.contracts, err = parseGenesisWasmContracts(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contracts: %w", err)
 	}
-	genesisData.contracts = *contracts
 
-	IBCAccounts, err := parseGenesisIBCAccounts(jsonData, cudosCfg)
+	genesisData.ibcAccounts, err = parseGenesisIBCAccounts(jsonData, cudosCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ibc accounts: %w", err)
 	}
-	genesisData.ibcAccounts = *IBCAccounts
 
 	// Get all accounts and balances into map
-	accounts, err := parseGenesisAccounts(jsonData, contracts, IBCAccounts, cudosCfg)
+	genesisData.accounts, err = parseGenesisAccounts(jsonData, genesisData.contracts, genesisData.ibcAccounts, cudosCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accounts map: %w", err)
 	}
-	genesisData.accounts = *accounts
 
 	// Staking module
-	bondedPoolAddress, err := GetAddressByName(accounts, BondedPoolAccName)
+	bondedPoolAddress, err := GetAddressByName(genesisData.accounts, BondedPoolAccName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bonded pool account: %w", err)
 	}
 	genesisData.bondedPoolAddress = bondedPoolAddress
 
-	notBondedPoolAddress, err := GetAddressByName(accounts, NotBondedPoolAccName)
+	genesisData.notBondedPoolAddress, err = GetAddressByName(genesisData.accounts, NotBondedPoolAccName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get not-bonded pool account: %w", err)
 	}
-	genesisData.notBondedPoolAddress = notBondedPoolAddress
 
-	validators, err := parseGenesisValidators(jsonData)
+	genesisData.validators, err = parseGenesisValidators(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validators map: %w", err)
 	}
-	genesisData.validators = *validators
 
-	distributionInfo, err := parseGenesisDistribution(jsonData, accounts)
+	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.accounts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get distribution module map: %w", err)
 	}
-	genesisData.distributionInfo = *distributionInfo
+	genesisData.distributionInfo = distributionInfo
 
-	gravityModuleAccountAddress, err := GetAddressByName(accounts, GravityAccName)
+	gravityModuleAccountAddress, err := GetAddressByName(genesisData.accounts, GravityAccName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get gravity module account: %w", err)
 	}
 	genesisData.gravityModuleAccountAddress = gravityModuleAccountAddress
 
-	genesisData.collisionMap = *NewOrderedMap[string, string]()
+	genesisData.collisionMap = NewOrderedMap[string, string]()
 	return &genesisData, nil
 }
 
@@ -461,13 +456,13 @@ func parseGenesisAccount(accMap map[string]interface{}, cudosCfg *CudosMergeConf
 	return &accountInfo, nil
 }
 
-func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, ContractInfo], IBCAccountsMap *OrderedMap[string, IBCInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, AccountInfo], error) {
+func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, *ContractInfo], IBCAccountsMap *OrderedMap[string, *IBCInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *AccountInfo], error) {
 	var err error
 
 	// Map to verify that account exists in auth module
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
-	accountMap := NewOrderedMap[string, AccountInfo]()
+	accountMap := NewOrderedMap[string, *AccountInfo]()
 
 	for _, acc := range accounts {
 		accMap := acc.(map[string]interface{})
@@ -483,7 +478,7 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 			accountInfo.accountType = IBCAccountType
 		}
 
-		accountMap.SetNew(accountInfo.address, *accountInfo)
+		accountMap.SetNew(accountInfo.address, accountInfo)
 	}
 
 	// Add balances to accounts map
@@ -502,7 +497,7 @@ type DelegationInfo struct {
 
 type UnbondingDelegationInfo struct {
 	delegatorAddress string
-	entries          []UnbondingDelegationEntry
+	entries          []*UnbondingDelegationEntry
 }
 
 type UnbondingDelegationEntry struct {
@@ -518,17 +513,17 @@ type ValidatorInfo struct {
 	status               string
 	operatorAddress      string
 	consensusPubkey      cryptotypes.PubKey
-	delegations          OrderedMap[string, DelegationInfo]
-	unbondingDelegations OrderedMap[string, UnbondingDelegationInfo]
+	delegations          *OrderedMap[string, *DelegationInfo]
+	unbondingDelegations *OrderedMap[string, *UnbondingDelegationInfo]
 }
 
 func (v ValidatorInfo) TokensFromShares(shares sdk.Dec) sdk.Dec {
 	return (shares.MulInt(v.stake)).Quo(v.shares)
 }
 
-func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string, ValidatorInfo], error) {
+func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string, *ValidatorInfo], error) {
 	// Validator pubkey hex -> ValidatorInfo
-	validatorInfoMap := NewOrderedMap[string, ValidatorInfo]()
+	validatorInfoMap := NewOrderedMap[string, *ValidatorInfo]()
 
 	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
 	validators := staking["validators"].([]interface{})
@@ -559,14 +554,14 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 			return nil, err
 		}
 
-		validatorInfoMap.SetNew(operatorAddress, ValidatorInfo{
+		validatorInfoMap.SetNew(operatorAddress, &ValidatorInfo{
 			stake:                tokensInt,
 			shares:               validatorSharesDec,
 			status:               status,
 			operatorAddress:      operatorAddress,
 			consensusPubkey:      decodedConsensusPubkey,
-			delegations:          *NewOrderedMap[string, DelegationInfo](),
-			unbondingDelegations: *NewOrderedMap[string, UnbondingDelegationInfo](),
+			delegations:          NewOrderedMap[string, *DelegationInfo](),
+			unbondingDelegations: NewOrderedMap[string, *UnbondingDelegationInfo](),
 		})
 
 	}
@@ -584,7 +579,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.delegations.SetNew(delegatorAddress, DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
+		validator.delegations.SetNew(delegatorAddress, &DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
 	}
 
 	unbondingDelegations := staking["unbonding_delegations"].([]interface{})
@@ -595,7 +590,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 
 		entriesMap := unbondingDelegationMap["entries"].([]interface{})
 
-		var unbondingDelegationEntries []UnbondingDelegationEntry
+		var unbondingDelegationEntries []*UnbondingDelegationEntry
 
 		for _, entry := range entriesMap {
 			entryMap := entry.(map[string]interface{})
@@ -613,22 +608,22 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 
 			completionTime := entryMap["completion_time"].(string)
 
-			unbondingDelegationEntries = append(unbondingDelegationEntries, UnbondingDelegationEntry{balance: balance, initialBalance: initialBalance, creationHeight: creationHeight, completionTime: completionTime})
+			unbondingDelegationEntries = append(unbondingDelegationEntries, &UnbondingDelegationEntry{balance: balance, initialBalance: initialBalance, creationHeight: creationHeight, completionTime: completionTime})
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.unbondingDelegations.SetNew(delegatorAddress, UnbondingDelegationInfo{delegatorAddress: delegatorAddress, entries: unbondingDelegationEntries})
+		validator.unbondingDelegations.SetNew(delegatorAddress, &UnbondingDelegationInfo{delegatorAddress: delegatorAddress, entries: unbondingDelegationEntries})
 	}
 
 	return validatorInfoMap, nil
 }
 
-func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*OrderedMap[string, OrderedMap[string, sdk.Coins]], error) {
+func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*OrderedMap[string, *OrderedMap[string, sdk.Coins]], error) {
 	// Handle delegations
-	delegatedBalanceMap := NewOrderedMap[string, OrderedMap[string, sdk.Coins]]()
-	for _, validatorOperatorAddress := range *genesisData.validators.Keys() {
+	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Coins]]()
+	for _, validatorOperatorAddress := range genesisData.validators.Keys() {
 		validator := genesisData.validators.MustGet(validatorOperatorAddress)
-		for _, delegatorAddress := range *validator.delegations.Keys() {
+		for _, delegatorAddress := range validator.delegations.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddress)
 			resolvedDelegatorAddress, err := resolveIfContractAddress(delegatorAddress, genesisData)
 			if err != nil {
@@ -651,7 +646,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 
 				// Store delegation to delegated map
 				if _, exists := delegatedBalanceMap.Get(resolvedDelegatorAddress); !exists {
-					delegatedBalanceMap.Set(resolvedDelegatorAddress, *NewOrderedMap[string, sdk.Coins]())
+					delegatedBalanceMap.Set(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Coins]())
 				}
 
 				resolvedDelegatorMap := delegatedBalanceMap.MustGet(resolvedDelegatorAddress)
@@ -663,7 +658,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 
 				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorBalance...))
 
-				delegatedBalanceMap.Set(resolvedDelegatorAddress, *resolvedDelegatorMap)
+				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 
 				// Move balance from bonded pool to delegator
 				err := moveGenesisBalance(genesisData, genesisData.bondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, "bonded_delegation", manifest)
@@ -684,7 +679,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		}
 
 		// Handle unbonding delegations
-		for _, delegatorAddress := range *validator.unbondingDelegations.Keys() {
+		for _, delegatorAddress := range validator.unbondingDelegations.Keys() {
 			unbondingDelegation := validator.unbondingDelegations.MustGet(delegatorAddress)
 			resolvedDelegatorAddress, err := resolveIfContractAddress(delegatorAddress, genesisData)
 			if err != nil {
@@ -829,9 +824,9 @@ func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, cudo
 	return nil
 }
 
-func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisData, delegatedBalanceMap *OrderedMap[string, OrderedMap[string, sdk.Coins]], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisData, delegatedBalanceMap *OrderedMap[string, *OrderedMap[string, sdk.Coins]], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
-	for _, delegatorAddr := range *delegatedBalanceMap.Keys() {
+	for _, delegatorAddr := range delegatedBalanceMap.Keys() {
 		delegatorAddrMap := delegatedBalanceMap.MustGet(delegatorAddr)
 
 		// Skip accounts that shouldn't be delegated
@@ -839,7 +834,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 			continue
 		}
 
-		for _, validatorOperatorStringAddr := range *delegatorAddrMap.Keys() {
+		for _, validatorOperatorStringAddr := range delegatorAddrMap.Keys() {
 			delegatedBalance := delegatorAddrMap.MustGet(validatorOperatorStringAddr)
 
 			destValidator, err := resolveDestinationValidator(ctx, app, validatorOperatorStringAddr, cudosCfg)
@@ -848,7 +843,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 			}
 
 			// Get int amount in native tokens
-			convertedBalance, err := convertBalance(*delegatedBalance, cudosCfg)
+			convertedBalance, err := convertBalance(delegatedBalance, cudosCfg)
 			if err != nil {
 				return err
 			}
@@ -866,7 +861,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 			var delegatorRawAddr []byte
 			if remappedDelegatorAddr, exists := genesisData.collisionMap.Get(delegatorAddr); exists {
 				// Vesting collision
-				_, delegatorRawAddr, err = bech32.DecodeAndConvert(*remappedDelegatorAddr)
+				_, delegatorRawAddr, err = bech32.DecodeAndConvert(remappedDelegatorAddr)
 				if err != nil {
 					return err
 				}
@@ -878,7 +873,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 				}
 			}
 
-			err = createDelegation(ctx, app, validatorOperatorStringAddr, delegatorRawAddr, *destValidator, *delegatedBalance, *tokensToDelegate, manifest)
+			err = createDelegation(ctx, app, validatorOperatorStringAddr, delegatorRawAddr, *destValidator, delegatedBalance, *tokensToDelegate, manifest)
 			if err != nil {
 				return err
 			}
@@ -944,7 +939,7 @@ func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
 
 func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *UpgradeManifest) error {
 
-	for _, contractAddress := range *genesisData.contracts.Keys() {
+	for _, contractAddress := range genesisData.contracts.Keys() {
 		resolvedAddress, err := resolveIfContractAddress(contractAddress, genesisData)
 		if err != nil {
 			return err
@@ -995,7 +990,7 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 	return resBalance, nil
 }
 
-func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, AccountInfo], cudosCfg *CudosMergeConfig) error {
+func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, *AccountInfo], cudosCfg *CudosMergeConfig) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 
@@ -1030,7 +1025,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 			}
 
 			accountInfoEntry.balance = sdkBalance
-			genesisAccountsMap.Set(addrStr, *accountInfoEntry)
+			genesisAccountsMap.Set(addrStr, accountInfoEntry)
 		}
 
 	}
@@ -1048,7 +1043,7 @@ func genesisUpgradeWithdrawIBCChannelsBalances(genesisData *GenesisData, cudosCf
 		To: ibcWithdrawalAddress,
 	}
 
-	for _, IBCaccountAddress := range *genesisData.ibcAccounts.Keys() {
+	for _, IBCaccountAddress := range genesisData.ibcAccounts.Keys() {
 
 		IBCaccount, IBCAccountExists := genesisData.accounts.Get(IBCaccountAddress)
 		IBCinfo := genesisData.ibcAccounts.MustGet(IBCaccountAddress)
@@ -1077,8 +1072,8 @@ type IBCInfo struct {
 	portId    string
 }
 
-func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig) (*OrderedMap[string, IBCInfo], error) {
-	ibcAccountMap := NewOrderedMap[string, IBCInfo]()
+func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig) (*OrderedMap[string, *IBCInfo], error) {
+	ibcAccountMap := NewOrderedMap[string, *IBCInfo]()
 
 	ibc, ok := jsonData[ibccore.ModuleName].(map[string]interface{})
 	if !ok {
@@ -1117,7 +1112,7 @@ func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMer
 			return nil, err
 		}
 
-		ibcAccountMap.Set(channelAddr, IBCInfo{channelId: channelId, portId: portId})
+		ibcAccountMap.Set(channelAddr, &IBCInfo{channelId: channelId, portId: portId})
 	}
 
 	return ibcAccountMap, nil
@@ -1128,8 +1123,8 @@ type ContractInfo struct {
 	Creator string
 }
 
-func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[string, ContractInfo], error) {
-	contractAccountMap := NewOrderedMap[string, ContractInfo]()
+func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[string, *ContractInfo], error) {
+	contractAccountMap := NewOrderedMap[string, *ContractInfo]()
 
 	// Navigate to the "wasm" module
 	wasm, ok := jsonData["wasm"].(map[string]interface{})
@@ -1163,7 +1158,7 @@ func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[str
 		admin := contractInfo["admin"].(string)
 		creator := contractInfo["creator"].(string)
 
-		contractAccountMap.Set(contractAddr, ContractInfo{Admin: admin, Creator: creator})
+		contractAccountMap.Set(contractAddr, &ContractInfo{Admin: admin, Creator: creator})
 	}
 
 	return contractAccountMap, nil
@@ -1266,7 +1261,7 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 	}
 }
 
-func getNewBaseAccount(ctx sdk.Context, app *App, accountInfo AccountInfo) (*authtypes.BaseAccount, error) {
+func getNewBaseAccount(ctx sdk.Context, app *App, accountInfo *AccountInfo) (*authtypes.BaseAccount, error) {
 	// Create new account
 	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
 	newBaseAccount := authtypes.NewBaseAccount(accountInfo.rawAddress, accountInfo.pubkey, newAccNumber, 0)
@@ -1326,7 +1321,7 @@ func markAccountAsMigrated(genesisData *GenesisData, accountAddress string) erro
 
 	AccountInfoRecord.migrated = true
 
-	genesisData.accounts.Set(accountAddress, *AccountInfoRecord)
+	genesisData.accounts.Set(accountAddress, AccountInfoRecord)
 
 	return nil
 }
@@ -1385,15 +1380,15 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 	genesisToBalance.balance = genesisToBalance.balance.Add(amount...)
 	genesisFromBalance.balance = genesisFromBalance.balance.Sub(amount)
 
-	genesisData.accounts.Set(toAddress, *genesisToBalance)
-	genesisData.accounts.Set(fromAddress, *genesisFromBalance)
+	genesisData.accounts.Set(toAddress, genesisToBalance)
+	genesisData.accounts.Set(fromAddress, genesisFromBalance)
 
 	return nil
 }
 
-func GetAddressByName(genesisAccounts *OrderedMap[string, AccountInfo], name string) (string, error) {
+func GetAddressByName(genesisAccounts *OrderedMap[string, *AccountInfo], name string) (string, error) {
 
-	for _, accAddress := range *genesisAccounts.Keys() {
+	for _, accAddress := range genesisAccounts.Keys() {
 		acc := genesisAccounts.MustGet(accAddress)
 
 		if acc.name == name {
@@ -1461,7 +1456,7 @@ func accountIToAccountInfo(existingAccount authtypes.AccountI) (*AccountInfo, er
 	return &accountInfo, nil
 }
 
-func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount AccountInfo, existingAccount authtypes.AccountI) (*authtypes.BaseAccount, error) {
+func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount *AccountInfo, existingAccount authtypes.AccountI) (*authtypes.BaseAccount, error) {
 	var newBaseAccount *authtypes.BaseAccount
 	var err error
 
@@ -1496,7 +1491,7 @@ func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount AccountInfo
 	return newBaseAccount, nil
 }
 
-func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount *AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Get base account and check for public keys collision
 	newBaseAccount, err := resolveNewBaseAccount(ctx, app, genesisAccount, existingAccount)
 	if err != nil {
@@ -1536,7 +1531,7 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount Account
 	return nil
 }
 
-func doCollisionMigration(ctx sdk.Context, app *App, genesisData *GenesisData, genesisAccount AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func doCollisionMigration(ctx sdk.Context, app *App, genesisData *GenesisData, genesisAccount *AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Keep existing account intact and move cudos balance to account specified in config
 	genesisData.collisionMap.SetNew(genesisAccount.address, cudosCfg.vestingCollisionDestAddr)
 
@@ -1595,8 +1590,8 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	err = migrateToAccount(ctx, app, "mint_module", extraSupplyRawAcc, sdk.NewCoins(), extraSupplyReducedByCommission, "extra_supply", manifest)
 
 	// Mint the rest of the supply
-	for _, genesisAccountAddress := range *genesisData.accounts.Keys() {
-		genesisAccount := *genesisData.accounts.MustGet(genesisAccountAddress)
+	for _, genesisAccountAddress := range genesisData.accounts.Keys() {
+		genesisAccount := genesisData.accounts.MustGet(genesisAccountAddress)
 
 		if genesisAccount.accountType == ContractAccountType {
 			// All contracts balance should be handled already

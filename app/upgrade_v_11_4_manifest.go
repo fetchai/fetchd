@@ -190,7 +190,7 @@ func (app *App) SaveManifest(manifest *UpgradeManifest, upgradeLabel string) err
 	return nil
 }
 
-func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount AccountInfo, targetAccountFunds types.Coins, targetAccount authtypes.AccountI) error {
+func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount *AccountInfo, targetAccountFunds types.Coins, targetAccount authtypes.AccountI) error {
 	if manifest.VestingCollision == nil {
 		manifest.VestingCollision = &UpgradeVestingCollision{}
 	}
