@@ -834,6 +834,11 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 	for _, delegatorAddr := range *delegatedBalanceMap.Keys() {
 		delegatorAddrMap := delegatedBalanceMap.MustGet(delegatorAddr)
 
+		// Skip accounts that shouldn't be delegated
+		if cudosCfg.notDelegatedAccounts[delegatorAddr] {
+			continue
+		}
+
 		for _, validatorOperatorStringAddr := range *delegatorAddrMap.Keys() {
 			delegatedBalance := delegatorAddrMap.MustGet(validatorOperatorStringAddr)
 
@@ -1014,15 +1019,17 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 			return err
 		}
 
-		if !sdkBalance.Empty() && !convertedBalance.Empty() {
-			// Verify that account exists in auth module
-			if _, exists := genesisAccountsMap.Get(addrStr); !exists {
-				return fmt.Errorf("account not registered in auth module")
+		if !convertedBalance.IsZero() {
+			// Create new account if it doesn't exist
+			accountInfoEntry, exists := genesisAccountsMap.Get(addrStr)
+			if !exists {
+				accountInfoEntry = &AccountInfo{
+					rawAddress: sdk.MustAccAddressFromBech32(addrStr),
+					address:    addrStr,
+				}
 			}
 
-			accountInfoEntry := genesisAccountsMap.MustGet(addrStr)
 			accountInfoEntry.balance = sdkBalance
-
 			genesisAccountsMap.Set(addrStr, *accountInfoEntry)
 		}
 

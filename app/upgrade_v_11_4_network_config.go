@@ -69,6 +69,10 @@ var NetworkInfos = map[string]NetworkConfig{
 				"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv": true,
 			},
 
+			notDelegatedAccounts: map[string]bool{
+				"cudos1qx3yaanre054nlq84qdzufsjmrrxcqxwzdkh6c": true,
+			},
+
 			backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 			validatorsMap: map[string]string{
 				"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
@@ -126,6 +130,10 @@ var NetworkInfos = map[string]NetworkConfig{
 				"cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz": true,
 			},
 
+			notDelegatedAccounts: map[string]bool{
+				"cudos1qqqd8x95ectdhwujwkq2kq6y09qgeal7t67kyz": true,
+			},
+
 			backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
 			validatorsMap: map[string]string{
 				"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku": "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml",
@@ -162,7 +170,8 @@ type CudosMergeConfig struct {
 	totalCudosSupply           sdk.Int
 	totalFetchSupplyToMint     sdk.Int
 
-	notVestedAccounts map[string]bool
+	notVestedAccounts    map[string]bool
+	notDelegatedAccounts map[string]bool
 
 	validatorsMap    map[string]string
 	backupValidators []string
