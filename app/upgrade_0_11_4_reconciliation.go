@@ -229,11 +229,7 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 		}
 		transfers.Transfers = append(transfers.Transfers, transfer)
 		transfers.AggregatedTransferredAmount = transfers.AggregatedTransferredAmount.Add(recordBalanceCoins...)
-		transfers.NumberOfTransfers += 1
-	}
-
-	if transfers.NumberOfTransfers != len(transfers.Transfers) {
-		return fmt.Errorf("manifest: Transfers: number of elements in the `Transfers` array does not match the `NumberOfTransfers`")
+		transfers.NumberOfTransfers = len(transfers.Transfers)
 	}
 
 	if transfers.NumberOfTransfers > 0 {
@@ -272,7 +268,7 @@ func (app *App) ReplaceReconciliationContractState(ctx types.Context, networkInf
 		}
 		contractState.Balances = append(contractState.Balances, UpgradeReconciliationContractStateBalanceRecord{EthAddr: transfer.EthAddr, Balances: transfer.Amount})
 		contractState.AggregatedBalancesAmount = contractState.AggregatedBalancesAmount.Add(transfer.Amount...)
-		contractState.NumberOfBalanceRecords += 1
+		contractState.NumberOfBalanceRecords = len(contractState.Balances)
 
 		prefixStore.Set(key, value)
 	}

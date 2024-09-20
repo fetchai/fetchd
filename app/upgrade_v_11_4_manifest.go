@@ -21,6 +21,8 @@ type UpgradeManifest struct {
 	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
 	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
 	VestingCollision   *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
+	MoveDelegations    *UpgradeMoveDelegations    `json:"move_delegation,omitempty"`
+	CreatedAccounts    *UpgradeCreatedAccounts    `json:"created_accounts,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
@@ -90,7 +92,7 @@ type UpgradeBalanceMovement struct {
 	From          string      `json:"from"`
 	To            string      `json:"to"`
 	SourceBalance types.Coins `json:"source_balance,omitempty"`
-	DestBalance   types.Coins `json:"dest_balance"`
+	DestBalance   types.Coins `json:"dest_balance,omitempty"`
 	Memo          string      `json:"memo,omitempty"`
 }
 
@@ -105,6 +107,12 @@ type UpgradeMigation struct {
 	Migrations               []UpgradeBalanceMovement `json:"migration"`
 	AggregatedMigratedAmount types.Coins              `json:"aggregated_migrated_amount"`
 	NumberOfMigrations       int                      `json:"number_of_migrations"`
+}
+
+type UpgradeDelegationMovements struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+	Memo string `json:"memo,omitempty"`
 }
 
 type UpgradeMoveGenesisBalance struct {
@@ -122,6 +130,11 @@ type UpgradeDelegate struct {
 	Delegations               []UpgradeDelegation `json:"delegation"`
 	AggregatedDelegatedAmount *types.Int          `json:"aggregated_delegated_amount"`
 	NumberOfDelegations       int                 `json:"number_of_delegations"`
+}
+
+type UpgradeMoveDelegations struct {
+	Movements         []UpgradeDelegationMovements `json:"delegation_movements"`
+	NumberOfMovements int                          `json:"number_of_movements"`
 }
 
 type UpgradeDelegation struct {
@@ -142,6 +155,16 @@ type VestingCollision struct {
 
 type UpgradeMoveMintedBalance struct {
 	Movements []UpgradeBalanceMovement `json:"movements"`
+}
+
+type UpgradeCreatedAccounts struct {
+	Accounts          []UpgradeAccountCreation `json:"accounts,omitempty"`
+	NumberOfCreations int                      `json:"number_of_creations"`
+}
+
+type UpgradeAccountCreation struct {
+	Address string `json:"address"`
+	Reason  string `json:"reason"`
 }
 
 func (app *App) getManifestFilePath(prefix string) (string, error) {
@@ -219,6 +242,6 @@ func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount *Accoun
 
 	manifest.VestingCollision.Collisions = append(manifest.VestingCollision.Collisions, collision)
 
-	manifest.VestingCollision.NumberOfCollisions += 1
+	manifest.VestingCollision.NumberOfCollisions = len(manifest.VestingCollision.Collisions)
 	return nil
 }

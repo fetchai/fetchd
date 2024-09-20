@@ -49,6 +49,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			extraSupplyFetchAddr:             "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
 			vestingCollisionDestAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			communityPoolBalanceDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
 			newAddrPrefix: "fetch",
 			oldAddrPrefix: "cudos",
@@ -71,6 +72,11 @@ var NetworkInfos = map[string]NetworkConfig{
 
 			notDelegatedAccounts: map[string]bool{
 				"cudos1qx3yaanre054nlq84qdzufsjmrrxcqxwzdkh6c": true,
+			},
+
+			MovedAccounts: map[string]string{
+				"cudos1h6r6g0pwq7kcys5jcvfm9r7gcj3n2753hvk2ym": "cudos1w63ph9e4l07vpx7xdnje43cr2tlnr4jsfm4mvq",
+				"cudos1jxyc7lny4q7te6sj5xyt9j86kyz82vlfdprl4a": "cudos1tfmkdzx9hm8g28vpgc3xhhxjjn460wzkwtayxr",
 			},
 
 			backupValidators: []string{"fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
@@ -110,6 +116,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			commissionFetchAddr:              "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			extraSupplyFetchAddr:             "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
 			vestingCollisionDestAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			communityPoolBalanceDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5", // Replace!!
 
 			newAddrPrefix: "fetch",
 			oldAddrPrefix: "cudos",
@@ -156,6 +163,7 @@ type CudosMergeConfig struct {
 	commissionFetchAddr              string // Fetch address for comission
 	extraSupplyFetchAddr             string // Fetch address for extra supply
 	vestingCollisionDestAddr         string // This gets converted to raw address, so it can be fetch or cudos address
+	communityPoolBalanceDestAddr     string // This gets converted to raw address, so it can be fetch or cudos address
 
 	newAddrPrefix string
 	oldAddrPrefix string
@@ -172,6 +180,7 @@ type CudosMergeConfig struct {
 
 	notVestedAccounts    map[string]bool
 	notDelegatedAccounts map[string]bool
+	MovedAccounts        map[string]string
 
 	validatorsMap    map[string]string
 	backupValidators []string
