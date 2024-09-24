@@ -22,7 +22,7 @@ var reconciliationData []byte
 var reconciliationDataTestnet []byte
 
 var (
-	contractInfoKey                        = []byte("contract_info")
+	cw2contractInfoKey                     = []byte("contract_info")
 	reconciliationTotalBalanceKey          = []byte("total_balance")
 	reconciliationNOutstandingAddressesKey = []byte("n_outstanding_addresses")
 	reconciliationStateKey                 = []byte("state")
@@ -68,6 +68,11 @@ func readInputReconciliationData(csvData []byte) [][]string {
 }
 
 func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, newLabel *string, manifest *UpgradeManifest) error {
+	// No label to update
+	if newLabel == nil || contractAddr == nil {
+		return nil
+	}
+
 	addr, store, _, err := app.getContractData(ctx, *contractAddr)
 	if err != nil {
 		return err
@@ -97,7 +102,7 @@ func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, new
 }
 
 func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, newVersion *ContractVersion, manifest *UpgradeManifest) error {
-	if contractAddr == nil {
+	if contractAddr == nil || newVersion == nil {
 		return nil
 	}
 
@@ -106,32 +111,32 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		return err
 	}
 
-	wasPresent := prefixStore.Has(contractInfoKey)
+	wasPresent := prefixStore.Has(cw2contractInfoKey)
 
-	var origVersion *ContractVersion
+	var origVersion *CW2ContractVersion
 	if wasPresent {
-		storeVal := prefixStore.Get(contractInfoKey)
-		var val ContractVersion
-		if err := json.Unmarshal(storeVal, val); err != nil {
+		storeVal := prefixStore.Get(cw2contractInfoKey)
+		var val CW2ContractVersion
+		if err := json.Unmarshal(storeVal, &val); err != nil {
 			return err
 		}
 		origVersion = &val
 	}
 
-	if newVersion != nil {
-		newVersionStoreValue, err := json.Marshal(*newVersion)
+	if newVersion.cw2version != nil {
+		newVersionStoreValue, err := json.Marshal(*newVersion.cw2version)
 		if err != nil {
 			return err
 		}
-		prefixStore.Set(contractInfoKey, newVersionStoreValue)
+		prefixStore.Set(cw2contractInfoKey, newVersionStoreValue)
 	} else if wasPresent {
-		prefixStore.Delete(contractInfoKey)
+		prefixStore.Delete(cw2contractInfoKey)
 	}
 
 	manifestVersionUpdate := ContractVersionUpdate{
 		Address: *contractAddr,
 		From:    origVersion,
-		To:      newVersion,
+		To:      newVersion.cw2version,
 	}
 
 	if manifest.Contracts == nil {

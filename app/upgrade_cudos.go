@@ -784,7 +784,7 @@ func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress stri
 		}
 
 		if targetValidator, found := app.StakingKeeper.GetValidator(ctx, targetOperatorAddress); found {
-			if targetValidator.Status.String() == BondedStatus {
+			if targetValidator.Status.String() == BondedStatus && !targetValidator.Jailed {
 				return &targetValidator, nil
 			}
 		}
@@ -798,7 +798,7 @@ func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress stri
 		}
 
 		if targetValidator, found := app.StakingKeeper.GetValidator(ctx, targetOperatorAddress); found {
-			if targetValidator.Status.String() == BondedStatus {
+			if targetValidator.Status.String() == BondedStatus && !targetValidator.Jailed {
 				return &targetValidator, nil
 			}
 		}
@@ -1005,10 +1005,6 @@ func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *Upgrade
 		resolvedAddress, err := resolveIfContractAddress(contractAddress, genesisData.contracts)
 		if err != nil {
 			return err
-		}
-
-		if resolvedAddress == contractAddress {
-			return fmt.Errorf("failed to resolve contract admin/owner for contract %s", contractAddress)
 		}
 
 		contractBalance, contractBalancePresent := genesisData.accounts.Get(contractAddress)
@@ -1252,7 +1248,8 @@ func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[str
 
 func resolveIfContractAddress(address string, contracts *OrderedMap[string, *ContractInfo]) (string, error) {
 	if contractInfo, exists := contracts.Get(address); exists {
-		if contractInfo.Admin != "" {
+		// A contract can be set as its own admin. In such cases we use creator instead.
+		if contractInfo.Admin != "" && contractInfo.Admin != address {
 			return resolveIfContractAddress(contractInfo.Admin, contracts)
 		} else if contractInfo.Creator != "" {
 			return resolveIfContractAddress(contractInfo.Creator, contracts)

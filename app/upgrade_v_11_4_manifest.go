@@ -43,9 +43,9 @@ type ContractValueUpdate struct {
 }
 
 type ContractVersionUpdate struct {
-	Address string           `json:"address"`
-	From    *ContractVersion `json:"from,omitempty"`
-	To      *ContractVersion `json:"to"`
+	Address string              `json:"address"`
+	From    *CW2ContractVersion `json:"from,omitempty"`
+	To      *CW2ContractVersion `json:"to"`
 }
 
 type ValueUpdate struct {

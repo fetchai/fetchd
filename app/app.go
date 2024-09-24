@@ -725,7 +725,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.11.4-rc0-40-g62459c7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.11.4", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
 		manifest := NewUpgradeManifest()
 
@@ -772,9 +772,6 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			return nil, err
 		}
-
-		// TODO(pb): ! Drop this in release version !
-		panic("Debug interruption")
 
 		// End of migration
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
