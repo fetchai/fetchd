@@ -216,7 +216,11 @@ type App struct {
 	interfaceRegistry types.InterfaceRegistry
 
 	invCheckPeriod uint
-	cudosPath      string
+
+	cudosPath    string
+	cudosSha256  string
+	configPath   string
+	configSha256 string
 
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
@@ -257,7 +261,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosPath string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosPath string, configPath string, cudosSha256 string, configSha256 string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -287,6 +291,9 @@ func New(
 		interfaceRegistry: interfaceRegistry,
 		invCheckPeriod:    invCheckPeriod,
 		cudosPath:         cudosPath,
+		configPath:        configPath,
+		cudosSha256:       cudosSha256,
+		configSha256:      configSha256,
 		keys:              keys,
 		tkeys:             tkeys,
 		memKeys:           memKeys,
@@ -371,7 +378,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -720,6 +727,25 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
+func getNetworkInfo(app *App, ctx sdk.Context) (*NetworkConfig, error) {
+	// Load network config from file if given
+	var networkInfo *NetworkConfig
+	var err error
+	if app.configPath != "" {
+		networkInfo, err = LoadNetworkConfigFromFile(app.configPath, &app.configSha256)
+		if err != nil {
+			return nil, err
+		}
+		// Config file not given, config from hardcoded map
+	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
+		networkInfo = &info
+	} else {
+		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
+	}
+
+	return networkInfo, nil
+}
+
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
@@ -733,37 +759,38 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos path not set")
 		}
 
-		networkInfo, ok := NetworkInfos[ctx.ChainID()]
-		if !ok {
-			return nil, fmt.Errorf("network info not found for chain id: " + ctx.ChainID())
-		}
-
-		err := app.DeleteContractStates(ctx, &networkInfo, manifest)
+		networkInfo, err := getNetworkInfo(app, ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		err = app.UpgradeContractAdmins(ctx, &networkInfo, manifest)
+		err = app.DeleteContractStates(ctx, networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		err = app.ChangeContractLabels(ctx, &networkInfo, manifest)
+		err = app.UpgradeContractAdmins(ctx, networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		err = app.ChangeContractVersions(ctx, &networkInfo, manifest)
+		err = app.ChangeContractLabels(ctx, networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		err = app.ProcessReconciliation(ctx, &networkInfo, manifest)
+		err = app.ChangeContractVersions(ctx, networkInfo, manifest)
 		if err != nil {
 			return nil, err
 		}
 
-		err = CudosMergeUpgradeHandler(app, ctx, networkInfo.CudosMerge, manifest)
+		err = app.ProcessReconciliation(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
+		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, manifest)
 		if err != nil {
 			return nil, err
 		}

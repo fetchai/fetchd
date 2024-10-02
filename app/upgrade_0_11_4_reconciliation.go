@@ -58,13 +58,13 @@ func prefixStringWithLength(val string) []byte {
 	return buffer.Bytes()
 }
 
-func readInputReconciliationData(csvData []byte) [][]string {
+func readInputReconciliationData(csvData []byte) *[][]string {
 	r := csv.NewReader(bytes.NewReader(csvData))
 	records, err := r.ReadAll()
 	if err != nil {
 		panic(fmt.Sprintf("error reading reconciliation data: %v", err))
 	}
-	return records
+	return &records
 }
 
 func (app *App) ChangeContractLabel(ctx types.Context, contractAddr *string, newLabel *string, manifest *UpgradeManifest) error {
@@ -123,8 +123,8 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 		origVersion = &val
 	}
 
-	if newVersion.cw2version != nil {
-		newVersionStoreValue, err := json.Marshal(*newVersion.cw2version)
+	if newVersion.CW2version != nil {
+		newVersionStoreValue, err := json.Marshal(*newVersion.CW2version)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (app *App) ChangeContractVersion(ctx types.Context, contractAddr *string, n
 	manifestVersionUpdate := ContractVersionUpdate{
 		Address: *contractAddr,
 		From:    origVersion,
-		To:      newVersion.cw2version,
+		To:      newVersion.CW2version,
 	}
 
 	if manifest.Contracts == nil {
@@ -181,7 +181,11 @@ func (app *App) ChangeContractVersions(ctx types.Context, networkInfo *NetworkCo
 func (app *App) ProcessReconciliation(ctx types.Context, networkInfo *NetworkConfig, manifest *UpgradeManifest) error {
 	records := networkInfo.ReconciliationInfo.InputCSVRecords
 
-	err := app.WithdrawReconciliationBalances(ctx, networkInfo, records, manifest)
+	if records == nil {
+		return nil
+	}
+
+	err := app.WithdrawReconciliationBalances(ctx, networkInfo, *records, manifest)
 	if err != nil {
 		return fmt.Errorf("error withdrawing reconciliation balances: %v", err)
 	}

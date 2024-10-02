@@ -135,6 +135,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		AddGenesisWasmMsgCmd(app.DefaultNodeHome),
+		utilCommand(),
 	)
 
 	a := appCreator{encodingConfig}
@@ -249,6 +250,9 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		cast.ToString(appOpts.Get(flags.FlagHome)),
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
 		cast.ToString(appOpts.Get(FlagCudosPath)),
+		cast.ToString(appOpts.Get(FlagConfigPath)),
+		cast.ToString(appOpts.Get(FlagCudosSha256)),
+		cast.ToString(appOpts.Get(FlagConfigSha256)),
 		a.encCfg,
 		app.GetEnabledProposals(),
 		appOpts,
@@ -290,6 +294,9 @@ func (a appCreator) appExport(
 			homePath,
 			uint(1),
 			"",
+			"",
+			"",
+			"",
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,
@@ -308,6 +315,9 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
+			"",
+			"",
+			"",
 			"",
 			a.encCfg,
 			app.GetEnabledProposals(),

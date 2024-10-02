@@ -1,8 +1,11 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"io/ioutil"
+	"os"
 )
 
 var (
@@ -39,7 +42,7 @@ var NetworkInfos = map[string]NetworkConfig{
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 				NewLabel: getStringPtr("reconciliation-contract"),
 				NewContractVersion: &ContractVersion{
-					cw2version: &CW2ContractVersion{
+					CW2version: &CW2ContractVersion{
 						Contract: "contract-fetch-reconciliation",
 						Version:  "1.0.0",
 					},
@@ -56,54 +59,53 @@ var NetworkInfos = map[string]NetworkConfig{
 				NewAdmin: getStringPtr("fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"),
 			},
 		},
-		CudosMerge: &CudosMergeConfig{
-			ibcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-			remainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-			remainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-			remainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
-			contractDestinationFallbackAddr:  "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+		CudosMerge: &CudosMergeConfigJSON{
+			IbcTargetAddr:                    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			RemainingStakingBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			RemainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			RemainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			ContractDestinationFallbackAddr:  "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 
-			commissionFetchAddr:          "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
-			extraSupplyFetchAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
-			vestingCollisionDestAddr:     "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
-			communityPoolBalanceDestAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			CommissionFetchAddr:          "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			ExtraSupplyFetchAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Reokace!!
+			VestingCollisionDestAddr:     "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
+			CommunityPoolBalanceDestAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
-			newAddrPrefix: "fetch",
-			oldAddrPrefix: "cudos",
+			NewAddrPrefix: "fetch",
+			OldAddrPrefix: "cudos",
 
-			originalDenom:  "acudos",
-			convertedDenom: "afet",
-			stakingDenom:   "afet",
+			OriginalDenom:  "acudos",
+			ConvertedDenom: "afet",
+			StakingDenom:   "afet",
 
-			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
-			balanceConversionConstants: NewOrderedMapFromPairs[string, sdk.Dec]([]Pair[string, sdk.Dec]{
+			BalanceConversionConstants: []Pair[string, sdk.Dec]{
 				{"acudos", newDec("118.344")},
 			},
-			),
 
-			totalCudosSupply: newInt("10000000000000000000000000000"),
+			TotalCudosSupply: newInt("10000000000000000000000000000"),
 
-			totalFetchSupplyToMint: newInt("88946755672000000000000000"),
+			TotalFetchSupplyToMint: newInt("88946755672000000000000000"),
 
-			notVestedAccounts: NewOrderedSet([]string{
+			NotVestedAccounts: []string{
 				"cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv",
-			}),
+			},
 
-			notDelegatedAccounts: NewOrderedSet([]string{
+			NotDelegatedAccounts: []string{
 				"cudos1qx3yaanre054nlq84qdzufsjmrrxcqxwzdkh6c",
-			}),
+			},
 
-			MovedAccounts: NewOrderedMapFromPairs[string, string]([]Pair[string, string]{
+			MovedAccounts: []Pair[string, string]{
 				{"cudos1h6r6g0pwq7kcys5jcvfm9r7gcj3n2753hvk2ym", "cudos1w63ph9e4l07vpx7xdnje43cr2tlnr4jsfm4mvq"},
 				{"cudos1jxyc7lny4q7te6sj5xyt9j86kyz82vlfdprl4a", "cudos1tfmkdzx9hm8g28vpgc3xhhxjjn460wzkwtayxr"},
-			}),
+			},
 
-			backupValidators: []string{"fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel"},
-			validatorsMap: NewOrderedMapFromPairs[string, string]([]Pair[string, string]{
+			BackupValidators: []string{"fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel"},
+			ValidatorsMap: []Pair[string, string]{
 				{"cudosvaloper1s5qa3dpghnre6dqfgfhudxqjhwsv0mx43xayku", "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel"},
 				{"cudosvaloper1ctcrpuyumt60733u0yd5htwzedgfae0n8gql5n", "fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel"},
-			}),
+			},
 		},
 	},
 
@@ -116,7 +118,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			Reconciliation: &Reconciliation{
 				Addr: "fetch1g5ur2wc5xnlc7sw9wd895lw7mmxz04r5syj3s6ew8md6pvwuweqqavkgt0",
 				NewContractVersion: &ContractVersion{
-					cw2version: &CW2ContractVersion{
+					CW2version: &CW2ContractVersion{
 						Contract: "contract-fetch-reconciliation",
 						Version:  "1.0.0",
 					},
@@ -131,43 +133,44 @@ var NetworkInfos = map[string]NetworkConfig{
 				DevAddr:  "fetch1kewgfwxwtuxcnppr547wj6sd0e5fkckyp48dazsh89hll59epgpspmh0tn",
 			},
 		},
-		CudosMerge: &CudosMergeConfig{
-			ibcTargetAddr:                    "cudos1c3qgr4df6u3awsz6rqwkxcpsef7aau7p23pew5",
-			remainingStakingBalanceAddr:      "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
-			remainingGravityBalanceAddr:      "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
-			remainingDistributionBalanceAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
-			contractDestinationFallbackAddr:  "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+		CudosMerge: &CudosMergeConfigJSON{
+			IbcTargetAddr:                    "cudos1c3qgr4df6u3awsz6rqwkxcpsef7aau7p23pew5",
+			RemainingStakingBalanceAddr:      "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			RemainingGravityBalanceAddr:      "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			RemainingDistributionBalanceAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			ContractDestinationFallbackAddr:  "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
-			commissionFetchAddr:          "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // Fetch ecosystem wallet
-			extraSupplyFetchAddr:         "fetch1wp8fl6fl4je40cfh2reeyj6cvucve9s6antdav",
-			vestingCollisionDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
-			communityPoolBalanceDestAddr: "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta",
+			CommissionFetchAddr:          "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // Fetch ecosystem wallet
+			ExtraSupplyFetchAddr:         "fetch1wp8fl6fl4je40cfh2reeyj6cvucve9s6antdav",
+			VestingCollisionDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			CommunityPoolBalanceDestAddr: "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta",
 
-			newAddrPrefix: "fetch",
-			oldAddrPrefix: "cudos",
+			NewAddrPrefix: "fetch",
+			OldAddrPrefix: "cudos",
 
-			originalDenom:  "acudos",
-			convertedDenom: "atestfet",
-			stakingDenom:   "atestfet",
+			OriginalDenom:  "acudos",
+			ConvertedDenom: "atestfet",
+			StakingDenom:   "atestfet",
 
-			vestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
-			balanceConversionConstants: NewOrderedMapFromPairs[string, sdk.Dec]([]Pair[string, sdk.Dec]{
-				{"acudos", newDec("266.629")}}),
+			BalanceConversionConstants: []Pair[string, sdk.Dec]{
+				{"acudos", newDec("266.629")}},
 
-			totalCudosSupply:       newInt("22530000000000000000000000000"),
-			totalFetchSupplyToMint: newInt("88946755672000000000000000"),
+			TotalCudosSupply:       newInt("22530000000000000000000000000"),
+			TotalFetchSupplyToMint: newInt("88946755672000000000000000"),
 
-			notVestedAccounts: NewOrderedSet([]string{
+			NotVestedAccounts: []string{
 				"cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 				"cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he",
-			}),
+				"fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw",
+			},
 
-			notDelegatedAccounts: NewOrderedSet([]string{
+			NotDelegatedAccounts: []string{
 				"cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta",
 				"cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 				"cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he",
-			}),
+			},
 
 			// Active wallets given by Cudos
 			//cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5
@@ -175,12 +178,12 @@ var NetworkInfos = map[string]NetworkConfig{
 			//cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta
 			//cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he
 
-			MovedAccounts: NewOrderedMapFromPairs[string, string]([]Pair[string, string]{
+			MovedAccounts: []Pair[string, string]{
 				//{"cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta", "cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he"}, // Replace this
-			}),
+			},
 
-			backupValidators: []string{"fetchvaloper1m9cjw6xgt04f9ddw25fff3cfe2exgwk07eu46u", "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
-			validatorsMap: NewOrderedMapFromPairs[string, string]([]Pair[string, string]{
+			BackupValidators: []string{"fetchvaloper1m9cjw6xgt04f9ddw25fff3cfe2exgwk07eu46u", "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
+			ValidatorsMap: []Pair[string, string]{
 				{"cudosvaloper1qr5rt72yf7s340azajpxay6hw3z5ldner7r4jv", "fetchvaloper1rsane988vksrgp2mlqzclmt8wucxv0ej4hrn2k"},
 				{"cudosvaloper1vz78ezuzskf9fgnjkmeks75xum49hug6zeqfc4", "fetchvaloper1je7r8yuqgaf5f2tx4z2f9008wp4jx0ct6msnzg"},
 				//{"cudosvaloper1v08h0h7sv3wm0t9uaz6x2q26p0g63tyzw68ynj", "fetchvaloper1edqmkwy4rh87020rvf9xn7kktyu7x894led46w"}, // Active
@@ -256,60 +259,139 @@ var NetworkInfos = map[string]NetworkConfig{
 				{"cudosvaloper16q3f9ech805pa995x9u5g3hqk0cvtah8mnaepp", "fetchvaloper1rsane988vksrgp2mlqzclmt8wucxv0ej4hrn2k"},
 				{"cudosvaloper1mnc7gm9sazrmcfdkshhmx3f0s4n2wp94gavnng", "fetchvaloper1je7r8yuqgaf5f2tx4z2f9008wp4jx0ct6msnzg"},
 				{"cudosvaloper1aqndlcfcyw3adhwe24gngnw7e8hy69v79jdh3l", "fetchvaloper1edqmkwy4rh87020rvf9xn7kktyu7x894led46w"},
-			}),
+			},
 		},
 	},
 }
 
 type NetworkConfig struct {
-	ReconciliationInfo *ReconciliationInfo
-	Contracts          *ContractSet
-	CudosMerge         *CudosMergeConfig
+	ReconciliationInfo *ReconciliationInfo   `json:"reconciliation_info,omitempty"`
+	Contracts          *ContractSet          `json:"contracts,omitempty"`
+	CudosMerge         *CudosMergeConfigJSON `json:"cudos_merge,omitempty"`
+}
+
+func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string) (*NetworkConfig, error) {
+	// Open the JSON file
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file: %v", err)
+	}
+	defer file.Close()
+
+	// Read the file contents
+	byteValue, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	if isVerified, actualHashHex, err := VerifySha256(byteValue, expectedSha256Hex); err != nil {
+		return nil, err
+	} else if !isVerified {
+		return nil, fmt.Errorf("provided expected sha256 \"%v\" for NetworkConf file does NOT match actual sha256 hash %v of the file content", expectedSha256Hex, actualHashHex)
+	}
+
+	// Initialize an empty struct to hold the JSON data
+	var config NetworkConfig
+
+	// Unmarshal the JSON data into the struct
+	err = json.Unmarshal(byteValue, &config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+
+	return &config, nil
+}
+
+type CudosMergeConfigJSON struct {
+	IbcTargetAddr                    string `json:"ibc_target_addr"`                     // Cudos address
+	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`      // Cudos account for remaining bonded and not-bonded pool balances
+	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`      // Cudos address
+	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"` // Cudos address
+	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`  // Cudos address
+
+	CommissionFetchAddr          string `json:"commission_fetch_addr"`            // Fetch address for commission
+	ExtraSupplyFetchAddr         string `json:"extra_supply_fetch_addr"`          // Fetch address for extra supply
+	VestingCollisionDestAddr     string `json:"vesting_collision_dest_addr"`      // This gets converted to raw address, so it can be fetch or cudos address
+	CommunityPoolBalanceDestAddr string `json:"community_pool_balance_dest_addr"` // This gets converted to raw address, so it can be fetch or cudos address
+
+	NewAddrPrefix string `json:"new_addr_prefix"`
+	OldAddrPrefix string `json:"old_addr_prefix"`
+
+	OriginalDenom  string `json:"original_denom"`
+	ConvertedDenom string `json:"converted_denom"`
+	StakingDenom   string `json:"staking_denom"`
+
+	VestingPeriod int64 `json:"vesting_period"` // Vesting period
+
+	BalanceConversionConstants []Pair[string, sdk.Dec] `json:"balance_conversion_constants,omitempty"`
+
+	TotalCudosSupply       sdk.Int `json:"total_cudos_supply"`
+	TotalFetchSupplyToMint sdk.Int `json:"total_fetch_supply_to_mint"`
+
+	NotVestedAccounts    []string               `json:"not_vested_accounts,omitempty"`
+	NotDelegatedAccounts []string               `json:"not_delegated_accounts,omitempty"`
+	MovedAccounts        []Pair[string, string] `json:"moved_accounts,omitempty"`
+
+	ValidatorsMap []Pair[string, string] `json:"validators_map,omitempty"`
+
+	BackupValidators []string `json:"backup_validators,omitempty"`
 }
 
 type CudosMergeConfig struct {
-	ibcTargetAddr                    string // Cudos address
-	remainingStakingBalanceAddr      string // Cudos account for remaining bonded and not-bonded pool balances
-	remainingGravityBalanceAddr      string // Cudos address
-	remainingDistributionBalanceAddr string // Cudos address
-	contractDestinationFallbackAddr  string // Cudos address
-
-	commissionFetchAddr          string // Fetch address for commission
-	extraSupplyFetchAddr         string // Fetch address for extra supply
-	vestingCollisionDestAddr     string // This gets converted to raw address, so it can be fetch or cudos address
-	communityPoolBalanceDestAddr string // This gets converted to raw address, so it can be fetch or cudos address
-
-	newAddrPrefix string
-	oldAddrPrefix string
-
-	originalDenom  string
-	convertedDenom string
-	stakingDenom   string
-
-	vestingPeriod int64 // Vesting period
+	config *CudosMergeConfigJSON
 
 	balanceConversionConstants *OrderedMap[string, sdk.Dec]
-	totalCudosSupply           sdk.Int
-	totalFetchSupplyToMint     sdk.Int
 
 	notVestedAccounts    *OrderedMap[string, bool]
 	notDelegatedAccounts *OrderedMap[string, bool]
 	MovedAccounts        *OrderedMap[string, string]
 
-	validatorsMap    *OrderedMap[string, string]
-	backupValidators []string
+	validatorsMap *OrderedMap[string, string]
+}
+
+func NewCudosMergeConfig(config *CudosMergeConfigJSON) *CudosMergeConfig {
+	retval := new(CudosMergeConfig)
+	retval.config = config
+
+	retval.balanceConversionConstants = NewOrderedMapFromPairs(config.BalanceConversionConstants)
+	retval.notVestedAccounts = NewOrderedSet(config.NotVestedAccounts)
+	retval.notDelegatedAccounts = NewOrderedSet(config.NotDelegatedAccounts)
+	retval.MovedAccounts = NewOrderedMapFromPairs(config.MovedAccounts)
+	retval.validatorsMap = NewOrderedMapFromPairs(config.ValidatorsMap)
+
+	//for _, exchangeRate := range config.BalanceConversionConstants {
+	//	retval.BalanceConversionConstants.SetNew(exchangeRate.Denom, exchangeRate.ExchangeRate)
+	//}
+
+	//for _, account := range config.NotVestedAccounts {
+	//	retval.NotVestedAccounts.SetNew(account, true)
+	//}
+
+	//for _, account := range config.NotDelegatedAccounts {
+	//	retval.NotDelegatedAccounts.SetNew(account, true)
+	//}
+
+	//for _, account := range config.MovedAccounts {
+	//	retval.MovedAccounts.SetNew(account.FromAccountAddr, account.ToAccountAddr)
+	//}
+
+	//for _, validator := range config.ValidatorsMap {
+	//	retval.ValidatorsMap.SetNew(validator.FromCudosValidatorOperatorAddr, validator.ToFetchValidatorOperatorOperAddr)
+	//}
+
+	return retval
 }
 
 type ReconciliationInfo struct {
-	TargetAddress   string
-	InputCSVRecords [][]string
+	TargetAddress   string      `json:"target_address"`
+	InputCSVRecords *[][]string `json:"input_csv_records,omitempty"`
 }
 
 type ContractSet struct {
-	Reconciliation *Reconciliation
-	TokenBridge    *TokenBridge
-	Almanac        *ProdDevContract
-	AName          *ProdDevContract
+	Reconciliation *Reconciliation  `json:"reconciliation,omitempty"`
+	TokenBridge    *TokenBridge     `json:"token_bridge,omitempty"`
+	Almanac        *ProdDevContract `json:"almanac,omitempty"`
+	AName          *ProdDevContract `json:"a_name,omitempty"`
 }
 
 type IContractBase interface {
@@ -333,8 +415,8 @@ type IContractVersion interface {
 }
 
 type TokenBridge struct {
-	Addr     string
-	NewAdmin *string
+	Addr     string  `json:"addr"`
+	NewAdmin *string `json:"new_admin,omitempty"`
 }
 
 func (c *TokenBridge) GetPrimaryContractAddr() *string {
@@ -368,7 +450,7 @@ func (c *TokenBridge) GetNewAdminAddr() *string {
 }
 
 type ContractVersion struct {
-	cw2version *CW2ContractVersion
+	CW2version *CW2ContractVersion `json:"cw_2_version,omitempty"`
 }
 
 type CW2ContractVersion struct {
@@ -377,10 +459,10 @@ type CW2ContractVersion struct {
 }
 
 type Reconciliation struct {
-	Addr               string
-	NewAdmin           *string
-	NewLabel           *string
-	NewContractVersion *ContractVersion
+	Addr               string           `json:"addr"`
+	NewAdmin           *string          `json:"new_admin,omitempty"`
+	NewLabel           *string          `json:"new_label,omitempty"`
+	NewContractVersion *ContractVersion `json:"new_contract_version,omitempty"`
 }
 
 func (c *Reconciliation) GetPrimaryContractAddr() *string {
@@ -432,8 +514,8 @@ func (c *Reconciliation) GetNewVersion() *ContractVersion {
 }
 
 type ProdDevContract struct {
-	DevAddr  string
-	ProdAddr string
+	DevAddr  string `json:"dev_addr"`
+	ProdAddr string `json:"prod_addr"`
 }
 
 func (c *ProdDevContract) GetContracts(contracts []string) []string {

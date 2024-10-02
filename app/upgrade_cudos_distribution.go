@@ -404,7 +404,7 @@ func withdrawGenesisDistributionRewards(genesisData *GenesisData, cudosCfg *Cudo
 		return fmt.Errorf("Remaining distribution balance %s is too high", remainingBalance.String())
 	}
 
-	err = moveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, cudosCfg.remainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)
+	err = moveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, cudosCfg.config.RemainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -417,7 +417,7 @@ func withdrawAccumulatedCommissions(genesisData *GenesisData, cudosCfg *CudosMer
 	for _, validatorAddress := range genesisData.distributionInfo.validatorAccumulatedCommissions.Keys() {
 		accumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.oldAddrPrefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.OldAddrPrefix)
 		if err != nil {
 			return err
 		}
@@ -438,7 +438,7 @@ func withdrawValidatorOutstandingRewards(genesisData *GenesisData, cudosCfg *Cud
 	for _, validatorAddress := range genesisData.distributionInfo.outstandingRewards.Keys() {
 		outstandingRewards := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.oldAddrPrefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.OldAddrPrefix)
 		if err != nil {
 			return err
 		}
@@ -681,7 +681,7 @@ func withdrawDelegationRewards(genesisData *GenesisData, val *ValidatorInfo, del
 	if finalRewards.IsZero() {
 		baseDenom, _ := sdk.GetBaseDenom()
 		if baseDenom == "" {
-			baseDenom = cudosCfg.originalDenom
+			baseDenom = cudosCfg.config.OriginalDenom
 		}
 
 		// Note, we do not call the NewCoins constructor as we do not want the zero
