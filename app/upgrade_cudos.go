@@ -147,19 +147,19 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos CudosMergeConfig not provided (null pointer passed in)")
 	}
 
-	if app.cudosPath == "" {
+	if app.cudosGenesisPath == "" {
 		return fmt.Errorf("cudos path not set")
 	}
 
-	actualGenesisSha256Hex, err := GenerateSHA256FromFile(app.cudosPath)
+	actualGenesisSha256Hex, err := GenerateSHA256FromFile(app.cudosGenesisPath)
 	if err != nil {
-		return fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosPath, err)
+		return fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
 	}
-	if app.cudosSha256 != actualGenesisSha256Hex {
-		return fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosPath, actualGenesisSha256Hex, app.cudosSha256)
+	if app.cudosGenesisSha256 != actualGenesisSha256Hex {
+		return fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
 	}
 
-	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosPath)
+	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 	}

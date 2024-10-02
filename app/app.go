@@ -217,10 +217,10 @@ type App struct {
 
 	invCheckPeriod uint
 
-	cudosPath    string
-	cudosSha256  string
-	configPath   string
-	configSha256 string
+	cudosGenesisPath           string
+	cudosGenesisSha256         string
+	cudosMigrationConfigPath   string
+	cudosMigrationConfigSha256 string
 
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
@@ -261,7 +261,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosPath string, configPath string, cudosSha256 string, configSha256 string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosGenesisPath string, cudosMigrationConfigPath string, cudosGenesisSha256 string, cudosMigrationConfigSha256 string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -285,18 +285,18 @@ func New(
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
 	app := &App{
-		BaseApp:           bApp,
-		legacyAmino:       legacyAmino,
-		appCodec:          appCodec,
-		interfaceRegistry: interfaceRegistry,
-		invCheckPeriod:    invCheckPeriod,
-		cudosPath:         cudosPath,
-		configPath:        configPath,
-		cudosSha256:       cudosSha256,
-		configSha256:      configSha256,
-		keys:              keys,
-		tkeys:             tkeys,
-		memKeys:           memKeys,
+		BaseApp:                    bApp,
+		legacyAmino:                legacyAmino,
+		appCodec:                   appCodec,
+		interfaceRegistry:          interfaceRegistry,
+		invCheckPeriod:             invCheckPeriod,
+		cudosGenesisPath:           cudosGenesisPath,
+		cudosGenesisSha256:         cudosGenesisSha256,
+		cudosMigrationConfigPath:   cudosMigrationConfigPath,
+		cudosMigrationConfigSha256: cudosMigrationConfigSha256,
+		keys:                       keys,
+		tkeys:                      tkeys,
+		memKeys:                    memKeys,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tkeys[paramstypes.TStoreKey])
@@ -731,8 +731,8 @@ func getNetworkInfo(app *App, ctx sdk.Context) (*NetworkConfig, error) {
 	// Load network config from file if given
 	var networkInfo *NetworkConfig
 	var err error
-	if app.configPath != "" {
-		networkInfo, err = LoadNetworkConfigFromFile(app.configPath, &app.configSha256)
+	if app.cudosMigrationConfigPath != "" {
+		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
@@ -755,7 +755,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		manifest := NewUpgradeManifest()
 
-		if app.cudosPath == "" {
+		if app.cudosGenesisPath == "" {
 			return nil, fmt.Errorf("cudos path not set")
 		}
 
