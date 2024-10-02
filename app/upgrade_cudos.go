@@ -20,6 +20,7 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cast"
+	"strings"
 )
 
 const (
@@ -59,6 +60,8 @@ const (
 	GovAccName          = "gov"
 	MarketplaceAccName  = "marketplace"
 	FeeCollectorAccName = "fee_collector"
+
+	RecursionDepthLimit = 50
 )
 
 func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
@@ -509,7 +512,7 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 		validator := validators.MustGet(validatorOperatorAddress)
 		for _, delegatorAddress := range validator.delegations.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddress)
-			resolvedDelegatorAddress, err := resolveIfContractAddress(delegatorAddress, contracts)
+			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -684,7 +687,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		validator := genesisData.validators.MustGet(validatorOperatorAddress)
 		for _, delegatorAddress := range validator.delegations.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddress)
-			resolvedDelegatorAddress, err := resolveIfContractAddress(delegatorAddress, genesisData.contracts)
+			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.contracts, cudosCfg)
 			if err != nil {
 				return err
 			}
@@ -723,7 +726,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		// Handle unbonding delegations
 		for _, delegatorAddress := range validator.unbondingDelegations.Keys() {
 			unbondingDelegation := validator.unbondingDelegations.MustGet(delegatorAddress)
-			resolvedDelegatorAddress, err := resolveIfContractAddress(delegatorAddress, genesisData.contracts)
+			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.contracts, cudosCfg)
 			if err != nil {
 				return err
 			}
@@ -777,7 +780,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 }
 
 func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress string, cudosCfg *CudosMergeConfig) (*stakingtypes.Validator, error) {
-	if targetOperatorStringAddress, exists := cudosCfg.validatorsMap[operatorAddress]; exists {
+	if targetOperatorStringAddress, exists := cudosCfg.validatorsMap.Get(operatorAddress); exists {
 		targetOperatorAddress, err := sdk.ValAddressFromBech32(targetOperatorStringAddress)
 		if err != nil {
 			return nil, err
@@ -892,7 +895,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 		delegatorAddrMap := genesisData.delegations.MustGet(delegatorAddr)
 
 		// Skip accounts that shouldn't be delegated
-		if cudosCfg.notDelegatedAccounts[delegatorAddr] {
+		if cudosCfg.notDelegatedAccounts.Has(delegatorAddr) {
 			continue
 		}
 
@@ -1002,7 +1005,7 @@ func getInterfaceSliceFromCoins(coins sdk.Coins) []interface{} {
 func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *UpgradeManifest, cudosCfg *CudosMergeConfig) error {
 
 	for _, contractAddress := range genesisData.contracts.Keys() {
-		resolvedAddress, err := resolveIfContractAddress(contractAddress, genesisData.contracts)
+		resolvedAddress, err := resolveIfContractAddressWithFallback(contractAddress, genesisData.contracts, cudosCfg)
 		if err != nil {
 			return err
 		}
@@ -1023,7 +1026,7 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 	var resBalance sdk.Coins
 
 	for _, coin := range balance {
-		if conversionConstant, ok := cudosCfg.balanceConversionConstants[coin.Denom]; ok {
+		if conversionConstant, exists := cudosCfg.balanceConversionConstants.Get(coin.Denom); exists {
 			newAmount := coin.Amount.ToDec().Quo(conversionConstant).TruncateInt()
 			sdkCoin := sdk.NewCoin(cudosCfg.convertedDenom, newAmount)
 			resBalance = resBalance.Add(sdkCoin)
@@ -1246,18 +1249,43 @@ func parseGenesisWasmContracts(jsonData map[string]interface{}) (*OrderedMap[str
 	return contractAccountMap, nil
 }
 
-func resolveIfContractAddress(address string, contracts *OrderedMap[string, *ContractInfo]) (string, error) {
-	if contractInfo, exists := contracts.Get(address); exists {
-		// A contract can be set as its own admin. In such cases we use creator instead.
-		if contractInfo.Admin != "" && contractInfo.Admin != address {
-			return resolveIfContractAddress(contractInfo.Admin, contracts)
-		} else if contractInfo.Creator != "" {
-			return resolveIfContractAddress(contractInfo.Creator, contracts)
-		} else {
-			return "", fmt.Errorf("contract %s has no admin nor creator", address)
-		}
+func resolveIfContractAddressWithFallback(address string, contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (string, error) {
+
+	resolvedAddress, err := resolveIfContractAddress(address, contracts)
+	if err != nil {
+		return "", err
+	}
+
+	if resolvedAddress == nil || strings.TrimSpace(*resolvedAddress) == "" {
+		// Use fallback address
+		return cudosCfg.contractDestinationFallbackAddr, nil
 	} else {
-		return address, nil
+		// Use resolved address
+		return *resolvedAddress, nil
+	}
+}
+
+func resolveIfContractAddress(address string, contracts *OrderedMap[string, *ContractInfo]) (*string, error) {
+	adminsMap := map[string]bool{}
+	creatorsMap := map[string]bool{}
+
+	for {
+		contractInfo, exists := contracts.Get(address)
+		if !exists {
+			return &address, nil
+		}
+		// If the contract has an admin that is not itself, continue with the admin address.
+		if len(creatorsMap) == 0 && len(adminsMap) < RecursionDepthLimit && contractInfo.Admin != "" && contractInfo.Admin != address && !adminsMap[contractInfo.Admin] {
+			adminsMap[contractInfo.Admin] = true
+			address = contractInfo.Admin
+		} else if len(creatorsMap) < RecursionDepthLimit && contractInfo.Creator != "" && !creatorsMap[contractInfo.Creator] {
+			// Otherwise, if the creator is present, continue with the creator address.
+			creatorsMap[contractInfo.Creator] = true
+			address = contractInfo.Creator
+		} else {
+			// Failed to resolve
+			return nil, nil
+		}
 	}
 }
 
@@ -1448,7 +1476,30 @@ func moveGenesisDelegations(genesisData *GenesisData, fromAddress, toAddress str
 		return nil
 	}
 
-	genesisData.delegations.Set(toAddress, sourceDelegations)
+	if destDelegation, destDelegationExists := genesisData.delegations.Get(toAddress); destDelegationExists {
+		// Add delegations - destination delegator has some delegations
+
+		// List all validator addresses in source delegation
+		for _, validatorAddr := range sourceDelegations.Keys() {
+			srcCoins := sourceDelegations.MustGet(validatorAddr)
+
+			// Same validator exists in destination delegation - Add coins
+			if destCoins, destValidatorExists := destDelegation.Get(validatorAddr); destValidatorExists {
+				destDelegation.Set(validatorAddr, destCoins.Add(srcCoins...))
+
+			} else {
+				// Validator doesn't exist on destination delegation, add it
+				destDelegation.Set(validatorAddr, srcCoins)
+			}
+
+		}
+
+	} else {
+		// Destination has no delegations, just move source delegations pointer
+		genesisData.delegations.Set(toAddress, sourceDelegations)
+	}
+
+	// Delete all source delegations
 	genesisData.delegations.Delete(fromAddress)
 
 	registerManifestMoveDelegations(fromAddress, toAddress, "", manifest)
@@ -1486,8 +1537,6 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 		return err
 	}
 
-	registerManifestBalanceMovement(fromAddress, toAddress, amount, memo, manifest)
-
 	if toAcc := genesisData.accounts.MustGet(toAddress); toAcc.migrated {
 		return fmt.Errorf("genesis account %s already migrated", toAddress)
 	}
@@ -1503,6 +1552,30 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 
 	genesisData.accounts.Set(toAddress, genesisToBalance)
 	genesisData.accounts.Set(fromAddress, genesisFromBalance)
+
+	registerManifestBalanceMovement(fromAddress, toAddress, amount, memo, manifest)
+
+	return nil
+}
+
+func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest, cudosCfg *CudosMergeConfig) error {
+	// Create to account if it doesn't exist
+	err := ensureAccount(toAddress, genesisData.accounts, "balance_creation_destination", cudosCfg, manifest)
+	if err != nil {
+		return err
+	}
+
+	if toAcc := genesisData.accounts.MustGet(toAddress); toAcc.migrated {
+		return fmt.Errorf("genesis account %s already migrated", toAddress)
+	}
+
+	genesisToBalance := genesisData.accounts.MustGet(toAddress)
+
+	genesisToBalance.balance = genesisToBalance.balance.Add(amount...)
+
+	genesisData.accounts.Set(toAddress, genesisToBalance)
+
+	registerManifestBalanceMovement("", toAddress, amount, memo, manifest)
 
 	return nil
 }
@@ -1623,7 +1696,7 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount *Accoun
 	if newBalance != nil {
 
 		// Account is not vesting
-		if cudosCfg.notVestedAccounts[genesisAccount.address] {
+		if cudosCfg.notVestedAccounts.Has(genesisAccount.address) {
 			err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
 			if err != nil {
 				return err
@@ -1689,26 +1762,25 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 
 	totalCommission := totalSupplyToMint.Sub(totalSupplyReducedByCommission)
 
-	commissionRawAcc, err := sdk.AccAddressFromBech32(cudosCfg.commissionFetchAddr)
+	_, commissionRawAcc, err := bech32.DecodeAndConvert(cudosCfg.commissionFetchAddr)
 	if err != nil {
 		return fmt.Errorf("failed to get commission account raw address: %w", err)
 	}
 
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
-	totalGenesisFetchSupplyReducedByCommission, err := convertBalance(genesisData.totalSupply, cudosCfg)
+	extraSupplyInCudos := cudosCfg.totalCudosSupply.Sub(genesisData.totalSupply.AmountOf(cudosCfg.originalDenom))
+	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.extraSupplyFetchAddr, cudosCfg.oldAddrPrefix)
 	if err != nil {
 		return err
 	}
 
-	extraSupplyReducedByCommission := totalSupplyToMint.Sub(totalCommission).Sub(totalGenesisFetchSupplyReducedByCommission)
+	extraSupplyInCudosCoins := sdk.NewCoins(sdk.NewCoin(cudosCfg.originalDenom, extraSupplyInCudos))
 
-	extraSupplyRawAcc, err := sdk.AccAddressFromBech32(cudosCfg.extraSupplyFetchAddr)
+	err = createGenesisBalance(genesisData, extraSupplyCudosAddress, extraSupplyInCudosCoins, "extra_supply", manifest, cudosCfg)
 	if err != nil {
-		return fmt.Errorf("failed to get commission account raw address: %w", err)
+		return err
 	}
-
-	err = migrateToAccount(ctx, app, "mint_module", extraSupplyRawAcc, sdk.NewCoins(), extraSupplyReducedByCommission, "extra_supply", manifest)
 
 	// Mint the rest of the supply
 	for _, genesisAccountAddress := range genesisData.accounts.Keys() {
@@ -1818,7 +1890,8 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 		return nil
 	}
 
-	for fromAddr, toAddr := range cudosCfg.MovedAccounts {
+	for _, fromAddr := range cudosCfg.MovedAccounts.Keys() {
+		toAddr := cudosCfg.MovedAccounts.MustGet(fromAddr)
 
 		fromAcc, exists := genesisData.accounts.Get(fromAddr)
 

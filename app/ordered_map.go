@@ -12,6 +12,33 @@ type OrderedMap[K comparable, V any] struct {
 	sorted bool
 }
 
+type Pair[K comparable, V any] struct {
+	key   K
+	value V
+}
+
+// NewOrderedMapWithKeys creates an OrderedMap with the keys set to true
+func NewOrderedSet[K comparable](keys []K) *OrderedMap[K, bool] {
+	newMap := NewOrderedMap[K, bool]()
+
+	for _, key := range keys {
+		newMap.Set(key, true)
+	}
+
+	return newMap
+}
+
+// NewOrderedMapWithKeys creates an OrderedMap with the keys set to true
+func NewOrderedMapFromPairs[K comparable, V any](pairs []Pair[K, V]) *OrderedMap[K, V] {
+	newMap := NewOrderedMap[K, V]()
+
+	for _, pair := range pairs {
+		newMap.Set(pair.key, pair.value)
+	}
+
+	return newMap
+}
+
 // NewOrderedMap creates a new OrderedMap instance
 func NewOrderedMap[K comparable, V any]() *OrderedMap[K, V] {
 	keys := []K{}
