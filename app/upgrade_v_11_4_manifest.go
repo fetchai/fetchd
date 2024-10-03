@@ -13,6 +13,7 @@ import (
 const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
+	ConfigSource       string                     `json:"config_source"`
 	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
 	Contracts          *Contracts                 `json:"contracts,omitempty"`
 	IBC                *UpgradeIBCTransfers       `json:"ibc,omitempty"`

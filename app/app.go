@@ -727,20 +727,21 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func getNetworkInfo(app *App, ctx sdk.Context) (*NetworkConfig, error) {
+func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest) (*NetworkConfig, error) {
 	// Load network config from file if given
 	var networkInfo *NetworkConfig
 	var err error
 	if app.cudosMigrationConfigPath != "" {
 		app.Logger().Info("Loading network config", "file", app.cudosMigrationConfigPath, "hash", app.cudosMigrationConfigSha256)
 		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
+		manifest.ConfigSource = fmt.Sprintf("file %s %s", app.cudosMigrationConfigPath, app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
 		// Config file not given, config from hardcoded map
 	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
 		app.Logger().Info("Loading network from map", "chain", ctx.ChainID())
-
+		manifest.ConfigSource = fmt.Sprintf("config map %s", ctx.ChainID())
 		networkInfo = &info
 	} else {
 		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
@@ -762,7 +763,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos path not set")
 		}
 
-		networkInfo, err := getNetworkInfo(app, ctx)
+		networkInfo, err := getNetworkInfo(app, ctx, manifest)
 		if err != nil {
 			return nil, err
 		}
