@@ -18,4 +18,25 @@ func AddCudosFlags(startCmd *cobra.Command) {
 	startCmd.Flags().String(FlagCudosMigrationConfigPath, "", "Upgrade config file path. Required to be provided *exclusively* during cudos migration upgrade node start, *ignored* on all subsequent node starts.")
 	startCmd.Flags().String(FlagCudosGenesisSha256, "", "Sha256 of the cudos genesis file. Optional to be provided *exclusively* during cudos migration upgrade node start, *ignored* on all subsequent node starts.")
 	startCmd.Flags().String(FlagCudosMigrationConfigSha256, "", fmt.Sprintf("Sha256 of the upgrade config file. Required if to be provided *exclusively* during cudos migration upgrade node start and *only IF* \"%v\" flag has been provided, *ignored* on all subsequent node starts.", FlagCudosMigrationConfigPath))
+
+	// Capture the existing PreRunE function
+	existingPreRunE := startCmd.PreRunE
+
+	// Set a new PreRunE function that includes the old one
+	startCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		// Check for positional arguments
+		if len(args) > 0 {
+			return fmt.Errorf("no positional arguments are allowed")
+		}
+
+		// Call the existing PreRunE function if it exists
+		if existingPreRunE != nil {
+			if err := existingPreRunE(cmd, args); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 }
