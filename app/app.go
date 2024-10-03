@@ -732,12 +732,15 @@ func getNetworkInfo(app *App, ctx sdk.Context) (*NetworkConfig, error) {
 	var networkInfo *NetworkConfig
 	var err error
 	if app.cudosMigrationConfigPath != "" {
+		app.Logger().Info("Loading network config", "file", app.cudosMigrationConfigPath, "hash", app.cudosMigrationConfigSha256)
 		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
 		// Config file not given, config from hardcoded map
 	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
+		app.Logger().Info("Loading network from map", "chain", ctx.ChainID())
+
 		networkInfo = &info
 	} else {
 		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())

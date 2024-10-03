@@ -767,7 +767,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
 	}
 
-	app.Logger().Info("remaining bonded pool balance: ", bondedPool.balance.String())
+	app.Logger().Info("remaining bonded pool balance", "amount", bondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.bondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -782,7 +782,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
 	}
 
-	app.Logger().Info("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
+	app.Logger().Info("Remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err

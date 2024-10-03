@@ -396,7 +396,7 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 
 	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
-	app.Logger().Info("Remaining dist balance: ", remainingBalance.String())
+	app.Logger().Info("Remaining dist balance", "amount", remainingBalance.String())
 
 	// TODO: Write to manifest?
 	err = checkTolerance(remainingBalance, maxToleratedRemainingDistributionBalance)
