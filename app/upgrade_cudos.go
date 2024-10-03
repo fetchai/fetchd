@@ -185,12 +185,12 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("failed to withdraw genesis contracts balances: %w", err)
 	}
 
-	err = withdrawGenesisStakingDelegations(genesisData, cudosCfg, manifest)
+	err = withdrawGenesisStakingDelegations(app, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("failed to withdraw genesis staked tokens: %w", err)
 	}
 
-	err = withdrawGenesisDistributionRewards(genesisData, cudosCfg, manifest)
+	err = withdrawGenesisDistributionRewards(app, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("failed to withdraw genesis rewards: %w", err)
 	}
@@ -693,7 +693,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 	return validatorInfoMap, nil
 }
 
-func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Handle delegations
 	for _, validatorOperatorAddress := range genesisData.validators.Keys() {
 		validator := genesisData.validators.MustGet(validatorOperatorAddress)
@@ -767,7 +767,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
 	}
 
-	println("remaining bonded pool balance: ", bondedPool.balance.String())
+	app.Logger().Info("remaining bonded pool balance: ", bondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.bondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -782,7 +782,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
 	}
 
-	println("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
+	app.Logger().Info("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -1042,22 +1042,8 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 			newAmount := coin.Amount.ToDec().Quo(conversionConstant).TruncateInt()
 			sdkCoin := sdk.NewCoin(cudosCfg.config.ConvertedDenom, newAmount)
 			resBalance = resBalance.Add(sdkCoin)
-		} else {
-			//println("Unknown denom: ", coin.Denom)
-			// Ignore unlisted tokens
-			continue
-			/*
-				// Just add without conversion
-				newAmount, ok := sdk.NewIntFromString(amount)
-				if !ok {
-					panic("failed to convert amount to big.Int")
-				}
-
-				sdkCoin := sdk.NewCoin(denom, newAmount)
-
-				resBalance = resBalance.Add(sdkCoin)
-			*/
 		}
+		// Denominations that are not in conversion constant map are ignored
 	}
 
 	return resBalance, nil
