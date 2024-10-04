@@ -774,6 +774,15 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos path not set")
 		}
 
+		actualGenesisSha256Hex, err := GenerateSHA256FromFile(app.cudosGenesisPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
+		}
+		if app.cudosGenesisSha256 != actualGenesisSha256Hex {
+			return nil, fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
+		}
+		manifest.GenesisFileSha256 = actualGenesisSha256Hex
+
 		networkInfo, err := getNetworkInfo(app, ctx, manifest)
 		if err != nil {
 			return nil, err
