@@ -734,15 +734,26 @@ func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest) (*Netw
 	if app.cudosMigrationConfigPath != "" {
 		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "hash", app.cudosMigrationConfigSha256)
 		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
-		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
 		if err != nil {
 			return nil, err
 		}
+
+		if networkInfo.ChainID != ctx.ChainID() {
+			return nil, fmt.Errorf("source file chain id %s and current node chain id %s is different", networkInfo.ChainID, ctx.ChainID())
+		}
+
+		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
+		manifest.MergeSourceChainID = networkInfo.ChainID
+		manifest.DestinationChainID = ctx.ChainID()
+
 		// Config file not given, config from hardcoded map
 	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
 		app.Logger().Info("cudos merge: loading network from map", "chain", ctx.ChainID())
-		manifest.NetworkConfigFileSha256 = ctx.ChainID()
+		manifest.NetworkConfigFileSha256 = "config map"
 		networkInfo = &info
+
+		manifest.MergeSourceChainID = ctx.ChainID()
+		manifest.DestinationChainID = ctx.ChainID()
 	} else {
 		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
 	}

@@ -16,6 +16,8 @@ type UpgradeManifest struct {
 	// Following 2 hash data members are intentionally without `omitempty` parameter in `json:...` decorator
 	GenesisFileSha256       string                     `json:"genesis_file_sha256"`
 	NetworkConfigFileSha256 string                     `json:"network_config_file_sha256"`
+	MergeSourceChainID      string                     `json:"merge_source_chain_id"`
+	DestinationChainID      string                     `json:"destination_chain_id"`
 	Reconciliation          *UpgradeReconciliation     `json:"reconciliation,omitempty"`
 	Contracts               *Contracts                 `json:"contracts,omitempty"`
 	IBC                     *UpgradeIBCTransfers       `json:"ibc,omitempty"`
