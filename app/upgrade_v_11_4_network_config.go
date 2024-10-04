@@ -293,7 +293,7 @@ func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string)
 	if isVerified, actualHashHex, err := VerifySha256(byteValue, expectedSha256Hex); err != nil {
 		return nil, err
 	} else if !isVerified {
-		return nil, fmt.Errorf("provided expected sha256 \"%v\" for NetworkConf file does NOT match actual sha256 hash %v of the file content", expectedSha256Hex, actualHashHex)
+		return nil, fmt.Errorf("failed to verify sha256: NetworkConfig file \"%v\" hash \"%v\" does not match expected hash \"%v\"", configFilePath, actualHashHex, expectedSha256Hex)
 	}
 
 	// Initialize an empty struct to hold the JSON data

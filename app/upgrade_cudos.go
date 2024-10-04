@@ -154,7 +154,7 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 		return nil, nil, fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
 	}
 	if app.cudosGenesisSha256 != actualGenesisSha256Hex {
-		return nil, nil, fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
+		return nil, nil, fmt.Errorf("failed to verify sha256: genesis file \"%v\" hash \"%v\" does not match expected hash \"%v\"", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
 	}
 	manifest.GenesisFileSha256 = actualGenesisSha256Hex
 
