@@ -158,6 +158,8 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 	}
 	manifest.GenesisFileSha256 = actualGenesisSha256Hex
 
+	app.Logger().Info("cudos merge: loading merge source genesis json", "file", app.cudosGenesisPath, "expected sha256", app.cudosGenesisSha256)
+
 	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
