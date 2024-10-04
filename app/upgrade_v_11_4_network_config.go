@@ -268,7 +268,9 @@ var NetworkInfos = map[string]NetworkConfig{
 }
 
 type NetworkConfig struct {
-	ChainID            string                `json:"chain_id"`
+	MergeSourceChainID string `json:"merge_source_chain_id"`
+	DestinationChainID string `json:"destination_chain_id"`
+
 	ReconciliationInfo *ReconciliationInfo   `json:"reconciliation_info,omitempty"`
 	Contracts          *ContractSet          `json:"contracts,omitempty"`
 	CudosMerge         *CudosMergeConfigJSON `json:"cudos_merge,omitempty"`

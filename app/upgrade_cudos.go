@@ -20,6 +20,7 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cast"
+	tmtypes "github.com/tendermint/tendermint/types"
 	"strings"
 )
 
@@ -142,7 +143,46 @@ type GenesisData struct {
 	collisionMap *OrderedMap[string, string]
 }
 
-func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interface{}, *tmtypes.GenesisDoc, error) {
+
+	if app.cudosGenesisPath == "" {
+		return nil, nil, fmt.Errorf("cudos path not set")
+	}
+
+	actualGenesisSha256Hex, err := GenerateSHA256FromFile(app.cudosGenesisPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
+	}
+	if app.cudosGenesisSha256 != actualGenesisSha256Hex {
+		return nil, nil, fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
+	}
+	manifest.GenesisFileSha256 = actualGenesisSha256Hex
+
+	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
+	}
+
+	// unmarshal the app state
+	var jsonData map[string]interface{}
+	if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
+		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
+	}
+
+	/*
+		genesisData, err := parseGenesisData(jsonData, cudosCfg, manifest)
+		if err != nil {
+			return fmt.Errorf("cudos merge: failed to parse genesis data: %w", err)
+		}
+	*/
+
+	//genDoc.AppState = nil
+
+	return &jsonData, genDoc, nil
+
+}
+
+func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
 	if cudosCfg == nil {
 		return fmt.Errorf("cudos merge: cudos CudosMergeConfig not provided (null pointer passed in)")
 	}
@@ -151,23 +191,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: cudos path not set")
 	}
 
-	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
-	if err != nil {
-		return fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
-	}
-
-	// unmarshal the app state
-	var jsonData map[string]interface{}
-	if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
-		return fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
-	}
-
-	genesisData, err := parseGenesisData(jsonData, cudosCfg, manifest)
-	if err != nil {
-		return fmt.Errorf("cudos merge: failed to parse genesis data: %w", err)
-	}
-
-	err = genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
+	err := genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw IBC channels balances: %w", err)
 	}
