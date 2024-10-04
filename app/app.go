@@ -739,10 +739,10 @@ func getNetworkInfo(app *App, ctx *sdk.Context, manifest *UpgradeManifest, expec
 		}
 
 		if networkInfo.MergeSourceChainID != expectedChainIdOfMergeSourceGenesis {
-			return nil, fmt.Errorf("mismatch of the `MergeSourceChainID`: NetworkConfig file contains \"%s\", expected value is chan-id from input merge source genesis json file, which is \"%s\"", networkInfo.MergeSourceChainID, expectedChainIdOfMergeSourceGenesis)
+			return nil, fmt.Errorf("mismatch of Merge Source ChainID: the \"merge_source_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id from input merge source genesis json file, which is \"%s\"", networkInfo.MergeSourceChainID, expectedChainIdOfMergeSourceGenesis)
 		}
 		if networkInfo.DestinationChainID != ctx.ChainID() {
-			return nil, fmt.Errorf("mismatch of the `DestinationChainID`: NetworkConfig file contains \"%s\", expected value is chan-id of the current running chain, which is \"%s\"", networkInfo.DestinationChainID, ctx.ChainID())
+			return nil, fmt.Errorf("mismatch of Destination ChainID: the \"destination_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id of the current running chain, which is \"%s\"", networkInfo.DestinationChainID, ctx.ChainID())
 		}
 
 		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
