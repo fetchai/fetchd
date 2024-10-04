@@ -727,23 +727,63 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func getNetworkInfo(app *App, ctx sdk.Context) (*NetworkConfig, error) {
+func getNetworkInfo(app *App, ctx *sdk.Context, manifest *UpgradeManifest, expectedChainIdOfMergeSourceGenesis string) (*NetworkConfig, error) {
 	// Load network config from file if given
 	var networkInfo *NetworkConfig
 	var err error
 	if app.cudosMigrationConfigPath != "" {
+		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "hash", app.cudosMigrationConfigSha256)
 		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
+
+		if networkInfo.MergeSourceChainID != expectedChainIdOfMergeSourceGenesis {
+			return nil, fmt.Errorf("mismatch of Merge Source ChainID: the \"merge_source_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id from input merge source genesis json file, which is \"%s\"", networkInfo.MergeSourceChainID, expectedChainIdOfMergeSourceGenesis)
+		}
+		if networkInfo.DestinationChainID != ctx.ChainID() {
+			return nil, fmt.Errorf("mismatch of Destination ChainID: the \"destination_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id of the current running chain, which is \"%s\"", networkInfo.DestinationChainID, ctx.ChainID())
+		}
+
+		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
+
 		// Config file not given, config from hardcoded map
 	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
+		app.Logger().Info("cudos merge: loading network from map", "chain", ctx.ChainID())
+		manifest.NetworkConfigFileSha256 = "config map"
 		networkInfo = &info
+
 	} else {
 		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
 	}
 
+	manifest.MergeSourceChainID = expectedChainIdOfMergeSourceGenesis
+	manifest.DestinationChainID = ctx.ChainID()
+
 	return networkInfo, nil
+}
+
+func LoadAndParseMergeSourceInputFiles(app *App, ctx *sdk.Context, manifest *UpgradeManifest) (*GenesisData, *NetworkConfig, error) {
+
+	cudosJsonData, cudosGenDoc, err := LoadCudosGenesis(app, manifest)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load genesis data: %w", err)
+	}
+
+	networkInfo, err := getNetworkInfo(app, ctx, manifest, cudosGenDoc.ChainID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load network config: %w", err)
+	}
+
+	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
+
+	genesisData, err := parseGenesisData(*cudosJsonData, cudosConfig, manifest)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
+	}
+
+	return genesisData, networkInfo, nil
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
@@ -755,13 +795,9 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		manifest := NewUpgradeManifest()
 
-		if app.cudosGenesisPath == "" {
-			return nil, fmt.Errorf("cudos path not set")
-		}
-
-		networkInfo, err := getNetworkInfo(app, ctx)
+		cudosGenesisData, networkInfo, err := LoadAndParseMergeSourceInputFiles(app, &ctx, manifest)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
 
 		err = app.DeleteContractStates(ctx, networkInfo, manifest)
@@ -790,7 +826,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
-		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, manifest)
+		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, cudosGenesisData, manifest)
 		if err != nil {
 			return nil, err
 		}

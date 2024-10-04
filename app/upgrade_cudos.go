@@ -20,6 +20,7 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cast"
+	tmtypes "github.com/tendermint/tendermint/types"
 	"strings"
 )
 
@@ -142,87 +143,102 @@ type GenesisData struct {
 	collisionMap *OrderedMap[string, string]
 }
 
-func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
-	if cudosCfg == nil {
-		return fmt.Errorf("cudos CudosMergeConfig not provided (null pointer passed in)")
-	}
+func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interface{}, *tmtypes.GenesisDoc, error) {
 
 	if app.cudosGenesisPath == "" {
-		return fmt.Errorf("cudos path not set")
+		return nil, nil, fmt.Errorf("cudos path not set")
 	}
 
 	actualGenesisSha256Hex, err := GenerateSHA256FromFile(app.cudosGenesisPath)
 	if err != nil {
-		return fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
+		return nil, nil, fmt.Errorf("failed to generate sha256 out of genesis file %v: %w", app.cudosGenesisPath, err)
 	}
 	if app.cudosGenesisSha256 != actualGenesisSha256Hex {
-		return fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
+		return nil, nil, fmt.Errorf("failed to verify sha256: genesis file \"%v\" hash \"%v\" does not match expected hash \"%v\"", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
 	}
+	manifest.GenesisFileSha256 = actualGenesisSha256Hex
 
 	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
 	}
 
 	// unmarshal the app state
 	var jsonData map[string]interface{}
 	if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
-		return fmt.Errorf("failed to unmarshal app state: %w", err)
+		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
 	}
 
-	genesisData, err := parseGenesisData(jsonData, cudosCfg, manifest)
-	if err != nil {
-		return err
+	/*
+		genesisData, err := parseGenesisData(jsonData, cudosCfg, manifest)
+		if err != nil {
+			return fmt.Errorf("cudos merge: failed to parse genesis data: %w", err)
+		}
+	*/
+
+	//genDoc.AppState = nil
+
+	return &jsonData, genDoc, nil
+
+}
+
+func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
+	if cudosCfg == nil {
+		return fmt.Errorf("cudos merge: cudos CudosMergeConfig not provided (null pointer passed in)")
 	}
 
-	err = genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
+	if app.cudosGenesisPath == "" {
+		return fmt.Errorf("cudos merge: cudos path not set")
+	}
+
+	err := genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to withdraw IBC channels balances: %w", err)
+		return fmt.Errorf("cudos merge: failed to withdraw IBC channels balances: %w", err)
 	}
 
 	err = withdrawGenesisContractBalances(genesisData, manifest, cudosCfg)
 	if err != nil {
-		return fmt.Errorf("failed to withdraw genesis contracts balances: %w", err)
+		return fmt.Errorf("cudos merge: failed to withdraw genesis contracts balances: %w", err)
 	}
 
-	err = withdrawGenesisStakingDelegations(genesisData, cudosCfg, manifest)
+	err = withdrawGenesisStakingDelegations(app, genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to withdraw genesis staked tokens: %w", err)
+		return fmt.Errorf("cudos merge: failed to withdraw genesis staked tokens: %w", err)
 	}
 
-	err = withdrawGenesisDistributionRewards(genesisData, cudosCfg, manifest)
+	err = withdrawGenesisDistributionRewards(app, genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to withdraw genesis rewards: %w", err)
+		return fmt.Errorf("cudos merge: failed to withdraw genesis rewards: %w", err)
 	}
 
 	err = withdrawGenesisGravity(genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to withdraw gravity: %w", err)
+		return fmt.Errorf("cudos merge: failed to withdraw gravity: %w", err)
 	}
 
 	err = DoGenesisAccountMovements(genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to move funds: %w", err)
+		return fmt.Errorf("cudos merge: failed to move funds: %w", err)
 	}
 
 	err = MigrateGenesisAccounts(genesisData, ctx, app, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed process accounts: %w", err)
+		return fmt.Errorf("cudos merge: failed process accounts: %w", err)
 	}
 
 	err = createGenesisDelegations(ctx, app, genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed process delegations: %w", err)
+		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
 	}
 
 	err = fundCommunityPool(ctx, app, genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to fund community pool: %w", err)
+		return fmt.Errorf("cudos merge: failed to fund community pool: %w", err)
 	}
 
 	err = verifySupply(genesisData, cudosCfg, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to verify supply: %w", err)
+		return fmt.Errorf("cudos merge: failed to verify supply: %w", err)
 	}
 
 	return nil
@@ -693,7 +709,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 	return validatorInfoMap, nil
 }
 
-func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Handle delegations
 	for _, validatorOperatorAddress := range genesisData.validators.Keys() {
 		validator := genesisData.validators.MustGet(validatorOperatorAddress)
@@ -767,7 +783,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
 	}
 
-	println("remaining bonded pool balance: ", bondedPool.balance.String())
+	app.Logger().Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.bondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -782,7 +798,7 @@ func withdrawGenesisStakingDelegations(genesisData *GenesisData, cudosCfg *Cudos
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
 	}
 
-	println("Remaining not-bonded pool balance: ", notBondedPool.balance.String())
+	app.Logger().Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -1042,22 +1058,8 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 			newAmount := coin.Amount.ToDec().Quo(conversionConstant).TruncateInt()
 			sdkCoin := sdk.NewCoin(cudosCfg.config.ConvertedDenom, newAmount)
 			resBalance = resBalance.Add(sdkCoin)
-		} else {
-			//println("Unknown denom: ", coin.Denom)
-			// Ignore unlisted tokens
-			continue
-			/*
-				// Just add without conversion
-				newAmount, ok := sdk.NewIntFromString(amount)
-				if !ok {
-					panic("failed to convert amount to big.Int")
-				}
-
-				sdkCoin := sdk.NewCoin(denom, newAmount)
-
-				resBalance = resBalance.Add(sdkCoin)
-			*/
 		}
+		// Denominations that are not in conversion constant map are ignored
 	}
 
 	return resBalance, nil

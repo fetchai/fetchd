@@ -179,7 +179,10 @@ var NetworkInfos = map[string]NetworkConfig{
 			//cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he
 
 			MovedAccounts: []Pair[string, string]{
-				//{"cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta", "cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he"}, // Replace this
+				//{"cudos196nrmandtwz67d8h4h0ux7amlcluecglx00wlw", "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5"}, // Replace this
+				//{"cudos1xcwjdw09cc9dyshr4gt5520sgsh582mjj03jge", "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta"}, // Replace this
+				//{"cudos1ejmf96efvjp6pmsaj8djv3gpmnsvmpnctger4v", "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw"}, // Replace this
+
 			},
 
 			BackupValidators: []string{"fetchvaloper1m9cjw6xgt04f9ddw25fff3cfe2exgwk07eu46u", "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
@@ -265,6 +268,9 @@ var NetworkInfos = map[string]NetworkConfig{
 }
 
 type NetworkConfig struct {
+	MergeSourceChainID string `json:"merge_source_chain_id"`
+	DestinationChainID string `json:"destination_chain_id"`
+
 	ReconciliationInfo *ReconciliationInfo   `json:"reconciliation_info,omitempty"`
 	Contracts          *ContractSet          `json:"contracts,omitempty"`
 	CudosMerge         *CudosMergeConfigJSON `json:"cudos_merge,omitempty"`
@@ -287,7 +293,7 @@ func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string)
 	if isVerified, actualHashHex, err := VerifySha256(byteValue, expectedSha256Hex); err != nil {
 		return nil, err
 	} else if !isVerified {
-		return nil, fmt.Errorf("provided expected sha256 \"%v\" for NetworkConf file does NOT match actual sha256 hash %v of the file content", expectedSha256Hex, actualHashHex)
+		return nil, fmt.Errorf("failed to verify sha256: NetworkConfig file \"%s\" hash \"%s\" does not match expected hash \"%s\"", configFilePath, actualHashHex, *expectedSha256Hex)
 	}
 
 	// Initialize an empty struct to hold the JSON data
