@@ -396,12 +396,12 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 
 	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
-	app.Logger().Info("Remaining dist balance", "amount", remainingBalance.String())
+	app.Logger().Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
 
 	// TODO: Write to manifest?
 	err = checkTolerance(remainingBalance, maxToleratedRemainingDistributionBalance)
 	if err != nil {
-		return fmt.Errorf("Remaining distribution balance %s is too high", remainingBalance.String())
+		return fmt.Errorf("remaining distribution balance %s is too high", remainingBalance.String())
 	}
 
 	err = moveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, cudosCfg.config.RemainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)

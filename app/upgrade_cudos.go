@@ -158,6 +158,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	if app.cudosGenesisSha256 != actualGenesisSha256Hex {
 		return fmt.Errorf("sha256 failed to verify: genesis file \"%v\" hash %v does not match expected hash %v", app.cudosGenesisPath, actualGenesisSha256Hex, app.cudosGenesisSha256)
 	}
+	manifest.GenesisFileSha256 = actualGenesisSha256Hex
 
 	_, genDoc, err := genutiltypes.GenesisStateFromGenFile(app.cudosGenesisPath)
 	if err != nil {
@@ -767,7 +768,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
 	}
 
-	app.Logger().Info("remaining bonded pool balance", "amount", bondedPool.balance.String())
+	app.Logger().Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.bondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -782,7 +783,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
 	}
 
-	app.Logger().Info("Remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
+	app.Logger().Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
 	err = moveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err

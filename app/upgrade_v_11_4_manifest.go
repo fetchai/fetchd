@@ -13,17 +13,19 @@ import (
 const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
-	ConfigSource       string                     `json:"config_source"`
-	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
-	Contracts          *Contracts                 `json:"contracts,omitempty"`
-	IBC                *UpgradeIBCTransfers       `json:"ibc,omitempty"`
-	Migration          *UpgradeMigation           `json:"migration,omitempty"`
-	MoveGenesisBalance *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
-	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
-	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
-	VestingCollision   *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
-	MoveDelegations    *UpgradeMoveDelegations    `json:"move_delegation,omitempty"`
-	CreatedAccounts    *UpgradeCreatedAccounts    `json:"created_accounts,omitempty"`
+	// Following 2 hash data members are intentionally without `omitempty` parameter in `json:...` decorator
+	GenesisFileSha256       string                     `json:"genesis_file_sha256"`
+	NetworkConfigFileSha256 string                     `json:"network_config_file_sha256"`
+	Reconciliation          *UpgradeReconciliation     `json:"reconciliation,omitempty"`
+	Contracts               *Contracts                 `json:"contracts,omitempty"`
+	IBC                     *UpgradeIBCTransfers       `json:"ibc,omitempty"`
+	Migration               *UpgradeMigation           `json:"migration,omitempty"`
+	MoveGenesisBalance      *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
+	Delegate                *UpgradeDelegate           `json:"delegate,omitempty"`
+	MoveMintedBalance       *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
+	VestingCollision        *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
+	MoveDelegations         *UpgradeMoveDelegations    `json:"move_delegation,omitempty"`
+	CreatedAccounts         *UpgradeCreatedAccounts    `json:"created_accounts,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {
