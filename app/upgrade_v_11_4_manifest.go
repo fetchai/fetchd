@@ -14,20 +14,24 @@ const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
 	// Following 2 hash data members are intentionally without `omitempty` parameter in `json:...` decorator
-	GenesisFileSha256       string                     `json:"genesis_file_sha256"`
-	NetworkConfigFileSha256 string                     `json:"network_config_file_sha256"`
-	MergeSourceChainID      string                     `json:"merge_source_chain_id"`
-	DestinationChainID      string                     `json:"destination_chain_id"`
-	Reconciliation          *UpgradeReconciliation     `json:"reconciliation,omitempty"`
-	Contracts               *Contracts                 `json:"contracts,omitempty"`
-	IBC                     *UpgradeIBCTransfers       `json:"ibc,omitempty"`
-	Migration               *UpgradeMigation           `json:"migration,omitempty"`
-	MoveGenesisBalance      *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
-	Delegate                *UpgradeDelegate           `json:"delegate,omitempty"`
-	MoveMintedBalance       *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
-	VestingCollision        *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
-	MoveDelegations         *UpgradeMoveDelegations    `json:"move_delegation,omitempty"`
-	CreatedAccounts         *UpgradeCreatedAccounts    `json:"created_accounts,omitempty"`
+	GenesisFileSha256           string `json:"genesis_file_sha256"`
+	NetworkConfigFileSha256     string `json:"network_config_file_sha256"`
+	MergeSourceChainID          string `json:"merge_source_chain_id"`
+	DestinationChainID          string `json:"destination_chain_id"`
+	SourceChainBlockHeight      int64  `json:"source_chain_block_height"`
+	DestinationChainBlockHeight int64  `json:"destination_chain_block_height"`
+	GovProposalUpgradePlanName  string `json:"gov_proposal_upgrade_plan_name"`
+
+	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
+	Contracts          *Contracts                 `json:"contracts,omitempty"`
+	IBC                *UpgradeIBCTransfers       `json:"ibc,omitempty"`
+	Migration          *UpgradeMigation           `json:"migration,omitempty"`
+	MoveGenesisBalance *UpgradeMoveGenesisBalance `json:"move_genesis_balance,omitempty"`
+	Delegate           *UpgradeDelegate           `json:"delegate,omitempty"`
+	MoveMintedBalance  *UpgradeMoveMintedBalance  `json:"move_minted_balance,omitempty"`
+	VestingCollision   *UpgradeVestingCollision   `json:"vesting_collision,omitempty"`
+	MoveDelegations    *UpgradeMoveDelegations    `json:"move_delegation,omitempty"`
+	CreatedAccounts    *UpgradeCreatedAccounts    `json:"created_accounts,omitempty"`
 }
 
 func NewUpgradeManifest() *UpgradeManifest {

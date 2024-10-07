@@ -71,8 +71,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			VestingCollisionDestAddr:     "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			CommunityPoolBalanceDestAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
-			NewAddrPrefix: "fetch",
-			OldAddrPrefix: "cudos",
+			SourceChainAddressPrefix: "cudos",
 
 			OriginalDenom:  "acudos",
 			ConvertedDenom: "afet",
@@ -145,8 +144,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			VestingCollisionDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 			CommunityPoolBalanceDestAddr: "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta",
 
-			NewAddrPrefix: "fetch",
-			OldAddrPrefix: "cudos",
+			SourceChainAddressPrefix: "cudos",
 
 			OriginalDenom:  "acudos",
 			ConvertedDenom: "atestfet",
@@ -314,14 +312,13 @@ type CudosMergeConfigJSON struct {
 	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`      // Cudos address
 	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"` // Cudos address
 	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`  // Cudos address
+	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr"`    // Cudos address, funds are moved to destination chain community pool if not set
 
-	CommissionFetchAddr          string `json:"commission_fetch_addr"`            // Fetch address for commission
-	ExtraSupplyFetchAddr         string `json:"extra_supply_fetch_addr"`          // Fetch address for extra supply
-	VestingCollisionDestAddr     string `json:"vesting_collision_dest_addr"`      // This gets converted to raw address, so it can be fetch or cudos address
-	CommunityPoolBalanceDestAddr string `json:"community_pool_balance_dest_addr"` // This gets converted to raw address, so it can be fetch or cudos address
+	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
+	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
+	VestingCollisionDestAddr string `json:"vesting_collision_dest_addr"` // This gets converted to raw address, so it can be fetch or cudos address
 
-	NewAddrPrefix string `json:"new_addr_prefix"`
-	OldAddrPrefix string `json:"old_addr_prefix"`
+	SourceChainAddressPrefix string `json:"old_addr_prefix"`
 
 	OriginalDenom  string `json:"original_denom"`
 	ConvertedDenom string `json:"converted_denom"`
@@ -365,25 +362,12 @@ func NewCudosMergeConfig(config *CudosMergeConfigJSON) *CudosMergeConfig {
 	retval.MovedAccounts = NewOrderedMapFromPairs(config.MovedAccounts)
 	retval.validatorsMap = NewOrderedMapFromPairs(config.ValidatorsMap)
 
-	//for _, exchangeRate := range config.BalanceConversionConstants {
-	//	retval.BalanceConversionConstants.SetNew(exchangeRate.Denom, exchangeRate.ExchangeRate)
-	//}
-
-	//for _, account := range config.NotVestedAccounts {
-	//	retval.NotVestedAccounts.SetNew(account, true)
-	//}
-
-	//for _, account := range config.NotDelegatedAccounts {
-	//	retval.NotDelegatedAccounts.SetNew(account, true)
-	//}
-
-	//for _, account := range config.MovedAccounts {
-	//	retval.MovedAccounts.SetNew(account.FromAccountAddr, account.ToAccountAddr)
-	//}
-
-	//for _, validator := range config.ValidatorsMap {
-	//	retval.ValidatorsMap.SetNew(validator.FromCudosValidatorOperatorAddr, validator.ToFetchValidatorOperatorOperAddr)
-	//}
+	// Ensure that commission address won't be vested
+	commissionCudosAddress, err := convertAddressPrefix(config.CommissionFetchAddr, config.SourceChainAddressPrefix)
+	if err != nil {
+		return nil
+	}
+	retval.notVestedAccounts.Set(commissionCudosAddress, true)
 
 	return retval
 }

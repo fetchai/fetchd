@@ -391,11 +391,13 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 		return err
 	}
 
-	// Withdraw remaining balance
+	// Withdraw Community pool balance to address if defined
+	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	distributionModuleAccount := genesisData.accounts.MustGet(genesisData.distributionInfo.distributionModuleAccountAddress)
 
-	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
+
+	// Withdraw remaining balance
 	app.Logger().Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
 
 	// TODO: Write to manifest?
@@ -417,7 +419,7 @@ func withdrawAccumulatedCommissions(genesisData *GenesisData, cudosCfg *CudosMer
 	for _, validatorAddress := range genesisData.distributionInfo.validatorAccumulatedCommissions.Keys() {
 		accumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.OldAddrPrefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.SourceChainAddressPrefix)
 		if err != nil {
 			return err
 		}
@@ -438,7 +440,7 @@ func withdrawValidatorOutstandingRewards(genesisData *GenesisData, cudosCfg *Cud
 	for _, validatorAddress := range genesisData.distributionInfo.outstandingRewards.Keys() {
 		outstandingRewards := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.OldAddrPrefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, cudosCfg.config.SourceChainAddressPrefix)
 		if err != nil {
 			return err
 		}

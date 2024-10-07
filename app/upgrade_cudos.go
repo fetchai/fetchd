@@ -13,7 +13,6 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -34,8 +33,6 @@ const (
 	AccAddressPrefix  = ""
 	ValAddressPrefix  = "valoper"
 	ConsAddressPrefix = "valcons"
-
-	NewAddrPrefix = "fetch"
 
 	FlagGenesisTime = "genesis-time"
 
@@ -65,24 +62,6 @@ const (
 	RecursionDepthLimit = 50
 )
 
-func convertAddressToFetch(addr string, addressPrefix string) (string, error) {
-	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
-	if err != nil {
-		return "", err
-	}
-
-	newAddress, err := bech32.ConvertAndEncode(NewAddrPrefix+addressPrefix, decodedAddrData)
-	if err != nil {
-		return "", err
-	}
-
-	err = sdk.VerifyAddressFormat(decodedAddrData)
-	if err != nil {
-		return "", err
-	}
-
-	return newAddress, nil
-}
 func convertAddressPrefix(addr string, newPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 	if err != nil {
@@ -100,7 +79,7 @@ func convertAddressPrefix(addr string, newPrefix string) (string, error) {
 func convertAddressToRaw(addr string, cudosCfg *CudosMergeConfig) (sdk.AccAddress, error) {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 
-	if prefix != cudosCfg.config.OldAddrPrefix {
+	if prefix != cudosCfg.config.SourceChainAddressPrefix {
 		return nil, fmt.Errorf("unknown prefix: %s", prefix)
 	}
 
@@ -126,6 +105,8 @@ const (
 
 type GenesisData struct {
 	totalSupply sdk.Coins
+	blockHeight int64
+	chainId     string
 
 	accounts    *OrderedMap[string, *AccountInfo]
 	contracts   *OrderedMap[string, *ContractInfo]
@@ -233,11 +214,6 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
 	}
 
-	err = fundCommunityPool(ctx, app, genesisData, cudosCfg, manifest)
-	if err != nil {
-		return fmt.Errorf("cudos merge: failed to fund community pool: %w", err)
-	}
-
 	err = verifySupply(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to verify supply: %w", err)
@@ -246,7 +222,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	return nil
 }
 
-func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
+func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
 	genesisData := GenesisData{}
 
 	totalSupply, err := parseGenesisTotalSupply(jsonData)
@@ -254,6 +230,8 @@ func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfi
 		return nil, fmt.Errorf("failed to get total supply: %w", err)
 	}
 	genesisData.totalSupply = totalSupply
+	genesisData.blockHeight = genDoc.InitialHeight
+	genesisData.chainId = genDoc.ChainID
 
 	genesisData.contracts, err = parseGenesisWasmContracts(jsonData)
 	if err != nil {
@@ -880,39 +858,43 @@ func createDelegation(ctx sdk.Context, app *App, originalValidator string, newDe
 	return nil
 }
 
-func fundCommunityPool(ctx sdk.Context, app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
-	// Fund community pool
+func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+
+	// Get addresses and amounts
+	RemainingDistributionBalanceAccount := genesisData.accounts.MustGet(cudosCfg.config.RemainingDistributionBalanceAddr)
 	communityPoolBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	convertedCommunityPoolBalance, err := convertBalance(communityPoolBalance, cudosCfg)
 	if err != nil {
 		return err
 	}
 
-	communityPoolSourceAccountRawAddress := genesisData.accounts.MustGet(cudosCfg.config.RemainingDistributionBalanceAddr).rawAddress
-
 	if cudosCfg.config.CommunityPoolBalanceDestAddr == "" {
-		// Move balance to community pool if destination address is not set
+		// If community pool balance destination address is not we move community pool balance to destination chain community pool
 
-		err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, communityPoolSourceAccountRawAddress)
+		// Mint balance to distribution leftover address
+		err = migrateToAccount(ctx, app, minttypes.ModuleName, RemainingDistributionBalanceAccount.rawAddress, communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
 		if err != nil {
 			return err
 		}
 
-		registerBalanceMovement(cudosCfg.config.RemainingDistributionBalanceAddr, distrtypes.ModuleName, communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
+		// Move balance to destination chain community pool
+		err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, RemainingDistributionBalanceAccount.rawAddress)
+		if err != nil {
+			return err
+		}
+
+		// Subtract balance from genesis balances
+		err = removeGenesisBalance(genesisData, cudosCfg.config.RemainingDistributionBalanceAddr, communityPoolBalance, "community_pool_balance", manifest)
+		if err != nil {
+			return err
+		}
 
 	} else {
-		// Move balance to given account
-
-		destAccRawAddr, err := convertAddressToRaw(cudosCfg.config.CommunityPoolBalanceDestAddr, cudosCfg)
+		// If community pool destination balance is set we move community pool tokens there.
+		err = moveGenesisBalance(genesisData, RemainingDistributionBalanceAccount.address, cudosCfg.config.CommunityPoolBalanceDestAddr, communityPoolBalance, "community_pool_balance", manifest, cudosCfg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to move community pool balance %w", err)
 		}
-
-		err = app.BankKeeper.SendCoins(ctx, communityPoolSourceAccountRawAddress, destAccRawAddr, convertedCommunityPoolBalance)
-		if err != nil {
-			return err
-		}
-		registerBalanceMovement(cudosCfg.config.RemainingDistributionBalanceAddr, cudosCfg.config.CommunityPoolBalanceDestAddr, communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
 
 	}
 
@@ -1208,7 +1190,7 @@ func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMer
 		}
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
-		channelAddr, err := sdk.Bech32ifyAddressBytes(cudosCfg.config.OldAddrPrefix, rawAddr)
+		channelAddr, err := sdk.Bech32ifyAddressBytes(cudosCfg.config.SourceChainAddressPrefix, rawAddr)
 		if err != nil {
 			return nil, err
 		}
@@ -1596,6 +1578,26 @@ func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk
 	return nil
 }
 
+func removeGenesisBalance(genesisData *GenesisData, address string, amount sdk.Coins, memo string, manifest *UpgradeManifest) error {
+	// Check if fromAddress exists
+	if _, ok := genesisData.accounts.Get(address); !ok {
+		return fmt.Errorf("address %s does not exist in genesis balances", address)
+	}
+
+	if acc := genesisData.accounts.MustGet(address); acc.migrated {
+		return fmt.Errorf("genesis account %s already migrated", address)
+	}
+
+	genesisAccount := genesisData.accounts.MustGet(address)
+	genesisAccount.balance = genesisAccount.balance.Sub(amount)
+
+	genesisData.accounts.Set(address, genesisAccount)
+
+	registerManifestBalanceMovement(address, "", amount, memo, manifest)
+
+	return nil
+}
+
 func GetAddressByName(genesisAccounts *OrderedMap[string, *AccountInfo], name string) (string, error) {
 
 	for _, accAddress := range genesisAccounts.Keys() {
@@ -1786,7 +1788,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
 	extraSupplyInCudos := cudosCfg.config.TotalCudosSupply.Sub(genesisData.totalSupply.AmountOf(cudosCfg.config.OriginalDenom))
-	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.config.ExtraSupplyFetchAddr, cudosCfg.config.OldAddrPrefix)
+	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.config.ExtraSupplyFetchAddr, cudosCfg.config.SourceChainAddressPrefix)
 	if err != nil {
 		return err
 	}
@@ -1796,6 +1798,11 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	err = createGenesisBalance(genesisData, extraSupplyCudosAddress, extraSupplyInCudosCoins, "extra_supply", manifest, cudosCfg)
 	if err != nil {
 		return err
+	}
+
+	err = handleCommunityPoolBalance(ctx, app, genesisData, cudosCfg, manifest)
+	if err != nil {
+		return fmt.Errorf("failed to handle community pool balance: %w", err)
 	}
 
 	// Mint the rest of the supply
