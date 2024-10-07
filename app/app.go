@@ -804,6 +804,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		manifest.SourceChainBlockHeight = ctx.BlockHeight()
 		manifest.MergeSourceChainID = ctx.ChainID()
 
+		manifest.GovProposalUpgradePlanName = plan.Name
+
 		err = app.DeleteContractStates(ctx, networkInfo, manifest)
 		if err != nil {
 			return nil, err

@@ -20,6 +20,7 @@ type UpgradeManifest struct {
 	DestinationChainID          string `json:"destination_chain_id"`
 	SourceChainBlockHeight      int64  `json:"source_chain_block_height"`
 	DestinationChainBlockHeight int64  `json:"destination_chain_block_height"`
+	GovProposalUpgradePlanName  string `json:"gov_proposal_upgrade_plan_name"`
 
 	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
 	Contracts          *Contracts                 `json:"contracts,omitempty"`
