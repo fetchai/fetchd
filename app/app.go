@@ -789,7 +789,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
 		manifest := NewUpgradeManifest()
 

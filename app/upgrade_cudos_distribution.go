@@ -391,11 +391,20 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 		return err
 	}
 
-	// Withdraw remaining balance
+	// Withdraw Community pool balance to address if defined
+	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	distributionModuleAccount := genesisData.accounts.MustGet(genesisData.distributionInfo.distributionModuleAccountAddress)
 
-	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
+	// If community pool destination balance is set we move community pool tokens there.
+	if cudosCfg.config.CommunityPoolBalanceDestAddr != "" {
+		err := moveGenesisBalance(genesisData, genesisData.distributionInfo.distributionModuleAccountAddress, cudosCfg.config.CommunityPoolBalanceDestAddr, communityBalance, "community_pool_balance", manifest, cudosCfg)
+		if err != nil {
+			return fmt.Errorf("failed to move community pool balance %w", err)
+		}
+	}
+
+	// Withdraw remaining balance
 	app.Logger().Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
 
 	// TODO: Write to manifest?
