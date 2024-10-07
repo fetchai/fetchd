@@ -378,7 +378,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -758,9 +758,6 @@ func getNetworkInfo(app *App, ctx *sdk.Context, manifest *UpgradeManifest, expec
 		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
 	}
 
-	manifest.MergeSourceChainID = expectedChainIdOfMergeSourceGenesis
-	manifest.DestinationChainID = ctx.ChainID()
-
 	return networkInfo, nil
 }
 
@@ -779,7 +776,7 @@ func LoadAndParseMergeSourceInputFiles(app *App, ctx *sdk.Context, manifest *Upg
 
 	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
 
-	genesisData, err := parseGenesisData(*cudosJsonData, cudosConfig, manifest)
+	genesisData, err := parseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
 	}
@@ -792,7 +789,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler("v0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
 		manifest := NewUpgradeManifest()
 
@@ -800,6 +797,12 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		if err != nil {
 			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
+
+		manifest.DestinationChainBlockHeight = cudosGenesisData.blockHeight
+		manifest.DestinationChainID = cudosGenesisData.chainId
+
+		manifest.SourceChainBlockHeight = ctx.BlockHeight()
+		manifest.MergeSourceChainID = ctx.ChainID()
 
 		err = app.DeleteContractStates(ctx, networkInfo, manifest)
 		if err != nil {

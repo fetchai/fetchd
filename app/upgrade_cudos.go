@@ -126,6 +126,8 @@ const (
 
 type GenesisData struct {
 	totalSupply sdk.Coins
+	blockHeight int64
+	chainId     string
 
 	accounts    *OrderedMap[string, *AccountInfo]
 	contracts   *OrderedMap[string, *ContractInfo]
@@ -246,7 +248,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	return nil
 }
 
-func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
+func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
 	genesisData := GenesisData{}
 
 	totalSupply, err := parseGenesisTotalSupply(jsonData)
@@ -254,6 +256,8 @@ func parseGenesisData(jsonData map[string]interface{}, cudosCfg *CudosMergeConfi
 		return nil, fmt.Errorf("failed to get total supply: %w", err)
 	}
 	genesisData.totalSupply = totalSupply
+	genesisData.blockHeight = genDoc.InitialHeight
+	genesisData.chainId = genDoc.ChainID
 
 	genesisData.contracts, err = parseGenesisWasmContracts(jsonData)
 	if err != nil {
