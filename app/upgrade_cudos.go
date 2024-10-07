@@ -891,11 +891,9 @@ func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisD
 
 	} else {
 		// If community pool destination balance is set we move community pool tokens there.
-		if cudosCfg.config.CommunityPoolBalanceDestAddr != "" {
-			err = moveGenesisBalance(genesisData, RemainingDistributionBalanceAccount.address, cudosCfg.config.CommunityPoolBalanceDestAddr, communityPoolBalance, "community_pool_balance", manifest, cudosCfg)
-			if err != nil {
-				return fmt.Errorf("failed to move community pool balance %w", err)
-			}
+		err = moveGenesisBalance(genesisData, RemainingDistributionBalanceAccount.address, cudosCfg.config.CommunityPoolBalanceDestAddr, communityPoolBalance, "community_pool_balance", manifest, cudosCfg)
+		if err != nil {
+			return fmt.Errorf("failed to move community pool balance %w", err)
 		}
 
 	}
