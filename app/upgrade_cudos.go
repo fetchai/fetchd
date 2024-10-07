@@ -76,10 +76,10 @@ func convertAddressPrefix(addr string, newPrefix string) (string, error) {
 	return newAddress, nil
 }
 
-func convertAddressToRaw(addr string, cudosCfg *CudosMergeConfig) (sdk.AccAddress, error) {
+func ensureCudosconvertAddressToRaw(addr string, genesisData *GenesisData) (sdk.AccAddress, error) {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 
-	if prefix != cudosCfg.config.SourceChainAddressPrefix {
+	if prefix != genesisData.prefix {
 		return nil, fmt.Errorf("unknown prefix: %s", prefix)
 	}
 
@@ -107,6 +107,7 @@ type GenesisData struct {
 	totalSupply sdk.Coins
 	blockHeight int64
 	chainId     string
+	prefix      string
 
 	accounts    *OrderedMap[string, *AccountInfo]
 	contracts   *OrderedMap[string, *ContractInfo]
@@ -222,8 +223,37 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	return nil
 }
 
+func getAccPrefix(jsonData map[string]interface{}) (string, error) {
+
+	// Map to verify that account exists in auth module
+	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
+	accounts := auth["accounts"].([]interface{})
+
+	prefix := ""
+	for _, acc := range accounts {
+		accMap := acc.(map[string]interface{})
+		accountInfo, err := parseGenesisAccount(accMap)
+		if err != nil {
+			return "", err
+		}
+
+		prefix, _, err = bech32.DecodeAndConvert(accountInfo.address)
+		if err != nil {
+			return "", err
+		}
+
+		break
+	}
+	if prefix == "" {
+		return "", fmt.Errorf("failed to decode account address")
+	}
+
+	return prefix, nil
+}
+
 func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
 	genesisData := GenesisData{}
+	var err error
 
 	totalSupply, err := parseGenesisTotalSupply(jsonData)
 	if err != nil {
@@ -232,13 +262,17 @@ func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 	genesisData.totalSupply = totalSupply
 	genesisData.blockHeight = genDoc.InitialHeight
 	genesisData.chainId = genDoc.ChainID
+	genesisData.prefix, err = getAccPrefix(jsonData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get prefix: %w", err)
+	}
 
 	genesisData.contracts, err = parseGenesisWasmContracts(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contracts: %w", err)
 	}
 
-	genesisData.ibcAccounts, err = parseGenesisIBCAccounts(jsonData, cudosCfg)
+	genesisData.ibcAccounts, err = parseGenesisIBCAccounts(jsonData, cudosCfg, genesisData.prefix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ibc accounts: %w", err)
 	}
@@ -318,7 +352,7 @@ type AccountInfo struct {
 	rawAccData map[string]interface{}
 }
 
-func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo) error {
 	// Parse specific base vesting account types
 	accountInfo.endTime = cast.ToInt64(baseVestingAccData["end_time"].(string))
 
@@ -330,7 +364,7 @@ func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountI
 
 	// Parse inner base account
 	baseAccData := baseVestingAccData["base_account"].(map[string]interface{})
-	err = parseGenesisBaseAccount(baseAccData, accountInfo, cudosCfg)
+	err = parseGenesisBaseAccount(baseAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -338,7 +372,7 @@ func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountI
 	return nil
 }
 
-func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo) error {
 	accountInfo.address = baseAccData["address"].(string)
 
 	// Parse pubkey
@@ -355,7 +389,8 @@ func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *Ac
 	accountInfo.pubkey = AccPubKey
 
 	// Get raw address
-	accRawAddr, err := convertAddressToRaw(accountInfo.address, cudosCfg)
+	_, accRawAddr, err := bech32.DecodeAndConvert(accountInfo.address)
+
 	accountInfo.rawAddress = accRawAddr
 	if err != nil {
 		return err
@@ -364,12 +399,12 @@ func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *Ac
 	return nil
 }
 
-func parseGenesisDelayedVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisDelayedVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific delayed vesting stuff
 	// Nothing
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, cudosCfg)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -377,13 +412,13 @@ func parseGenesisDelayedVestingAccount(accMap map[string]interface{}, accountInf
 	return nil
 }
 
-func parseGenesisContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific continuous vesting stuff
 
 	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, cudosCfg)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -391,9 +426,9 @@ func parseGenesisContinuousVestingAccount(accMap map[string]interface{}, account
 	return nil
 }
 
-func parseGenesisPermanentLockedAccount(accMap map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisPermanentLockedAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, cudosCfg)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -401,7 +436,7 @@ func parseGenesisPermanentLockedAccount(accMap map[string]interface{}, accountIn
 	return nil
 }
 
-func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific periodic stuff
 	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
 
@@ -409,7 +444,7 @@ func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountIn
 	// Do we care?
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
-	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo, cudosCfg)
+	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -417,13 +452,13 @@ func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountIn
 	return nil
 }
 
-func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo, cudosCfg *CudosMergeConfig) error {
+func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific module account values
 	accountInfo.name = accMap["name"].(string)
 
 	// parse inner base account
 	baseAccData := accMap["base_account"].(map[string]interface{})
-	err := parseGenesisBaseAccount(baseAccData, accountInfo, cudosCfg)
+	err := parseGenesisBaseAccount(baseAccData, accountInfo)
 	if err != nil {
 		return err
 	}
@@ -431,43 +466,43 @@ func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *Accou
 	return nil
 }
 
-func parseGenesisAccount(accMap map[string]interface{}, cudosCfg *CudosMergeConfig) (*AccountInfo, error) {
+func parseGenesisAccount(accMap map[string]interface{}) (*AccountInfo, error) {
 	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false, rawAccData: accMap}
 	accType := accMap["@type"]
 
 	// Extract base account and special values
 	if accType == ModuleAccount {
-		err := parseGenesisModuleAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisModuleAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = ModuleAccountType
 	} else if accType == DelayedVestingAccount {
-		err := parseGenesisDelayedVestingAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisDelayedVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = DelayedVestingAccountType
 	} else if accType == ContinuousVestingAccount {
-		err := parseGenesisContinuousVestingAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisContinuousVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = ContinuousVestingAccountType
 	} else if accType == PermanentLockedAccount {
-		err := parseGenesisPermanentLockedAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisPermanentLockedAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = PermanentLockedAccountType
 	} else if accType == PeriodicVestingAccount {
-		err := parseGenesisPeriodicVestingAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisPeriodicVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
 		accountInfo.accountType = PeriodicVestingAccountType
 	} else if accType == BaseAccount {
-		err := parseGenesisBaseAccount(accMap, &accountInfo, cudosCfg)
+		err := parseGenesisBaseAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -489,7 +524,7 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 
 	for _, acc := range accounts {
 		accMap := acc.(map[string]interface{})
-		accountInfo, err := parseGenesisAccount(accMap, cudosCfg)
+		accountInfo, err := parseGenesisAccount(accMap)
 		if err != nil {
 			return nil, err
 		}
@@ -944,7 +979,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 				}
 			} else {
 				// Regular case
-				delegatorRawAddr, err = convertAddressToRaw(delegatorAddr, cudosCfg)
+				delegatorRawAddr, err = ensureCudosconvertAddressToRaw(delegatorAddr, genesisData)
 				if err != nil {
 					return err
 				}
@@ -1049,14 +1084,15 @@ func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, e
 	return resBalance, nil
 }
 
-func ensureAccount(addrStr string, genesisAccountsMap *OrderedMap[string, *AccountInfo], reason string, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func ensureAccount(addrStr string, genesisAccountsMap *OrderedMap[string, *AccountInfo], reason string, manifest *UpgradeManifest) error {
 	// Create new account if it doesn't exist
 	if genesisAccountsMap.Has(addrStr) {
 		// Already exist
 		return nil
 	}
 
-	accRawAddress, err := convertAddressToRaw(addrStr, cudosCfg)
+	_, accRawAddress, err := bech32.DecodeAndConvert(addrStr)
+
 	if err != nil {
 		return err
 	}
@@ -1103,7 +1139,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 
 		if !convertedBalance.IsZero() {
 			// Create new account if it doesn't exist
-			err := ensureAccount(addrStr, genesisAccountsMap, "bank_balance_no_auth_acc", cudosCfg, manifest)
+			err := ensureAccount(addrStr, genesisAccountsMap, "bank_balance_no_auth_acc", manifest)
 			if err != nil {
 				return err
 			}
@@ -1155,7 +1191,7 @@ type IBCInfo struct {
 	portId    string
 }
 
-func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig) (*OrderedMap[string, *IBCInfo], error) {
+func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMergeConfig, prefix string) (*OrderedMap[string, *IBCInfo], error) {
 	ibcAccountMap := NewOrderedMap[string, *IBCInfo]()
 
 	ibc, ok := jsonData[ibccore.ModuleName].(map[string]interface{})
@@ -1190,7 +1226,7 @@ func parseGenesisIBCAccounts(jsonData map[string]interface{}, cudosCfg *CudosMer
 		}
 
 		rawAddr := ibctransfertypes.GetEscrowAddress(portId, channelId)
-		channelAddr, err := sdk.Bech32ifyAddressBytes(cudosCfg.config.SourceChainAddressPrefix, rawAddr)
+		channelAddr, err := sdk.Bech32ifyAddressBytes(prefix, rawAddr)
 		if err != nil {
 			return nil, err
 		}
@@ -1530,7 +1566,7 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 	}
 
 	// Create to account if it doesn't exist
-	err := ensureAccount(toAddress, genesisData.accounts, "balance_movement_destination", cudosCfg, manifest)
+	err := ensureAccount(toAddress, genesisData.accounts, "balance_movement_destination", manifest)
 	if err != nil {
 		return err
 	}
@@ -1556,9 +1592,9 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 	return nil
 }
 
-func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest, cudosCfg *CudosMergeConfig) error {
+func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest) error {
 	// Create to account if it doesn't exist
-	err := ensureAccount(toAddress, genesisData.accounts, "balance_creation_destination", cudosCfg, manifest)
+	err := ensureAccount(toAddress, genesisData.accounts, "balance_creation_destination", manifest)
 	if err != nil {
 		return err
 	}
@@ -1788,14 +1824,14 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
 	extraSupplyInCudos := cudosCfg.config.TotalCudosSupply.Sub(genesisData.totalSupply.AmountOf(cudosCfg.config.OriginalDenom))
-	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.config.ExtraSupplyFetchAddr, cudosCfg.config.SourceChainAddressPrefix)
+	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.config.ExtraSupplyFetchAddr, genesisData.prefix)
 	if err != nil {
 		return err
 	}
 
 	extraSupplyInCudosCoins := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, extraSupplyInCudos))
 
-	err = createGenesisBalance(genesisData, extraSupplyCudosAddress, extraSupplyInCudosCoins, "extra_supply", manifest, cudosCfg)
+	err = createGenesisBalance(genesisData, extraSupplyCudosAddress, extraSupplyInCudosCoins, "extra_supply", manifest)
 	if err != nil {
 		return err
 	}
