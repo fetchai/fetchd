@@ -73,7 +73,6 @@ var NetworkInfos = map[string]NetworkConfig{
 
 			OriginalDenom:  "acudos",
 			ConvertedDenom: "afet",
-			StakingDenom:   "afet",
 
 			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
@@ -144,7 +143,6 @@ var NetworkInfos = map[string]NetworkConfig{
 
 			OriginalDenom:  "acudos",
 			ConvertedDenom: "atestfet",
-			StakingDenom:   "atestfet",
 
 			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
@@ -316,7 +314,6 @@ type CudosMergeConfigJSON struct {
 
 	OriginalDenom  string `json:"original_denom"`
 	ConvertedDenom string `json:"converted_denom"`
-	StakingDenom   string `json:"staking_denom"`
 
 	VestingPeriod int64 `json:"vesting_period"` // Vesting period
 

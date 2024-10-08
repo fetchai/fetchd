@@ -104,10 +104,11 @@ const (
 )
 
 type GenesisData struct {
-	totalSupply sdk.Coins
-	blockHeight int64
-	chainId     string
-	prefix      string
+	totalSupply  sdk.Coins
+	blockHeight  int64
+	chainId      string
+	prefix       string
+	stakingDenom string
 
 	accounts    *OrderedMap[string, *AccountInfo]
 	contracts   *OrderedMap[string, *ContractInfo]
@@ -152,15 +153,6 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 	if err = json.Unmarshal(genDoc.AppState, &jsonData); err != nil {
 		return nil, nil, fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
 	}
-
-	/*
-		genesisData, err := parseGenesisData(jsonData, cudosCfg, manifest)
-		if err != nil {
-			return fmt.Errorf("cudos merge: failed to parse genesis data: %w", err)
-		}
-	*/
-
-	//genDoc.AppState = nil
 
 	return &jsonData, genDoc, nil
 
@@ -257,6 +249,25 @@ func getAccPrefix(jsonData map[string]interface{}) (string, error) {
 	return "", fmt.Errorf("failed to get prefix: %w", lastErr)
 }
 
+func getStakingDenom(jsonData map[string]interface{}) (string, error) {
+	staking, ok := jsonData["staking"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("staking module data not found in genesis")
+	}
+
+	stakingParams, ok := staking["params"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("staking params not found in genesis")
+	}
+
+	bondDenom, ok := stakingParams["bond_denom"].(string)
+	if !ok {
+		return "", fmt.Errorf("staking params bond denom value not found in genesis")
+	}
+
+	return bondDenom, nil
+}
+
 func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
 	genesisData := GenesisData{}
 	var err error
@@ -268,9 +279,15 @@ func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 	genesisData.totalSupply = totalSupply
 	genesisData.blockHeight = genDoc.InitialHeight
 	genesisData.chainId = genDoc.ChainID
+
 	genesisData.prefix, err = getAccPrefix(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get prefix: %w", err)
+	}
+
+	genesisData.stakingDenom, err = getStakingDenom(jsonData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get staking denom: %w", err)
 	}
 
 	genesisData.contracts, err = parseGenesisWasmContracts(jsonData)
@@ -971,7 +988,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 				continue
 			}
 
-			tokensToDelegate, err := getIntAmountFromCoins(convertedBalance, cudosCfg.config.StakingDenom)
+			tokensToDelegate, err := getIntAmountFromCoins(convertedBalance, genesisData.stakingDenom)
 			if err != nil {
 				return err
 			}
