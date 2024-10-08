@@ -224,31 +224,38 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 }
 
 func getAccPrefix(jsonData map[string]interface{}) (string, error) {
-
 	// Map to verify that account exists in auth module
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
 
 	prefix := ""
+	lastErr := fmt.Errorf("unknown error")
 	for _, acc := range accounts {
-		accMap := acc.(map[string]interface{})
+		accMap, ok := acc.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("account entry is not a valid map")
+		}
+
 		accountInfo, err := parseGenesisAccount(accMap)
 		if err != nil {
-			return "", err
+			lastErr = fmt.Errorf("failed to parse account: %w", err)
+			continue
 		}
 
 		prefix, _, err = bech32.DecodeAndConvert(accountInfo.address)
 		if err != nil {
-			return "", err
+			lastErr = fmt.Errorf("failed to decode address %s: %w", accountInfo.address, err)
+			continue
 		}
 
-		break
-	}
-	if prefix == "" {
-		return "", fmt.Errorf("failed to decode account address")
+		// Return immediately if a valid prefix is found
+		if prefix != "" {
+			return prefix, nil
+		}
 	}
 
-	return prefix, nil
+	// If no valid prefix was found, return the last encountered error
+	return "", fmt.Errorf("failed to get prefix: %w", lastErr)
 }
 
 func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
