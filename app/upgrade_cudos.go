@@ -228,7 +228,6 @@ func getAccPrefix(jsonData map[string]interface{}) (string, error) {
 	auth := jsonData[authtypes.ModuleName].(map[string]interface{})
 	accounts := auth["accounts"].([]interface{})
 
-	prefix := ""
 	lastErr := fmt.Errorf("unknown error")
 	for _, acc := range accounts {
 		accMap, ok := acc.(map[string]interface{})
@@ -242,7 +241,7 @@ func getAccPrefix(jsonData map[string]interface{}) (string, error) {
 			continue
 		}
 
-		prefix, _, err = bech32.DecodeAndConvert(accountInfo.address)
+		prefix, _, err := bech32.DecodeAndConvert(accountInfo.address)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to decode address %s: %w", accountInfo.address, err)
 			continue
