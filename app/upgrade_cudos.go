@@ -1988,16 +1988,13 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 			return nil
 		}
 
-		var totalAmountToMove sdk.Int
 		fromAccTokensAmount := fromAcc.balance.AmountOfNoDenomValidation(genesisData.bondDenom)
 
 		// Move entire balance if balance to move is 0 or greater than available balance
 		if accountMovement.Amount.IsZero() || fromAccTokensAmount.LT(accountMovement.Amount) {
-			totalAmountToMove = fromAccTokensAmount
-		} else {
-			totalAmountToMove = accountMovement.Amount
+			accountMovement.Amount = fromAccTokensAmount
 		}
-		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, totalAmountToMove))
+		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, accountMovement.Amount))
 
 		// Handle balance movement
 		err := moveGenesisBalance(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, balanceToMove, "balance_movement", manifest, cudosCfg)
