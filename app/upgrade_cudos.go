@@ -2009,14 +2009,14 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 		}
 
 		// Handle delegations movement
-		remainingAmountToMove := accountMovement.Amount
+		remainingAmountToMove := sdk.NewIntFromBigInt(accountMovement.Amount.BigInt())
 		if sourceDelegations, exists := genesisData.delegations.Get(accountMovement.SourceAddress); exists {
 			for i := range sourceDelegations.Iterate() {
 				validatorAddr, delegatedAmount := i.Key, i.Value
 
-				if delegatedAmount.GTE(*remainingAmountToMove) {
+				if delegatedAmount.GTE(remainingAmountToMove) {
 					// Split delegation
-					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, *remainingAmountToMove, manifest, "")
+					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, remainingAmountToMove, manifest, "")
 					if err != nil {
 						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
 					}
@@ -2029,8 +2029,7 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
 					}
 				}
-				newBalance := remainingAmountToMove.Sub(delegatedAmount)
-				remainingAmountToMove = &newBalance
+				remainingAmountToMove = remainingAmountToMove.Sub(delegatedAmount)
 			}
 		}
 	}
