@@ -1997,10 +1997,10 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 		fromAccTokensAmount := fromAcc.balance.AmountOfNoDenomValidation(genesisData.bondDenom)
 
 		// Move entire balance if balance to move is 0 or greater than available balance
-		if accountMovement.Amount.IsZero() || fromAccTokensAmount.LT(accountMovement.Amount) {
-			accountMovement.Amount = fromAccTokensAmount
+		if accountMovement.Amount == nil || fromAccTokensAmount.LT(*accountMovement.Amount) {
+			accountMovement.Amount = &fromAccTokensAmount
 		}
-		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, accountMovement.Amount))
+		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, *accountMovement.Amount))
 
 		// Handle balance movement
 		err := moveGenesisBalance(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, balanceToMove, "balance_movement", manifest, cudosCfg)
@@ -2014,9 +2014,9 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 			for i := range sourceDelegations.Iterate() {
 				validatorAddr, delegatedAmount := i.Key, i.Value
 
-				if delegatedAmount.GTE(remainingAmountToMove) {
+				if delegatedAmount.GTE(*remainingAmountToMove) {
 					// Split delegation
-					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, remainingAmountToMove, manifest, "")
+					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, *remainingAmountToMove, manifest, "")
 					if err != nil {
 						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
 					}
@@ -2029,7 +2029,8 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
 					}
 				}
-				remainingAmountToMove = remainingAmountToMove.Sub(delegatedAmount)
+				newBalance := remainingAmountToMove.Sub(delegatedAmount)
+				remainingAmountToMove = &newBalance
 			}
 		}
 	}

@@ -22,6 +22,14 @@ func newInt(val string) sdk.Int {
 	return res
 }
 
+func newIntRef(val string) *sdk.Int {
+	res, ok := sdk.NewIntFromString(val)
+	if !ok {
+		panic(fmt.Errorf("Failed to parse INT %s", val))
+	}
+	return &res
+}
+
 func newDec(val string) sdk.Dec {
 	res, err := sdk.NewDecFromStr(val)
 	if err != nil {
@@ -31,9 +39,9 @@ func newDec(val string) sdk.Dec {
 }
 
 type BalanceMovement struct {
-	SourceAddress      string  `json:"from"`
-	DestinationAddress string  `json:"to"`
-	Amount             sdk.Int `json:"amount"`
+	SourceAddress      string   `json:"from"`
+	DestinationAddress string   `json:"to"`
+	Amount             *sdk.Int `json:"amount,omitempty"`
 }
 
 var NetworkInfos = map[string]NetworkConfig{
@@ -96,8 +104,8 @@ var NetworkInfos = map[string]NetworkConfig{
 			},
 
 			MovedAccounts: []BalanceMovement{
-				BalanceMovement{"cudos1h6r6g0pwq7kcys5jcvfm9r7gcj3n2753hvk2ym", "cudos1w63ph9e4l07vpx7xdnje43cr2tlnr4jsfm4mvq", newInt("0")},
-				BalanceMovement{"cudos1jxyc7lny4q7te6sj5xyt9j86kyz82vlfdprl4a", "cudos1tfmkdzx9hm8g28vpgc3xhhxjjn460wzkwtayxr", newInt("0")},
+				BalanceMovement{"cudos1h6r6g0pwq7kcys5jcvfm9r7gcj3n2753hvk2ym", "cudos1w63ph9e4l07vpx7xdnje43cr2tlnr4jsfm4mvq", nil},
+				BalanceMovement{"cudos1jxyc7lny4q7te6sj5xyt9j86kyz82vlfdprl4a", "cudos1tfmkdzx9hm8g28vpgc3xhhxjjn460wzkwtayxr", nil},
 			},
 
 			BackupValidators: []string{"fetchvaloper14w6a4al72uc3fpfy4lqtg0a7xtkx3w7hda0vel"},
@@ -171,9 +179,9 @@ var NetworkInfos = map[string]NetworkConfig{
 			//cudos15jpukx39rtkt8w3u3gzwwvyptdeyejcjade6he
 
 			MovedAccounts: []BalanceMovement{
-				{"cudos196nrmandtwz67d8h4h0ux7amlcluecglx00wlw", "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5", newInt("10000")}, // Replace this
-				{"cudos1xcwjdw09cc9dyshr4gt5520sgsh582mjj03jge", "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta", newInt("0")},     // Replace this
-				{"cudos1ejmf96efvjp6pmsaj8djv3gpmnsvmpnctger4v", "cudos15p3rl5aavw9rtu86tna5lgxfkz67zzr6tp4ltv", newInt("0")},     // Replace this
+				{"cudos196nrmandtwz67d8h4h0ux7amlcluecglx00wlw", "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5", newIntRef("10000")}, // Replace this
+				{"cudos1xcwjdw09cc9dyshr4gt5520sgsh582mjj03jge", "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta", nil},                // Replace this
+				{"cudos1ejmf96efvjp6pmsaj8djv3gpmnsvmpnctger4v", "cudos15p3rl5aavw9rtu86tna5lgxfkz67zzr6tp4ltv", nil},                // Replace this
 			},
 
 			BackupValidators: []string{"fetchvaloper1m9cjw6xgt04f9ddw25fff3cfe2exgwk07eu46u", "fetchvaloper122j02czdt5ca8cf576wy2hassyxyx67wdsecml"},
