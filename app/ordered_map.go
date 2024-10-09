@@ -13,7 +13,7 @@ type OrderedMap[K comparable, V any] struct {
 }
 
 type Pair[K comparable, V any] struct {
-	Key   K `json:key`
+	Key   K `json:"key"`
 	Value V `json:"value"`
 }
 
