@@ -1518,19 +1518,32 @@ func registerManifestMoveDelegations(fromAddress, toAddress, validatorAddress st
 	manifest.MoveDelegations.NumberOfMovements = len(manifest.MoveDelegations.Movements)
 }
 
+func getDelegationData(genesisData *GenesisData, DelegatorAddress string, validatorAddress string) (*OrderedMap[string, sdk.Int], *sdk.Int) {
+	sourceDelegations, exists := genesisData.delegations.Get(DelegatorAddress)
+	if !exists {
+		return nil, nil
+	}
+
+	sourceAmount, exists := sourceDelegations.Get(validatorAddress)
+	if !exists {
+		return sourceDelegations, nil
+	}
+
+	return sourceDelegations, &sourceAmount
+}
+
 func moveGenesisDelegation(genesisData *GenesisData, fromDelegatorAddress, toDelegatorAddress string, validatorAddress string, amount sdk.Int, manifest *UpgradeManifest, memo string) error {
 	// Nothing to move
 	if fromDelegatorAddress == toDelegatorAddress {
 		return nil
 	}
 
-	sourceDelegations, exists := genesisData.delegations.Get(fromDelegatorAddress)
-	if !exists {
+	// Source delegation must exist
+	sourceDelegations, sourceAmount := getDelegationData(genesisData, fromDelegatorAddress, validatorAddress)
+	if sourceDelegations == nil {
 		return fmt.Errorf("genesis source delegations of %s not found", fromDelegatorAddress)
 	}
-
-	sourceAmount, exists := sourceDelegations.Get(validatorAddress)
-	if !exists {
+	if sourceAmount == nil {
 		return fmt.Errorf("genesis source delegation of %s to specific validator %s not found", fromDelegatorAddress, validatorAddress)
 	}
 
@@ -1538,24 +1551,23 @@ func moveGenesisDelegation(genesisData *GenesisData, fromDelegatorAddress, toDel
 		return fmt.Errorf("amount to move is greater than delegated amount")
 	}
 
-	// Add to destination
-	if destinationDelegations, exists := genesisData.delegations.Get(toDelegatorAddress); exists {
-		if destinationDelegatedAmount, exists := destinationDelegations.Get(validatorAddress); exists {
-			// Update existing balance
-			destinationDelegations.Set(validatorAddress, destinationDelegatedAmount.Add(amount))
-		} else {
-			// No delegations to validator
-			destinationDelegations.Set(validatorAddress, amount)
-		}
-	} else {
+	destinationDelegations, destinationDelegatedAmount := getDelegationData(genesisData, toDelegatorAddress, validatorAddress)
+	if destinationDelegations == nil {
 		// No destination delegations
 		newMap := NewOrderedMap[string, sdk.Int]()
 		newMap.Set(toDelegatorAddress, amount)
 		genesisData.delegations.Set(toDelegatorAddress, newMap)
+	} else if destinationDelegatedAmount == nil {
+
+		// No delegations to validator
+		destinationDelegations.Set(validatorAddress, amount)
+	} else {
+		// Update existing balance
+		destinationDelegations.Set(validatorAddress, destinationDelegatedAmount.Add(amount))
 	}
 
 	// Subtract amount from source or remove if nothing left
-	if amount.Equal(sourceAmount) {
+	if amount.Equal(*sourceAmount) {
 		sourceDelegations.Delete(validatorAddress)
 	} else {
 		sourceDelegations.Set(validatorAddress, sourceAmount.Sub(amount))
@@ -1970,7 +1982,6 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
 	for _, accountMovement := range cudosCfg.config.MovedAccounts {
-
 		fromAcc, exists := genesisData.accounts.Get(accountMovement.SourceAddress)
 
 		if !exists {
