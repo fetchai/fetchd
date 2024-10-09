@@ -104,16 +104,16 @@ const (
 )
 
 type GenesisData struct {
-	totalSupply  sdk.Coins
-	blockHeight  int64
-	chainId      string
-	prefix       string
-	stakingDenom string
+	totalSupply sdk.Coins
+	blockHeight int64
+	chainId     string
+	prefix      string
+	bondDenom   string
 
 	accounts    *OrderedMap[string, *AccountInfo]
 	contracts   *OrderedMap[string, *ContractInfo]
 	ibcAccounts *OrderedMap[string, *IBCInfo]
-	delegations *OrderedMap[string, *OrderedMap[string, sdk.Coins]]
+	delegations *OrderedMap[string, *OrderedMap[string, sdk.Int]]
 
 	validators           *OrderedMap[string, *ValidatorInfo]
 	bondedPoolAddress    string
@@ -207,7 +207,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
 	}
 
-	err = verifySupply(genesisData, cudosCfg, manifest)
+	err = verifySupply(app, ctx, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to verify supply: %w", err)
 	}
@@ -249,7 +249,7 @@ func getAccPrefix(jsonData map[string]interface{}) (string, error) {
 	return "", fmt.Errorf("failed to get prefix: %w", lastErr)
 }
 
-func getStakingDenom(jsonData map[string]interface{}) (string, error) {
+func getBondDenom(jsonData map[string]interface{}) (string, error) {
 	staking, ok := jsonData["staking"].(map[string]interface{})
 	if !ok {
 		return "", fmt.Errorf("staking module data not found in genesis")
@@ -268,7 +268,7 @@ func getStakingDenom(jsonData map[string]interface{}) (string, error) {
 	return bondDenom, nil
 }
 
-func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
+func parseGenesisData(app *App, ctx sdk.Context, jsonData map[string]interface{}, genDoc *tmtypes.GenesisDoc, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*GenesisData, error) {
 	genesisData := GenesisData{}
 	var err error
 
@@ -285,7 +285,7 @@ func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 		return nil, fmt.Errorf("failed to get prefix: %w", err)
 	}
 
-	genesisData.stakingDenom, err = getStakingDenom(jsonData)
+	genesisData.bondDenom, err = getBondDenom(jsonData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get staking denom: %w", err)
 	}
@@ -301,7 +301,7 @@ func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 	}
 
 	// Get all accounts and balances into map
-	genesisData.accounts, err = parseGenesisAccounts(jsonData, genesisData.contracts, genesisData.ibcAccounts, cudosCfg, manifest)
+	genesisData.accounts, err = parseGenesisAccounts(app, ctx, jsonData, genesisData.contracts, genesisData.ibcAccounts, cudosCfg, manifest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accounts map: %w", err)
 	}
@@ -323,7 +323,7 @@ func parseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 		return nil, fmt.Errorf("failed to get validators map: %w", err)
 	}
 
-	genesisData.delegations, err = parseGenesisDelegations(genesisData.validators, genesisData.contracts, cudosCfg)
+	genesisData.delegations, err = parseGenesisDelegations(genesisData.bondDenom, genesisData.validators, genesisData.contracts, cudosCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get delegations map: %w", err)
 	}
@@ -537,7 +537,7 @@ func parseGenesisAccount(accMap map[string]interface{}) (*AccountInfo, error) {
 	return &accountInfo, nil
 }
 
-func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, *ContractInfo], IBCAccountsMap *OrderedMap[string, *IBCInfo], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*OrderedMap[string, *AccountInfo], error) {
+func parseGenesisAccounts(app *App, ctx sdk.Context, jsonData map[string]interface{}, contractAccountMap *OrderedMap[string, *ContractInfo], IBCAccountsMap *OrderedMap[string, *IBCInfo], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (*OrderedMap[string, *AccountInfo], error) {
 	var err error
 
 	// Map to verify that account exists in auth module
@@ -563,7 +563,7 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	}
 
 	// Add balances to accounts map
-	err = fillGenesisBalancesToAccountsMap(jsonData, accountMap, cudosCfg, manifest)
+	err = fillGenesisBalancesToAccountsMap(app, ctx, jsonData, accountMap, cudosCfg, manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -571,9 +571,9 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	return accountMap, nil
 }
 
-func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Coins]], error) {
+func parseGenesisDelegations(sourceBondDenom string, validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
 	// Handle delegations
-	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Coins]]()
+	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
 	for _, validatorOperatorAddress := range validators.Keys() {
 		validator := validators.MustGet(validatorOperatorAddress)
 		for _, delegatorAddress := range validator.delegations.Keys() {
@@ -586,9 +586,6 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 			currentValidatorInfo := validators.MustGet(validatorOperatorAddress)
 			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
 
-			// Move balance to delegator address
-			delegatorBalance := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, delegatorTokens))
-
 			if delegatorTokens.IsZero() {
 				// This happens when number of shares is less than 1
 				continue
@@ -599,17 +596,17 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 
 				// Store delegation to delegated map
 				if _, exists := delegatedBalanceMap.Get(resolvedDelegatorAddress); !exists {
-					delegatedBalanceMap.Set(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Coins]())
+					delegatedBalanceMap.Set(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
 				}
 
 				resolvedDelegatorMap := delegatedBalanceMap.MustGet(resolvedDelegatorAddress)
 
 				if _, exists := resolvedDelegatorMap.Get(validatorOperatorAddress); !exists {
-					resolvedDelegatorMap.Set(validatorOperatorAddress, sdk.NewCoins())
+					resolvedDelegatorMap.Set(validatorOperatorAddress, sdk.NewInt(0))
 				}
 				resolvedDelegator := resolvedDelegatorMap.MustGet(validatorOperatorAddress)
 
-				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorBalance...))
+				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
 
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 			}
@@ -762,7 +759,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
 
 			// Move balance to delegator address
-			delegatorBalance := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, delegatorTokens))
+			delegatorBalance := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, delegatorTokens))
 
 			if delegatorTokens.IsZero() {
 				// This happens when number of shares is less than 1
@@ -798,7 +795,7 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 			}
 
 			for _, entry := range unbondingDelegation.entries {
-				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, entry.balance))
+				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, entry.balance))
 
 				// Move unbonding balance from not-bonded pool to delegator address
 				err := moveGenesisBalance(genesisData, genesisData.notBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, "unbonding_delegation", manifest, cudosCfg)
@@ -884,7 +881,7 @@ func getIntAmountFromCoins(balance sdk.Coins, expectedDenom string) (*sdk.Int, e
 	return &coin, nil
 }
 
-func createDelegation(ctx sdk.Context, app *App, originalValidator string, newDelegatorRawAddr sdk.AccAddress, validator stakingtypes.Validator, originalBalance sdk.Coins, tokensToDelegate sdk.Int, manifest *UpgradeManifest) error {
+func createDelegation(ctx sdk.Context, app *App, originalValidator string, newDelegatorRawAddr sdk.AccAddress, validator stakingtypes.Validator, originalTokens sdk.Int, tokensToDelegate sdk.Int, manifest *UpgradeManifest) error {
 
 	newShares, err := app.StakingKeeper.Delegate(ctx, newDelegatorRawAddr, tokensToDelegate, stakingtypes.Unbonded, validator, true)
 	if err != nil {
@@ -898,7 +895,7 @@ func createDelegation(ctx sdk.Context, app *App, originalValidator string, newDe
 	delegation := UpgradeDelegation{
 		NewDelegator:      newDelegatorRawAddr.String(),
 		NewValidator:      validator.OperatorAddress,
-		OriginalTokens:    originalBalance,
+		OriginalTokens:    originalTokens,
 		NewTokens:         tokensToDelegate,
 		NewShares:         newShares,
 		OriginalValidator: originalValidator,
@@ -921,7 +918,7 @@ func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisD
 	// Get addresses and amounts
 	RemainingDistributionBalanceAccount := genesisData.accounts.MustGet(cudosCfg.config.RemainingDistributionBalanceAddr)
 	communityPoolBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
-	convertedCommunityPoolBalance, err := convertBalance(communityPoolBalance, cudosCfg)
+	convertedCommunityPoolBalance, err := convertBalance(app, ctx, communityPoolBalance, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -970,7 +967,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 		}
 
 		for _, validatorOperatorStringAddr := range delegatorAddrMap.Keys() {
-			delegatedBalance := delegatorAddrMap.MustGet(validatorOperatorStringAddr)
+			delegatedAmount := delegatorAddrMap.MustGet(validatorOperatorStringAddr)
 
 			destValidator, err := resolveDestinationValidator(ctx, app, validatorOperatorStringAddr, cudosCfg)
 			if err != nil {
@@ -978,17 +975,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 			}
 
 			// Get int amount in native tokens
-			convertedBalance, err := convertBalance(delegatedBalance, cudosCfg)
-			if err != nil {
-				return err
-			}
-
-			if convertedBalance.Empty() {
-				// Very small balance gets truncated to 0 during conversion
-				continue
-			}
-
-			tokensToDelegate, err := getIntAmountFromCoins(convertedBalance, genesisData.stakingDenom)
+			tokensToDelegate, err := convertAmount(app, ctx, genesisData, delegatedAmount, cudosCfg)
 			if err != nil {
 				return err
 			}
@@ -1008,7 +995,7 @@ func createGenesisDelegations(ctx sdk.Context, app *App, genesisData *GenesisDat
 				}
 			}
 
-			err = createDelegation(ctx, app, validatorOperatorStringAddr, delegatorRawAddr, *destValidator, delegatedBalance, *tokensToDelegate, manifest)
+			err = createDelegation(ctx, app, validatorOperatorStringAddr, delegatorRawAddr, *destValidator, delegatedAmount, tokensToDelegate, manifest)
 			if err != nil {
 				return err
 			}
@@ -1092,13 +1079,23 @@ func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *Upgrade
 	return nil
 }
 
-func convertBalance(balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, error) {
+func convertAmount(app *App, ctx sdk.Context, genesisData *GenesisData, amount sdk.Int, cudosCfg *CudosMergeConfig) (sdk.Int, error) {
+	balance := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, amount))
+	convertedBalance, err := convertBalance(app, ctx, balance, cudosCfg)
+	if err != nil {
+		return sdk.ZeroInt(), err
+	}
+	return convertedBalance.AmountOf(app.StakingKeeper.BondDenom(ctx)), nil
+
+}
+
+func convertBalance(app *App, ctx sdk.Context, balance sdk.Coins, cudosCfg *CudosMergeConfig) (sdk.Coins, error) {
 	var resBalance sdk.Coins
 
 	for _, coin := range balance {
 		if conversionConstant, exists := cudosCfg.balanceConversionConstants.Get(coin.Denom); exists {
 			newAmount := coin.Amount.ToDec().Quo(conversionConstant).TruncateInt()
-			sdkCoin := sdk.NewCoin(cudosCfg.config.ConvertedDenom, newAmount)
+			sdkCoin := sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), newAmount)
 			resBalance = resBalance.Add(sdkCoin)
 		}
 		// Denominations that are not in conversion constant map are ignored
@@ -1136,7 +1133,7 @@ func ensureAccount(addrStr string, genesisAccountsMap *OrderedMap[string, *Accou
 	return nil
 }
 
-func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, *AccountInfo], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func fillGenesisBalancesToAccountsMap(app *App, ctx sdk.Context, jsonData map[string]interface{}, genesisAccountsMap *OrderedMap[string, *AccountInfo], cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	bank := jsonData[banktypes.ModuleName].(map[string]interface{})
 	balances := bank["balances"].([]interface{})
 
@@ -1155,7 +1152,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 			return err
 		}
 
-		convertedBalance, err := convertBalance(sdkBalance, cudosCfg)
+		convertedBalance, err := convertBalance(app, ctx, sdkBalance, cudosCfg)
 		if err != nil {
 			return err
 		}
@@ -1510,57 +1507,66 @@ func registerBalanceMovement(fromAddress, toAddress string, sourceAmount sdk.Coi
 	manifest.MoveMintedBalance.Movements = append(manifest.MoveMintedBalance.Movements, movement)
 }
 
-func registerManifestMoveDelegations(fromAddress, toAddress string, memo string, manifest *UpgradeManifest) {
+func registerManifestMoveDelegations(fromAddress, toAddress, validatorAddress string, amount sdk.Int, memo string, manifest *UpgradeManifest) {
 	if manifest.MoveDelegations == nil {
 		manifest.MoveDelegations = &UpgradeMoveDelegations{}
 	}
 
 	movement := UpgradeDelegationMovements{
-		From: fromAddress,
-		To:   toAddress,
-		Memo: memo,
+		From:      fromAddress,
+		To:        toAddress,
+		Validator: validatorAddress,
+		Tokens:    amount,
+		Memo:      memo,
 	}
 	manifest.MoveDelegations.Movements = append(manifest.MoveDelegations.Movements, movement)
 	manifest.MoveDelegations.NumberOfMovements = len(manifest.MoveDelegations.Movements)
 }
 
-func moveGenesisDelegations(genesisData *GenesisData, fromAddress, toAddress string, manifest *UpgradeManifest) error {
-	sourceDelegations, exists := genesisData.delegations.Get(fromAddress)
-
-	if !exists {
-		registerManifestMoveDelegations(fromAddress, toAddress, "no_delegations", manifest)
-		// Nothing to move
+func moveGenesisDelegation(genesisData *GenesisData, fromDelegatorAddress, toDelegatorAddress string, validatorAddress string, amount sdk.Int, manifest *UpgradeManifest, memo string) error {
+	// Nothing to move
+	if fromDelegatorAddress == toDelegatorAddress {
 		return nil
 	}
 
-	if destDelegation, destDelegationExists := genesisData.delegations.Get(toAddress); destDelegationExists {
-		// Add delegations - destination delegator has some delegations
-
-		// List all validator addresses in source delegation
-		for _, validatorAddr := range sourceDelegations.Keys() {
-			srcCoins := sourceDelegations.MustGet(validatorAddr)
-
-			// Same validator exists in destination delegation - Add coins
-			if destCoins, destValidatorExists := destDelegation.Get(validatorAddr); destValidatorExists {
-				destDelegation.Set(validatorAddr, destCoins.Add(srcCoins...))
-
-			} else {
-				// Validator doesn't exist on destination delegation, add it
-				destDelegation.Set(validatorAddr, srcCoins)
-			}
-
-		}
-
-	} else {
-		// Destination has no delegations, just move source delegations pointer
-		genesisData.delegations.Set(toAddress, sourceDelegations)
+	sourceDelegations, exists := genesisData.delegations.Get(fromDelegatorAddress)
+	if !exists {
+		return fmt.Errorf("genesis source delegations of %s not found", fromDelegatorAddress)
 	}
 
-	// Delete all source delegations
-	genesisData.delegations.Delete(fromAddress)
+	sourceAmount, exists := sourceDelegations.Get(validatorAddress)
+	if !exists {
+		return fmt.Errorf("genesis source delegation of %s to specific validator %s not found", fromDelegatorAddress, validatorAddress)
+	}
 
-	registerManifestMoveDelegations(fromAddress, toAddress, "", manifest)
+	if sourceAmount.LT(amount) {
+		return fmt.Errorf("amount to move is greater than delegated amount")
+	}
 
+	// Add to destination
+	if destinationDelegations, exists := genesisData.delegations.Get(toDelegatorAddress); exists {
+		if destinationDelegatedAmount, exists := destinationDelegations.Get(validatorAddress); exists {
+			// Update existing balance
+			destinationDelegations.Set(validatorAddress, destinationDelegatedAmount.Add(amount))
+		} else {
+			// No delegations to validator
+			destinationDelegations.Set(validatorAddress, amount)
+		}
+	} else {
+		// No destination delegations
+		newMap := NewOrderedMap[string, sdk.Int]()
+		newMap.Set(toDelegatorAddress, amount)
+		genesisData.delegations.Set(toDelegatorAddress, newMap)
+	}
+
+	// Subtract amount from source or remove if nothing left
+	if amount.Equal(sourceAmount) {
+		sourceDelegations.Delete(validatorAddress)
+	} else {
+		sourceDelegations.Set(validatorAddress, sourceAmount.Sub(amount))
+	}
+
+	registerManifestMoveDelegations(fromDelegatorAddress, toDelegatorAddress, validatorAddress, amount, memo, manifest)
 	return nil
 }
 
@@ -1824,15 +1830,15 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	initialMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
 
 	// Mint donor chain total supply
-	totalSupplyToMint := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.ConvertedDenom, cudosCfg.config.TotalFetchSupplyToMint))
-	totalCudosSupply := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, cudosCfg.config.TotalCudosSupply))
+	totalSupplyToMint := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), cudosCfg.config.TotalFetchSupplyToMint))
+	totalCudosSupply := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, cudosCfg.config.TotalCudosSupply))
 
 	err := app.MintKeeper.MintCoins(ctx, totalSupplyToMint)
 	if err != nil {
 		return err
 	}
 
-	totalSupplyReducedByCommission, err := convertBalance(totalCudosSupply, cudosCfg)
+	totalSupplyReducedByCommission, err := convertBalance(app, ctx, totalCudosSupply, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -1846,13 +1852,13 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
-	extraSupplyInCudos := cudosCfg.config.TotalCudosSupply.Sub(genesisData.totalSupply.AmountOf(cudosCfg.config.OriginalDenom))
+	extraSupplyInCudos := cudosCfg.config.TotalCudosSupply.Sub(genesisData.totalSupply.AmountOf(genesisData.bondDenom))
 	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.config.ExtraSupplyFetchAddr, genesisData.prefix)
 	if err != nil {
 		return err
 	}
 
-	extraSupplyInCudosCoins := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.OriginalDenom, extraSupplyInCudos))
+	extraSupplyInCudosCoins := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, extraSupplyInCudos))
 
 	err = createGenesisBalance(genesisData, extraSupplyCudosAddress, extraSupplyInCudosCoins, "extra_supply", manifest)
 	if err != nil {
@@ -1912,7 +1918,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 		}
 
 		// Get balance to mint
-		newBalance, err := convertBalance(genesisAccount.balance, cudosCfg)
+		newBalance, err := convertBalance(app, ctx, genesisAccount.balance, cudosCfg)
 		if err != nil {
 			return err
 		}
@@ -1967,35 +1973,65 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 }
 
 func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
-	if cudosCfg.MovedAccounts == nil {
-		// Nothing to move
-		return nil
-	}
 
-	for _, fromAddr := range cudosCfg.MovedAccounts.Keys() {
-		toAddr := cudosCfg.MovedAccounts.MustGet(fromAddr)
+	for _, accountMovement := range cudosCfg.config.MovedAccounts {
 
-		fromAcc, exists := genesisData.accounts.Get(fromAddr)
+		fromAcc, exists := genesisData.accounts.Get(accountMovement.SourceAddress)
 
 		if !exists {
-			registerManifestBalanceMovement(fromAddr, toAddr, nil, "non_existing_from_account", manifest)
+			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "non_existing_from_account", manifest)
 			return nil
 		}
 
 		if fromAcc.balance.IsZero() {
-			registerManifestBalanceMovement(fromAddr, toAddr, nil, "nothing_to_move_err", manifest)
+			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "nothing_to_move_err", manifest)
 			return nil
 		}
 
-		err := moveGenesisBalance(genesisData, fromAddr, toAddr, fromAcc.balance, "balance_movement", manifest, cudosCfg)
+		var totalAmountToMove sdk.Int
+		fromAccTokensAmount := fromAcc.balance.AmountOfNoDenomValidation(genesisData.bondDenom)
+
+		// Move entire balance if balance to move is 0 or greater than available balance
+		if accountMovement.Amount.IsZero() || fromAccTokensAmount.LT(accountMovement.Amount) {
+			totalAmountToMove = fromAccTokensAmount
+		} else {
+			totalAmountToMove = accountMovement.Amount
+		}
+		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, totalAmountToMove))
+
+		// Handle balance movement
+		err := moveGenesisBalance(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, balanceToMove, "balance_movement", manifest, cudosCfg)
 		if err != nil {
 			return err
 		}
 
-		err = moveGenesisDelegations(genesisData, fromAddr, toAddr, manifest)
-		if err != nil {
-			return err
+		// Handle delegations movement
+		remainingAmountToMove := accountMovement.Amount
+		sourceDelegations, exists := genesisData.delegations.Get(accountMovement.SourceAddress)
+		if exists {
+			for _, validatorAddr := range sourceDelegations.Keys() {
+				delegatedAmount := sourceDelegations.MustGet(validatorAddr)
+
+				if delegatedAmount.GT(remainingAmountToMove) {
+					// Split delegation
+					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, remainingAmountToMove, manifest, "")
+					if err != nil {
+						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
+					}
+
+					break
+				} else {
+					// Move entire delegation
+					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, delegatedAmount, manifest, "")
+					if err != nil {
+						return fmt.Errorf("failed to move delegated amount %s of %s from %s to %s: %w", delegatedAmount, validatorAddr, accountMovement.SourceAddress, accountMovement.DestinationAddress, err)
+					}
+				}
+				remainingAmountToMove = remainingAmountToMove.Sub(delegatedAmount)
+			}
+
 		}
+
 	}
 
 	return nil
@@ -2013,9 +2049,9 @@ func parseGenesisTotalSupply(jsonData map[string]interface{}) (sdk.Coins, error)
 
 }
 
-func verifySupply(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func verifySupply(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
-	expectedMintedSupply := sdk.NewCoins(sdk.NewCoin(cudosCfg.config.ConvertedDenom, cudosCfg.config.TotalFetchSupplyToMint))
+	expectedMintedSupply := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), cudosCfg.config.TotalFetchSupplyToMint))
 
 	mintedSupply := manifest.Migration.AggregatedMigratedAmount
 

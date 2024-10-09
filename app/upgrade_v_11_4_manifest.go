@@ -119,9 +119,11 @@ type UpgradeMigation struct {
 }
 
 type UpgradeDelegationMovements struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-	Memo string `json:"memo,omitempty"`
+	From      string    `json:"from"`
+	To        string    `json:"to"`
+	Validator string    `json:"validator"`
+	Tokens    types.Int `json:"tokens"`
+	Memo      string    `json:"memo,omitempty"`
 }
 
 type UpgradeMoveGenesisBalance struct {
@@ -147,12 +149,12 @@ type UpgradeMoveDelegations struct {
 }
 
 type UpgradeDelegation struct {
-	OriginalValidator string      `json:"original_validator"`
-	NewValidator      string      `json:"new_validator"`
-	NewDelegator      string      `json:"new_delegator"`
-	OriginalTokens    types.Coins `json:"original_tokens"`
-	NewTokens         types.Int   `json:"new_tokens"`
-	NewShares         types.Dec   `json:"new_shares"`
+	OriginalValidator string    `json:"original_validator"`
+	NewValidator      string    `json:"new_validator"`
+	NewDelegator      string    `json:"new_delegator"`
+	OriginalTokens    types.Int `json:"original_tokens"`
+	NewTokens         types.Int `json:"new_tokens"`
+	NewShares         types.Dec `json:"new_shares"`
 }
 
 type VestingCollision struct {

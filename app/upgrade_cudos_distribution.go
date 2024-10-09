@@ -546,7 +546,7 @@ func calculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 	// for them for the stake sanity check below.
 	endingHeight := blockHeight
 	if endingHeight > startingHeight {
-		IterateValidatorSlashEventsBetween(distributionInfo, val.operatorAddress, startingHeight, endingHeight,
+		err := IterateValidatorSlashEventsBetween(distributionInfo, val.operatorAddress, startingHeight, endingHeight,
 			func(height uint64, event *ValidatorSlashEvent) (stop bool, err error) {
 				endingPeriod := event.validatorPeriod
 				if endingPeriod > startingPeriod {
@@ -563,6 +563,9 @@ func calculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 				return false, nil
 			},
 		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// A total stake sanity check; Recalculated final stake should be less than or
@@ -681,10 +684,13 @@ func withdrawDelegationRewards(app *App, genesisData *GenesisData, val *Validato
 	//k.DeleteDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
 
 	if finalRewards.IsZero() {
-		baseDenom, _ := sdk.GetBaseDenom()
-		if baseDenom == "" {
-			baseDenom = cudosCfg.config.OriginalDenom
-		}
+		/*
+			baseDenom, _ := sdk.GetBaseDenom()
+			if baseDenom == "" {
+				baseDenom = cudosCfg.config.OriginalDenom
+			}
+		*/
+		baseDenom := genesisData.bondDenom
 
 		// Note, we do not call the NewCoins constructor as we do not want the zero
 		// coin removed.
