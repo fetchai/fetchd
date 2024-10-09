@@ -1997,10 +1997,10 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 		fromAccTokensAmount := fromAcc.balance.AmountOfNoDenomValidation(genesisData.bondDenom)
 
 		// Move entire balance if balance to move is 0 or greater than available balance
-		if accountMovement.Amount.IsZero() || fromAccTokensAmount.LT(accountMovement.Amount) {
-			accountMovement.Amount = fromAccTokensAmount
+		if accountMovement.Amount == nil || fromAccTokensAmount.LT(*accountMovement.Amount) {
+			accountMovement.Amount = &fromAccTokensAmount
 		}
-		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, accountMovement.Amount))
+		balanceToMove := sdk.NewCoins(sdk.NewCoin(genesisData.bondDenom, *accountMovement.Amount))
 
 		// Handle balance movement
 		err := moveGenesisBalance(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, balanceToMove, "balance_movement", manifest, cudosCfg)
@@ -2009,7 +2009,7 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 		}
 
 		// Handle delegations movement
-		remainingAmountToMove := accountMovement.Amount
+		remainingAmountToMove := sdk.NewIntFromBigInt(accountMovement.Amount.BigInt())
 		if sourceDelegations, exists := genesisData.delegations.Get(accountMovement.SourceAddress); exists {
 			for i := range sourceDelegations.Iterate() {
 				validatorAddr, delegatedAmount := i.Key, i.Value
