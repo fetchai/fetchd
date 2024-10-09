@@ -73,10 +73,7 @@ func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedM
 		}
 		delegatorStartingInfo.stake = stakeDec
 
-		if _, exists := delegatorStartingInfos.Get(validatorAddress); !exists {
-			delegatorStartingInfos.Set(validatorAddress, NewOrderedMap[string, *DelegatorStartingInfo]())
-		}
-		valStartingInfo := delegatorStartingInfos.MustGet(validatorAddress)
+		valStartingInfo, _ := delegatorStartingInfos.GetOrSetDefault(validatorAddress, NewOrderedMap[string, *DelegatorStartingInfo]())
 
 		valStartingInfo.Set(delegatorAddress, &delegatorStartingInfo)
 		delegatorStartingInfos.Set(validatorAddress, valStartingInfo)
@@ -104,10 +101,7 @@ func parseValidatorHistoricalRewards(distribution map[string]interface{}) (*Orde
 
 		delegatorStartingInfo.cumulativeRewardRatio = cumulativeRewardRatio
 
-		if _, exists := validatorHistoricalRewards.Get(validatorAddress); !exists {
-			validatorHistoricalRewards.Set(validatorAddress, NewOrderedMap[uint64, *ValidatorHistoricalReward]())
-		}
-		valRewards := validatorHistoricalRewards.MustGet(validatorAddress)
+		valRewards, _ := validatorHistoricalRewards.GetOrSetDefault(validatorAddress, NewOrderedMap[uint64, *ValidatorHistoricalReward]())
 
 		valRewards.SetNew(period, &delegatorStartingInfo)
 		//validatorHistoricalRewards.Set(validatorAddress, *valRewards)
@@ -206,10 +200,7 @@ func parseValidatorSlashEvents(distribution map[string]interface{}) (*OrderedMap
 		delegatorStartingInfo.period = period
 		delegatorStartingInfo.validatorPeriod = cast.ToUint64(slashEvent["validator_period"].(string))
 
-		if _, exists := validatorSlashEvents.Get(validatorAddress); !exists {
-			validatorSlashEvents.Set(validatorAddress, NewOrderedMap[uint64, *ValidatorSlashEvent]())
-		}
-		valEvents := validatorSlashEvents.MustGet(validatorAddress)
+		valEvents, _ := validatorSlashEvents.GetOrSetDefault(validatorAddress, NewOrderedMap[uint64, *ValidatorSlashEvent]())
 
 		// TODO(pb): Is this necessary? It basically re-validates data in genesis file, which we should treat & take
 		//           as granted to be correct by definition.
@@ -303,33 +294,6 @@ func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *
 	return &distributionInfo, nil
 }
 
-func getMaxBlockHeight(genesisData *GenesisData) uint64 {
-	maxHeight := uint64(0)
-
-	for _, validatorOperatorAddress := range genesisData.distributionInfo.delegatorStartingInfos.Keys() {
-		valStartingInfo := genesisData.distributionInfo.delegatorStartingInfos.MustGet(validatorOperatorAddress)
-		for _, DelegatorAddress := range valStartingInfo.Keys() {
-			stargingInfo := valStartingInfo.MustGet(DelegatorAddress)
-			if stargingInfo.height > maxHeight {
-				maxHeight = stargingInfo.height
-			}
-		}
-	}
-
-	for _, validatorOperatorAddress := range genesisData.distributionInfo.validatorSlashEvents.Keys() {
-		slashEvents := genesisData.distributionInfo.validatorSlashEvents.MustGet(validatorOperatorAddress)
-
-		for _, slashEventHeight := range slashEvents.Keys() {
-			if slashEventHeight > maxHeight {
-				maxHeight = slashEventHeight
-			}
-		}
-
-	}
-
-	return maxHeight
-}
-
 func checkTolerance(coins sdk.Coins, maxToleratedDiff sdk.Int) error {
 	for _, coin := range coins {
 		if coin.Amount.GT(maxToleratedDiff) {
@@ -340,8 +304,9 @@ func checkTolerance(coins sdk.Coins, maxToleratedDiff sdk.Int) error {
 }
 
 func verifyOutstandingBalances(genesisData *GenesisData) error {
-	for _, validatorAddr := range genesisData.distributionInfo.outstandingRewards.Keys() {
-		validatorOutstandingReward := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddr)
+	for i := range genesisData.distributionInfo.outstandingRewards.Iterate() {
+		validatorAddr, validatorOutstandingReward := i.Key, i.Value
+
 		validatorAccumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddr)
 
 		diff := validatorOutstandingReward.Sub(validatorAccumulatedCommission)
@@ -363,6 +328,7 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 	// Withdraw all delegation rewards
 	for _, validatorOpertorAddr := range genesisData.distributionInfo.delegatorStartingInfos.Keys() {
 		validator := genesisData.validators.MustGet(validatorOpertorAddr)
+
 		delegatorStartInfo := genesisData.distributionInfo.delegatorStartingInfos.MustGet(validatorOpertorAddr)
 
 		endingPeriod := updateValidatorData(genesisData.distributionInfo, validator)
@@ -546,7 +512,7 @@ func calculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 	// for them for the stake sanity check below.
 	endingHeight := blockHeight
 	if endingHeight > startingHeight {
-		IterateValidatorSlashEventsBetween(distributionInfo, val.operatorAddress, startingHeight, endingHeight,
+		err := IterateValidatorSlashEventsBetween(distributionInfo, val.operatorAddress, startingHeight, endingHeight,
 			func(height uint64, event *ValidatorSlashEvent) (stop bool, err error) {
 				endingPeriod := event.validatorPeriod
 				if endingPeriod > startingPeriod {
@@ -563,6 +529,9 @@ func calculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 				return false, nil
 			},
 		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// A total stake sanity check; Recalculated final stake should be less than or
@@ -681,10 +650,13 @@ func withdrawDelegationRewards(app *App, genesisData *GenesisData, val *Validato
 	//k.DeleteDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
 
 	if finalRewards.IsZero() {
-		baseDenom, _ := sdk.GetBaseDenom()
-		if baseDenom == "" {
-			baseDenom = cudosCfg.config.OriginalDenom
-		}
+		/*
+			baseDenom, _ := sdk.GetBaseDenom()
+			if baseDenom == "" {
+				baseDenom = cudosCfg.config.OriginalDenom
+			}
+		*/
+		baseDenom := genesisData.bondDenom
 
 		// Note, we do not call the NewCoins constructor as we do not want the zero
 		// coin removed.

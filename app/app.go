@@ -727,7 +727,7 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func getNetworkInfo(app *App, ctx *sdk.Context, manifest *UpgradeManifest, expectedChainIdOfMergeSourceGenesis string) (*NetworkConfig, error) {
+func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest, expectedChainIdOfMergeSourceGenesis string) (*NetworkConfig, error) {
 	// Load network config from file if given
 	var networkInfo *NetworkConfig
 	var err error
@@ -761,7 +761,7 @@ func getNetworkInfo(app *App, ctx *sdk.Context, manifest *UpgradeManifest, expec
 	return networkInfo, nil
 }
 
-func LoadAndParseMergeSourceInputFiles(app *App, ctx *sdk.Context, manifest *UpgradeManifest) (*GenesisData, *NetworkConfig, error) {
+func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *UpgradeManifest) (*GenesisData, *NetworkConfig, error) {
 
 	cudosJsonData, cudosGenDoc, err := LoadCudosGenesis(app, manifest)
 
@@ -776,7 +776,7 @@ func LoadAndParseMergeSourceInputFiles(app *App, ctx *sdk.Context, manifest *Upg
 
 	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
 
-	genesisData, err := parseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	genesisData, err := parseGenesisData(app, ctx, *cudosJsonData, cudosGenDoc, cudosConfig, manifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
 	}
@@ -793,7 +793,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 
 		manifest := NewUpgradeManifest()
 
-		cudosGenesisData, networkInfo, err := LoadAndParseMergeSourceInputFiles(app, &ctx, manifest)
+		cudosGenesisData, networkInfo, err := LoadAndParseMergeSourceInputFiles(app, ctx, manifest)
 		if err != nil {
 			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
