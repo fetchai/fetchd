@@ -308,12 +308,12 @@ func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string)
 }
 
 type CudosMergeConfigJSON struct {
-	IbcTargetAddr                    string `json:"ibc_target_addr"`                     // Cudos address
-	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`      // Cudos account for remaining bonded and not-bonded pool balances
-	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`      // Cudos address
-	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"` // Cudos address
-	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`  // Cudos address
-	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr"`    // Cudos address, funds are moved to destination chain community pool if not set
+	IbcTargetAddr                    string `json:"ibc_target_addr"`                            // Cudos address
+	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`             // Cudos account for remaining bonded and not-bonded pool balances
+	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`             // Cudos address
+	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"`        // Cudos address
+	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`         // Cudos address
+	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr,omitempty"` // Cudos address, funds are moved to destination chain community pool if not set
 
 	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
 	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
