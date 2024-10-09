@@ -574,10 +574,12 @@ func parseGenesisAccounts(app *App, ctx sdk.Context, jsonData map[string]interfa
 func parseGenesisDelegations(sourceBondDenom string, validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
 	// Handle delegations
 	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
-	for _, validatorOperatorAddress := range validators.Keys() {
-		validator := validators.MustGet(validatorOperatorAddress)
-		for _, delegatorAddress := range validator.delegations.Keys() {
-			delegation := validator.delegations.MustGet(delegatorAddress)
+	for i := range validators.Iterate() {
+		validatorOperatorAddress, validator := i.Key, i.Value
+
+		for j := range validator.delegations.Iterate() {
+			delegatorAddress, delegation := j.Key, j.Value
+
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
 			if err != nil {
 				return nil, err
@@ -595,19 +597,9 @@ func parseGenesisDelegations(sourceBondDenom string, validators *OrderedMap[stri
 			if currentValidatorInfo.status == BondedStatus {
 
 				// Store delegation to delegated map
-				if _, exists := delegatedBalanceMap.Get(resolvedDelegatorAddress); !exists {
-					delegatedBalanceMap.Set(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
-				}
-
-				resolvedDelegatorMap := delegatedBalanceMap.MustGet(resolvedDelegatorAddress)
-
-				if _, exists := resolvedDelegatorMap.Get(validatorOperatorAddress); !exists {
-					resolvedDelegatorMap.Set(validatorOperatorAddress, sdk.NewInt(0))
-				}
-				resolvedDelegator := resolvedDelegatorMap.MustGet(validatorOperatorAddress)
-
+				resolvedDelegatorMap, _ := delegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
 				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
-
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 			}
 		}
@@ -746,10 +738,12 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 
 func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Handle delegations
-	for _, validatorOperatorAddress := range genesisData.validators.Keys() {
-		validator := genesisData.validators.MustGet(validatorOperatorAddress)
-		for _, delegatorAddress := range validator.delegations.Keys() {
-			delegation := validator.delegations.MustGet(delegatorAddress)
+	for i := range genesisData.validators.Iterate() {
+		validatorOperatorAddress, validator := i.Key, i.Value
+
+		for j := range validator.delegations.Iterate() {
+			delegatorAddress, delegation := j.Key, j.Value
+
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.contracts, cudosCfg)
 			if err != nil {
 				return err
@@ -787,8 +781,9 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		}
 
 		// Handle unbonding delegations
-		for _, delegatorAddress := range validator.unbondingDelegations.Keys() {
-			unbondingDelegation := validator.unbondingDelegations.MustGet(delegatorAddress)
+		for j := range validator.unbondingDelegations.Iterate() {
+			delegatorAddress, unbondingDelegation := j.Key, j.Value
+
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.contracts, cudosCfg)
 			if err != nil {
 				return err
@@ -2004,12 +1999,11 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 
 		// Handle delegations movement
 		remainingAmountToMove := accountMovement.Amount
-		sourceDelegations, exists := genesisData.delegations.Get(accountMovement.SourceAddress)
-		if exists {
-			for _, validatorAddr := range sourceDelegations.Keys() {
-				delegatedAmount := sourceDelegations.MustGet(validatorAddr)
+		if sourceDelegations, exists := genesisData.delegations.Get(accountMovement.SourceAddress); exists {
+			for i := range sourceDelegations.Iterate() {
+				validatorAddr, delegatedAmount := i.Key, i.Value
 
-				if delegatedAmount.GT(remainingAmountToMove) {
+				if delegatedAmount.GTE(remainingAmountToMove) {
 					// Split delegation
 					err := moveGenesisDelegation(genesisData, accountMovement.SourceAddress, accountMovement.DestinationAddress, validatorAddr, remainingAmountToMove, manifest, "")
 					if err != nil {
@@ -2026,9 +2020,7 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 				}
 				remainingAmountToMove = remainingAmountToMove.Sub(delegatedAmount)
 			}
-
 		}
-
 	}
 
 	return nil

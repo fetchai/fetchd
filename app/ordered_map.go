@@ -82,6 +82,27 @@ func (om *OrderedMap[K, V]) MustGet(key K) V {
 	return value
 }
 
+func (om *OrderedMap[K, V]) GetOrSetDefault(key K, defaultValue V) (V, bool) {
+	if value, exists := om.Get(key); exists {
+		return value, false
+	} else {
+		om.Set(key, defaultValue)
+		return om.MustGet(key), true
+	}
+}
+
+// Iterate returns a channel that yields key-value pairs in insertion order
+func (om *OrderedMap[K, V]) Iterate() <-chan Pair[K, V] {
+	ch := make(chan Pair[K, V])
+	go func() {
+		for _, key := range om.keys {
+			ch <- Pair[K, V]{Key: key, Value: om.MustGet(key)}
+		}
+		close(ch)
+	}()
+	return ch
+}
+
 func (om *OrderedMap[K, V]) Has(key K) bool {
 	_, exists := om.Get(key)
 	return exists
