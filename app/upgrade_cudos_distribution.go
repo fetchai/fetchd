@@ -327,7 +327,7 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 
 	// Withdraw all delegation rewards
 	for _, validatorOpertorAddr := range genesisData.distributionInfo.delegatorStartingInfos.Keys() {
-		validator := genesisData.validators.MustGet(validatorOpertorAddr)
+		validator := genesisData.Validators.MustGet(validatorOpertorAddr)
 
 		delegatorStartInfo := genesisData.distributionInfo.delegatorStartingInfos.MustGet(validatorOpertorAddr)
 
@@ -359,7 +359,7 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 
 	// Withdraw Community pool balance to address if defined
 	communityBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
-	distributionModuleAccount := genesisData.accounts.MustGet(genesisData.distributionInfo.distributionModuleAccountAddress)
+	distributionModuleAccount := genesisData.Accounts.MustGet(genesisData.distributionInfo.distributionModuleAccountAddress)
 
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
 
@@ -656,7 +656,7 @@ func withdrawDelegationRewards(app *App, genesisData *GenesisData, val *Validato
 				baseDenom = cudosCfg.config.OriginalDenom
 			}
 		*/
-		baseDenom := genesisData.bondDenom
+		baseDenom := genesisData.BondDenom
 
 		// Note, we do not call the NewCoins constructor as we do not want the zero
 		// coin removed.
