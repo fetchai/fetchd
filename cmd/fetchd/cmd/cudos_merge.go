@@ -71,7 +71,7 @@ func utilCudosCommand() *cobra.Command {
 				return err
 			}
 
-			return ctx.PrintString("Configuration is valid.")
+			return ctx.PrintString("Configuration is valid.\n")
 		},
 	}
 
@@ -83,7 +83,13 @@ func utilCudosCommand() *cobra.Command {
 func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx client.Context) error {
 	manifest := app.NewUpgradeManifest()
 
+	destinationChainPrefix := "fetch"
+
 	networkInfo, configBytes, err := app.LoadNetworkConfigFromFile(configFilePath)
+	if err != nil {
+		return err
+	}
+	err = ctx.PrintString(fmt.Sprintf("Config hash: %s\n", app.GenerateSha256Hex(*configBytes)))
 	if err != nil {
 		return err
 	}
@@ -115,17 +121,67 @@ func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx cl
 	}
 
 	// Verify addresses
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.IbcTargetAddr, genesisData.Prefix)
+	if err != nil {
+		return fmt.Errorf("ibc targer address error: %v", err)
+	}
+
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingStakingBalanceAddr, genesisData.Prefix)
+	if err != nil {
+		return fmt.Errorf("remaining staking balance address error: %v", err)
+	}
+
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingGravityBalanceAddr, genesisData.Prefix)
+	if err != nil {
+		return fmt.Errorf("remaining gravity balance address error: %v", err)
+	}
+
 	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingDistributionBalanceAddr, genesisData.Prefix)
 	if err != nil {
-		return fmt.Errorf("remaining distribution balance address prefix error: %v", err)
+		return fmt.Errorf("remaining distribution balance address error: %v", err)
 	}
 
-	err = ctx.PrintString(fmt.Sprintf("Config hash: %s", app.GenerateSha256Hex(*configBytes)))
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.ContractDestinationFallbackAddr, genesisData.Prefix)
 	if err != nil {
-		return err
+		return fmt.Errorf("contract destination fallback address error: %v", err)
 	}
 
-	println(networkInfo)
+	// Community pool address is optional
+	if networkInfo.CudosMerge.CommunityPoolBalanceDestAddr != "" {
+		err = app.VerifyAddressPrefix(networkInfo.CudosMerge.CommunityPoolBalanceDestAddr, genesisData.Prefix)
+		if err != nil {
+			return fmt.Errorf("community pool balance destination address error: %v", err)
+		}
+	}
+
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.CommissionFetchAddr, destinationChainPrefix)
+	if err != nil {
+		return fmt.Errorf("comission address error: %v", err)
+	}
+
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.ExtraSupplyFetchAddr, destinationChainPrefix)
+	if err != nil {
+		return fmt.Errorf("extra supply address error: %v", err)
+	}
+
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.VestingCollisionDestAddr, genesisData.Prefix)
+	if err != nil {
+		return fmt.Errorf("vesting collision destination address error: %v", err)
+	}
+
+	// Verify extra supply
+	bondDenomSourceTotalSupply := genesisData.TotalSupply.AmountOf(genesisData.BondDenom)
+	if networkInfo.CudosMerge.TotalCudosSupply.LT(bondDenomSourceTotalSupply) {
+		return fmt.Errorf("total supply %s from config is smaller than total supply %s in genesis", networkInfo.CudosMerge.TotalCudosSupply.String(), bondDenomSourceTotalSupply.String())
+	}
+
+	if len(networkInfo.CudosMerge.BalanceConversionConstants) == 0 {
+		return fmt.Errorf("list of conversion constants is empty")
+	}
+
+	if len(networkInfo.CudosMerge.BackupValidators) == 0 {
+		return fmt.Errorf("list of backup validators is empty")
+	}
 
 	return nil
 }
