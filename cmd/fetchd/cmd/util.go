@@ -43,7 +43,7 @@ func utilCommand() *cobra.Command {
 	cmd.AddCommand(
 		utilJsonCommand(),
 		utilAddressCommand(),
-		utilCudosCommand(),
+		utilNetworkMergeCommand(),
 	)
 
 	return cmd

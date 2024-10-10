@@ -119,7 +119,7 @@ type GenesisData struct {
 	BondedPoolAddress    string
 	NotBondedPoolAddress string
 
-	distributionInfo *DistributionInfo
+	DistributionInfo *DistributionInfo
 
 	GravityModuleAccountAddress string
 
@@ -332,7 +332,7 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get distribution module map: %w", err)
 	}
-	genesisData.distributionInfo = distributionInfo
+	genesisData.DistributionInfo = distributionInfo
 
 	gravityModuleAccountAddress, err := GetAddressByName(genesisData.Accounts, GravityAccName)
 	if err != nil {
@@ -912,7 +912,7 @@ func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisD
 
 	// Get addresses and amounts
 	RemainingDistributionBalanceAccount := genesisData.Accounts.MustGet(cudosCfg.config.RemainingDistributionBalanceAddr)
-	communityPoolBalance, _ := genesisData.distributionInfo.feePool.communityPool.TruncateDecimal()
+	communityPoolBalance, _ := genesisData.DistributionInfo.FeePool.CommunityPool.TruncateDecimal()
 	convertedCommunityPoolBalance, err := convertBalance(app.StakingKeeper.BondDenom(ctx), communityPoolBalance, cudosCfg)
 	if err != nil {
 		return err

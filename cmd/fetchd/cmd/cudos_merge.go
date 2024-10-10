@@ -45,10 +45,10 @@ func AddCudosFlags(startCmd *cobra.Command) {
 
 }
 
-func utilCudosCommand() *cobra.Command {
+func utilNetworkMergeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:                        "cudos",
-		Short:                      "Cudos commands",
+		Use:                        "network-merge",
+		Short:                      "Network merge commands",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
@@ -63,11 +63,11 @@ func utilCudosCommand() *cobra.Command {
 			ctx := client.GetClientContextFromCmd(cmd)
 
 			configFilePath := args[0]
-			cudosGenesisFilePath := args[1]
+			GenesisFilePath := args[1]
 
 			// Read and verify the JSON file
 			var err error
-			if err = VerifyConfigFile(configFilePath, cudosGenesisFilePath, ctx); err != nil {
+			if err = VerifyConfigFile(configFilePath, GenesisFilePath, ctx); err != nil {
 				return err
 			}
 
@@ -80,7 +80,7 @@ func utilCudosCommand() *cobra.Command {
 }
 
 // VerifyConfigFile validates the content of a JSON configuration file.
-func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx client.Context) error {
+func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.Context) error {
 	manifest := app.NewUpgradeManifest()
 
 	destinationChainPrefix := "fetch"
@@ -94,19 +94,19 @@ func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx cl
 		return err
 	}
 
-	_, cudosGenDoc, err := genutiltypes.GenesisStateFromGenFile(cudosGenesisFilePath)
+	_, GenDoc, err := genutiltypes.GenesisStateFromGenFile(GenesisFilePath)
 	if err != nil {
-		return fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
+		return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 	}
 
 	// unmarshal the app state
 	var cudosJsonData map[string]interface{}
-	if err = json.Unmarshal(cudosGenDoc.AppState, &cudosJsonData); err != nil {
-		return fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
+	if err = json.Unmarshal(GenDoc.AppState, &cudosJsonData); err != nil {
+		return fmt.Errorf("failed to unmarshal app state: %w", err)
 	}
 	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
 
-	genesisData, err := app.ParseGenesisData(cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	genesisData, err := app.ParseGenesisData(cudosJsonData, GenDoc, cudosConfig, manifest)
 	if err != nil {
 		return fmt.Errorf("failed to parse genesis data: %w", err)
 	}
