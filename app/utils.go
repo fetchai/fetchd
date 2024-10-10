@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"io"
 	"os"
 )
@@ -30,6 +31,14 @@ func GenerateSHA256FromFile(filePath string) (string, error) {
 
 	// Convert the byte slice to a hexadecimal string and return it
 	return hex.EncodeToString(hashSum), nil
+}
+
+func GenerateSha256Hex(dataToVerify []byte) (actualHashHex string) {
+	actualHash32 := sha256.Sum256(dataToVerify)
+	actualHash := actualHash32[:]
+	actualHashHex = hex.EncodeToString(actualHash)
+
+	return actualHashHex
 }
 
 func VerifySha256(dataToVerify []byte, expectedSha256Hex *string) (isVerified bool, actualHashHex string, err error) {
@@ -58,4 +67,17 @@ func VerifySha256(dataToVerify []byte, expectedSha256Hex *string) (isVerified bo
 		actualHashHex = hex.EncodeToString(actualHash)
 	}
 	return isVerified, actualHashHex, nil
+}
+
+func VerifyAddressPrefix(addr string, expectedPrefix string) error {
+	prefix, _, err := bech32.DecodeAndConvert(addr)
+	if err != nil {
+		return err
+	}
+
+	if prefix != expectedPrefix {
+		return fmt.Errorf("invalid address prefix: expected %s, got %s", expectedPrefix, prefix)
+	}
+
+	return nil
 }

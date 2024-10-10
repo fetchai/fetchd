@@ -734,7 +734,7 @@ func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest, expect
 	if app.cudosMigrationConfigPath != "" {
 		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "expected sha256", app.cudosMigrationConfigSha256)
 
-		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
+		networkInfo, err = LoadAndVerifyNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
