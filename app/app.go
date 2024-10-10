@@ -776,7 +776,7 @@ func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *Upgr
 
 	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
 
-	genesisData, err := parseGenesisData(app, ctx, *cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	genesisData, err := ParseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
 	}
@@ -798,7 +798,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
 
-		manifest.DestinationChainBlockHeight = cudosGenesisData.blockHeight
+		manifest.DestinationChainBlockHeight = cudosGenesisData.BlockHeight
 		manifest.DestinationChainID = cudosGenesisData.chainId
 
 		manifest.SourceChainBlockHeight = ctx.BlockHeight()

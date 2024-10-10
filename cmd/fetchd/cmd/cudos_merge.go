@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
 )
@@ -56,15 +58,16 @@ func utilCudosCommand() *cobra.Command {
 		Use:   "verify-config [config_json_file_path]",
 		Short: "Verifies the configuration JSON file",
 		Long:  "This command verifies the structure and content of the configuration JSON file. It checks if all required fields are present and validates their values against predefined rules.",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := client.GetClientContextFromCmd(cmd)
 
-			path := args[0]
+			configFilePath := args[0]
+			cudosGenesisFilePath := args[1]
 
 			// Read and verify the JSON file
 			var err error
-			if err = VerifyConfigFile(path, ctx); err != nil {
+			if err = VerifyConfigFile(configFilePath, cudosGenesisFilePath, ctx); err != nil {
 				return err
 			}
 
@@ -77,23 +80,40 @@ func utilCudosCommand() *cobra.Command {
 }
 
 // VerifyConfigFile validates the content of a JSON configuration file.
-func VerifyConfigFile(configFilePath string, ctx client.Context) error {
-	sourcePrefix := "cudos"
+func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx client.Context) error {
+	manifest := app.NewUpgradeManifest()
 
-	config, configBytes, err := app.LoadNetworkConfigFromFile(configFilePath)
+	networkInfo, configBytes, err := app.LoadNetworkConfigFromFile(configFilePath)
 	if err != nil {
 		return err
 	}
 
-	if config.MergeSourceChainID == "" {
+	_, cudosGenDoc, err := genutiltypes.GenesisStateFromGenFile(cudosGenesisFilePath)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to unmarshal genesis state: %w", err)
+	}
+
+	// unmarshal the app state
+	var cudosJsonData map[string]interface{}
+	if err = json.Unmarshal(cudosGenDoc.AppState, &cudosJsonData); err != nil {
+		return fmt.Errorf("cudos merge: failed to unmarshal app state: %w", err)
+	}
+	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
+
+	genesisData, err := app.ParseGenesisData(cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	if err != nil {
+		return fmt.Errorf("failed to parse genesis data: %w", err)
+	}
+
+	if networkInfo.MergeSourceChainID == "" {
 		return fmt.Errorf("merge source chain id is empty")
 	}
-	if config.DestinationChainID == "" {
+	if networkInfo.DestinationChainID == "" {
 		return fmt.Errorf("destination chain id is empty")
 	}
 
 	// Verify addresses
-	err = app.VerifyAddressPrefix(config.CudosMerge.RemainingDistributionBalanceAddr, sourcePrefix)
+	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingDistributionBalanceAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("remaining distribution balance address prefix error: %v", err)
 	}
@@ -103,7 +123,7 @@ func VerifyConfigFile(configFilePath string, ctx client.Context) error {
 		return err
 	}
 
-	println(config)
+	println(networkInfo)
 
 	return nil
 }

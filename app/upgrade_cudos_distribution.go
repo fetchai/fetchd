@@ -385,7 +385,7 @@ func withdrawAccumulatedCommissions(genesisData *GenesisData, cudosCfg *CudosMer
 	for _, validatorAddress := range genesisData.distributionInfo.validatorAccumulatedCommissions.Keys() {
 		accumulatedCommission := genesisData.distributionInfo.validatorAccumulatedCommissions.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, genesisData.prefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, genesisData.Prefix)
 		if err != nil {
 			return err
 		}
@@ -406,7 +406,7 @@ func withdrawValidatorOutstandingRewards(genesisData *GenesisData, cudosCfg *Cud
 	for _, validatorAddress := range genesisData.distributionInfo.outstandingRewards.Keys() {
 		outstandingRewards := genesisData.distributionInfo.outstandingRewards.MustGet(validatorAddress)
 
-		accountAddress, err := convertAddressPrefix(validatorAddress, genesisData.prefix)
+		accountAddress, err := convertAddressPrefix(validatorAddress, genesisData.Prefix)
 		if err != nil {
 			return err
 		}
