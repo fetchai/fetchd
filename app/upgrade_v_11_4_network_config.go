@@ -276,24 +276,18 @@ type NetworkConfig struct {
 	CudosMerge         *CudosMergeConfigJSON `json:"cudos_merge,omitempty"`
 }
 
-func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string) (*NetworkConfig, error) {
+func LoadNetworkConfigFromFile(configFilePath string) (*NetworkConfig, *[]byte, error) {
 	// Open the JSON file
 	file, err := os.Open(configFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %v", err)
+		return nil, nil, fmt.Errorf("failed to open config file: %v", err)
 	}
 	defer file.Close()
 
 	// Read the file contents
 	byteValue, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
-	}
-
-	if isVerified, actualHashHex, err := VerifySha256(byteValue, expectedSha256Hex); err != nil {
-		return nil, err
-	} else if !isVerified {
-		return nil, fmt.Errorf("failed to verify sha256: NetworkConfig file \"%s\" hash \"%s\" does not match expected hash \"%s\"", configFilePath, actualHashHex, *expectedSha256Hex)
+		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 
 	// Initialize an empty struct to hold the JSON data
@@ -302,10 +296,26 @@ func LoadNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string)
 	// Unmarshal the JSON data into the struct
 	err = json.Unmarshal(byteValue, &config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+		return nil, nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
 	}
 
-	return &config, nil
+	return &config, &byteValue, nil
+}
+
+func LoadAndVerifyNetworkConfigFromFile(configFilePath string, expectedSha256Hex *string) (*NetworkConfig, error) {
+	config, byteValue, err := LoadNetworkConfigFromFile(configFilePath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if isVerified, actualHashHex, err := VerifySha256(*byteValue, expectedSha256Hex); err != nil {
+		return nil, err
+	} else if !isVerified {
+		return nil, fmt.Errorf("failed to verify sha256: NetworkConfig file \"%s\" hash \"%s\" does not match expected hash \"%s\"", configFilePath, actualHashHex, *expectedSha256Hex)
+	}
+
+	return config, nil
 }
 
 type CudosMergeConfigJSON struct {

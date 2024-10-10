@@ -734,7 +734,7 @@ func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest, expect
 	if app.cudosMigrationConfigPath != "" {
 		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "expected sha256", app.cudosMigrationConfigSha256)
 
-		networkInfo, err = LoadNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
+		networkInfo, err = LoadAndVerifyNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
 		if err != nil {
 			return nil, err
 		}
@@ -776,7 +776,7 @@ func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *Upgr
 
 	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
 
-	genesisData, err := parseGenesisData(app, ctx, *cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	genesisData, err := ParseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
 	}
@@ -798,8 +798,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
 
-		manifest.DestinationChainBlockHeight = cudosGenesisData.blockHeight
-		manifest.DestinationChainID = cudosGenesisData.chainId
+		manifest.DestinationChainBlockHeight = cudosGenesisData.BlockHeight
+		manifest.DestinationChainID = cudosGenesisData.ChainId
 
 		manifest.SourceChainBlockHeight = ctx.BlockHeight()
 		manifest.MergeSourceChainID = ctx.ChainID()
