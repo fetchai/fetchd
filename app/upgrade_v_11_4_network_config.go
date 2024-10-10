@@ -42,6 +42,7 @@ type BalanceMovement struct {
 	SourceAddress      string   `json:"from"`
 	DestinationAddress string   `json:"to"`
 	Amount             *sdk.Int `json:"amount,omitempty"`
+	Memo               string   `json:"memo,omitempty"`
 }
 
 var NetworkInfos = map[string]NetworkConfig{
