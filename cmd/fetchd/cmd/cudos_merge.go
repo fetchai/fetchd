@@ -55,10 +55,12 @@ func utilNetworkMergeCommand() *cobra.Command {
 	}
 
 	cmdVerify := &cobra.Command{
-		Use:   "verify-config [config_json_file_path]",
-		Short: "Verifies the configuration JSON file",
-		Long:  "This command verifies the structure and content of the configuration JSON file. It checks if all required fields are present and validates their values against predefined rules.",
-		Args:  cobra.ExactArgs(2),
+		Use:   "verify-config [network_merge_config_json_file_path] [source_chain_genesis_json_file_path]",
+		Short: "Verifies the configuration JSON file of the network merge",
+		Long: `This command verifies the structure and content of the network merge config JSON file. 
+It checks whether the network merge config file conforms to expected schema - presence of all required fields and validates their values against predefined rules.
+`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := client.GetClientContextFromCmd(cmd)
 
