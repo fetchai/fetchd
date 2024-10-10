@@ -105,9 +105,11 @@ func VerifyConfigFile(configFilePath string, cudosGenesisFilePath string, ctx cl
 		return fmt.Errorf("failed to parse genesis data: %w", err)
 	}
 
-	if networkInfo.MergeSourceChainID == "" {
-		return fmt.Errorf("merge source chain id is empty")
+	if networkInfo.MergeSourceChainID != genesisData.ChainId {
+		return fmt.Errorf("source chain id %s is different from config chain id %s", networkInfo.MergeSourceChainID, genesisData.ChainId)
 	}
+
+	// We don't have access to home folder here so we can't check
 	if networkInfo.DestinationChainID == "" {
 		return fmt.Errorf("destination chain id is empty")
 	}

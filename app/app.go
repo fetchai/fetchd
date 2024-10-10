@@ -799,7 +799,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		manifest.DestinationChainBlockHeight = cudosGenesisData.BlockHeight
-		manifest.DestinationChainID = cudosGenesisData.chainId
+		manifest.DestinationChainID = cudosGenesisData.ChainId
 
 		manifest.SourceChainBlockHeight = ctx.BlockHeight()
 		manifest.MergeSourceChainID = ctx.ChainID()

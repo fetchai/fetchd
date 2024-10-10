@@ -106,7 +106,7 @@ const (
 type GenesisData struct {
 	TotalSupply sdk.Coins
 	BlockHeight int64
-	chainId     string
+	ChainId     string
 	Prefix      string
 	BondDenom   string
 
@@ -278,7 +278,7 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 	}
 	genesisData.TotalSupply = totalSupply
 	genesisData.BlockHeight = genDoc.InitialHeight
-	genesisData.chainId = genDoc.ChainID
+	genesisData.ChainId = genDoc.ChainID
 
 	genesisData.Prefix, err = GetAccPrefix(jsonData)
 	if err != nil {
