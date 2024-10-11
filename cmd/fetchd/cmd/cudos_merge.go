@@ -7,6 +7,8 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/libs/log"
+	"os"
 )
 
 // Module init related flags
@@ -59,7 +61,10 @@ func utilNetworkMergeCommand() *cobra.Command {
 		Short: "Verifies the configuration JSON file of the network merge",
 		Long: `This command verifies the structure and content of the network merge config JSON file. 
 It checks whether the network merge config file conforms to expected schema - presence of all required fields and validates their values against predefined rules.
-`,
+` +
+			"Verification fully executes the front-end of the upgrade procedure using source chain genesis json and " +
+			"network config files as inputs, constructing front-end cache containing all necessary structures and " +
+			"derived data, exactly as it would be executed during the real upgrade.",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := client.GetClientContextFromCmd(cmd)
@@ -183,6 +188,12 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 
 	if len(networkInfo.CudosMerge.BackupValidators) == 0 {
 		return fmt.Errorf("list of backup validators is empty")
+	}
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	err = app.ProcessSourceNetworkGenesis(logger, cudosConfig, genesisData, manifest)
+	if err != nil {
+		return err
 	}
 
 	return nil

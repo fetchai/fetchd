@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/spf13/cast"
+	"github.com/tendermint/tendermint/libs/log"
 	"math"
 	"sort"
 )
@@ -320,7 +321,7 @@ func verifyOutstandingBalances(genesisData *GenesisData) error {
 	return nil
 }
 
-func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// block height is used only to early stop rewards calculation
 	//blockHeight := getMaxBlockHeight(genesisData) + 1
 	blockHeight := uint64(math.MaxUint64)
@@ -336,7 +337,7 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 		for _, delegatorAddr := range delegatorStartInfo.Keys() {
 			delegation := validator.delegations.MustGet(delegatorAddr)
 
-			_, err := withdrawDelegationRewards(app, genesisData, validator, delegation, endingPeriod, blockHeight, cudosCfg, manifest)
+			_, err := withdrawDelegationRewards(logger, genesisData, validator, delegation, endingPeriod, blockHeight, cudosCfg, manifest)
 			if err != nil {
 				return err
 			}
@@ -364,7 +365,9 @@ func withdrawGenesisDistributionRewards(app *App, genesisData *GenesisData, cudo
 	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
 
 	// Withdraw remaining balance
-	app.Logger().Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
+	if logger != nil {
+		logger.Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
+	}
 
 	// TODO: Write to manifest?
 	err = checkTolerance(remainingBalance, maxToleratedRemainingDistributionBalance)
@@ -591,7 +594,7 @@ func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
 	return b
 }
 
-func withdrawDelegationRewards(app *App, genesisData *GenesisData, val *ValidatorInfo, del *DelegationInfo, endingPeriod uint64, blockHeight uint64, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
+func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val *ValidatorInfo, del *DelegationInfo, endingPeriod uint64, blockHeight uint64, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
 
 	// check existence of delegator starting info
 	genesisData.DistributionInfo.DelegatorStartingInfos.Has(val.operatorAddress)
@@ -612,13 +615,15 @@ func withdrawDelegationRewards(app *App, genesisData *GenesisData, val *Validato
 	// of the decCoins due to operation order of the distribution mechanism.
 	rewards := rewardsRaw.Intersect(outstanding)
 	if !rewards.IsEqual(rewardsRaw) {
-		app.Logger().Error(
-			"rounding error withdrawing rewards from validator",
-			"delegator", del.delegatorAddress,
-			"validator", val.operatorAddress,
-			"got", rewards.String(),
-			"expected", rewardsRaw.String(),
-		)
+		if logger != nil {
+			logger.Error(
+				"rounding error withdrawing rewards from validator",
+				"delegator", del.delegatorAddress,
+				"validator", val.operatorAddress,
+				"got", rewards.String(),
+				"expected", rewardsRaw.String(),
+			)
+		}
 	}
 
 	// truncate reward dec coins, return remainder to community pool
