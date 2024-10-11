@@ -19,6 +19,7 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibccore "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/spf13/cast"
+	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 	"strings"
 )
@@ -158,15 +159,7 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 
 }
 
-func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
-	if cudosCfg == nil {
-		return fmt.Errorf("cudos merge: cudos CudosMergeConfig not provided (null pointer passed in)")
-	}
-
-	if app.cudosGenesisPath == "" {
-		return fmt.Errorf("cudos merge: cudos path not set")
-	}
-
+func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
 	err := genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw IBC channels balances: %w", err)
@@ -177,12 +170,12 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed to withdraw genesis contracts balances: %w", err)
 	}
 
-	err = withdrawGenesisStakingDelegations(app, genesisData, cudosCfg, manifest)
+	err = withdrawGenesisStakingDelegations(logger, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw genesis staked tokens: %w", err)
 	}
 
-	err = withdrawGenesisDistributionRewards(app, genesisData, cudosCfg, manifest)
+	err = withdrawGenesisDistributionRewards(logger, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw genesis rewards: %w", err)
 	}
@@ -195,6 +188,23 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	err = DoGenesisAccountMovements(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to move funds: %w", err)
+	}
+
+	return nil
+}
+
+func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
+	if cudosCfg == nil {
+		return fmt.Errorf("cudos merge: cudos CudosMergeConfig not provided (null pointer passed in)")
+	}
+
+	if app.cudosGenesisPath == "" {
+		return fmt.Errorf("cudos merge: cudos path not set")
+	}
+
+	err := ProcessSourceNetworkGenesis(app.Logger(), cudosCfg, genesisData, manifest)
+	if err != nil {
+		return err
 	}
 
 	err = MigrateGenesisAccounts(genesisData, ctx, app, cudosCfg, manifest)
@@ -736,7 +746,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 	return validatorInfoMap, nil
 }
 
-func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Handle delegations
 	for i := range genesisData.Validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
@@ -813,7 +823,10 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
 	}
 
-	app.Logger().Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.balance.String())
+	if logger != nil {
+		logger.Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.balance.String())
+	}
+
 	err = moveGenesisBalance(genesisData, genesisData.BondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -828,7 +841,10 @@ func withdrawGenesisStakingDelegations(app *App, genesisData *GenesisData, cudos
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
 	}
 
-	app.Logger().Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
+	if logger != nil {
+		logger.Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
+	}
+
 	err = moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, cudosCfg.config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
