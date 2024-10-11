@@ -178,7 +178,12 @@ type UpgradeAccountCreation struct {
 	Reason  string `json:"reason"`
 }
 
-func (app *App) getManifestFilePath(prefix string) (string, error) {
+// app.UpgradeKeeper.GetUpgradeInfoPath()
+// 	if upgradeFilePath, err = app.UpgradeKeeper.GetUpgradeInfoPath(); err != nil {
+//		return "", err
+//	}
+
+func getManifestFilePath(app *App, prefix string) (string, error) {
 	var upgradeFilePath string
 	var err error
 
@@ -198,14 +203,19 @@ func (app *App) getManifestFilePath(prefix string) (string, error) {
 	return manifestFilePath, nil
 }
 
-func (app *App) SaveManifest(manifest *UpgradeManifest, upgradeLabel string) error {
-	var serialisedManifest []byte
-	var err error
+func SaveManifest(app *App, manifest *UpgradeManifest, upgradeLabel string) error {
 
-	var manifestFilePath string
-	if manifestFilePath, err = app.getManifestFilePath(upgradeLabel); err != nil {
+	manifestFilePath, err := getManifestFilePath(app, upgradeLabel)
+	if err != nil {
 		return err
 	}
+
+	return SaveManifestToPath(manifest, manifestFilePath)
+}
+
+func SaveManifestToPath(manifest *UpgradeManifest, manifestFilePath string) error {
+	var serialisedManifest []byte
+	var err error
 
 	if serialisedManifest, err = json.MarshalIndent(manifest, "", "\t"); err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
