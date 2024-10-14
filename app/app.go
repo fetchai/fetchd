@@ -798,11 +798,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, fmt.Errorf("cudos merge: %w", err)
 		}
 
-		manifest.DestinationChainBlockHeight = cudosGenesisData.BlockHeight
-		manifest.DestinationChainID = cudosGenesisData.ChainId
-
-		manifest.SourceChainBlockHeight = ctx.BlockHeight()
-		manifest.MergeSourceChainID = ctx.ChainID()
+		manifest.DestinationChainBlockHeight = ctx.BlockHeight()
+		manifest.DestinationChainID = ctx.ChainID()
 
 		manifest.GovProposalUpgradePlanName = plan.Name
 
@@ -837,7 +834,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return nil, err
 		}
 
-		err = app.SaveManifest(manifest, plan.Name)
+		err = SaveManifest(app, manifest, plan.Name)
 		if err != nil {
 			return nil, err
 		}

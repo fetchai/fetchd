@@ -347,25 +347,25 @@ type CudosMergeConfigJSON struct {
 }
 
 type CudosMergeConfig struct {
-	config *CudosMergeConfigJSON
+	Config *CudosMergeConfigJSON
 
-	balanceConversionConstants *OrderedMap[string, sdk.Dec]
+	BalanceConversionConstants *OrderedMap[string, sdk.Dec]
 
-	notVestedAccounts    *OrderedMap[string, bool]
-	notDelegatedAccounts *OrderedMap[string, bool]
+	NotVestedAccounts    *OrderedMap[string, bool]
+	NotDelegatedAccounts *OrderedMap[string, bool]
 
-	validatorsMap *OrderedMap[string, string]
+	ValidatorsMap *OrderedMap[string, string]
 }
 
 func NewCudosMergeConfig(config *CudosMergeConfigJSON) *CudosMergeConfig {
 	retval := new(CudosMergeConfig)
-	retval.config = config
+	retval.Config = config
 
-	retval.balanceConversionConstants = NewOrderedMapFromPairs(config.BalanceConversionConstants)
-	retval.notVestedAccounts = NewOrderedSet(config.NotVestedAccounts)
-	retval.notDelegatedAccounts = NewOrderedSet(config.NotDelegatedAccounts)
+	retval.BalanceConversionConstants = NewOrderedMapFromPairs(config.BalanceConversionConstants)
+	retval.NotVestedAccounts = NewOrderedSet(config.NotVestedAccounts)
+	retval.NotDelegatedAccounts = NewOrderedSet(config.NotDelegatedAccounts)
 
-	retval.validatorsMap = NewOrderedMapFromPairs(config.ValidatorsMap)
+	retval.ValidatorsMap = NewOrderedMapFromPairs(config.ValidatorsMap)
 
 	return retval
 }

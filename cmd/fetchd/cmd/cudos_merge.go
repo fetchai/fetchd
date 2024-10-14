@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
@@ -17,6 +18,10 @@ const (
 	FlagCudosGenesisSha256         = "cudos-genesis-sha256"
 	FlagCudosMigrationConfigPath   = "cudos-migration-config-path"
 	FlagCudosMigrationConfigSha256 = "cudos-migration-config-sha256"
+
+	FlagManifestDestinationPath = "manifest-destination-path"
+
+	DestinationChainPrefix = "fetch"
 )
 
 func AddCudosFlags(startCmd *cobra.Command) {
@@ -47,16 +52,9 @@ func AddCudosFlags(startCmd *cobra.Command) {
 
 }
 
-func utilNetworkMergeCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:                        "network-merge",
-		Short:                      "Network merge commands",
-		DisableFlagParsing:         true,
-		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
-	}
+func AddCommandVerify(networkMergeCmd *cobra.Command) {
 
-	cmdVerify := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "verify-config [network_merge_config_json_file_path] [source_chain_genesis_json_file_path]",
 		Short: "Verifies the configuration JSON file of the network merge",
 		Long: `This command verifies the structure and content of the network merge config JSON file. 
@@ -72,50 +70,83 @@ It checks whether the network merge config file conforms to expected schema - pr
 			configFilePath := args[0]
 			GenesisFilePath := args[1]
 
+			manifestFilePath, err := cmd.Flags().GetString(FlagManifestDestinationPath)
+			if err != nil {
+				return err
+			}
+
 			// Read and verify the JSON file
-			var err error
-			if err = VerifyConfigFile(configFilePath, GenesisFilePath, ctx); err != nil {
+			if err = VerifyConfigFile(configFilePath, GenesisFilePath, ctx, manifestFilePath); err != nil {
 				return err
 			}
 
 			return ctx.PrintString("Configuration is valid.\n")
 		},
 	}
+	cmd.Flags().String(FlagManifestDestinationPath, "", "Save manifest to specified file if set")
+	flags.AddQueryFlagsToCmd(cmd)
 
-	cmd.AddCommand(cmdVerify)
+	networkMergeCmd.AddCommand(cmd)
+}
+
+func utilNetworkMergeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:                        "network-merge",
+		Short:                      "Network merge commands",
+		DisableFlagParsing:         true,
+		SuggestionsMinimumDistance: 2,
+		RunE:                       client.ValidateCmd,
+	}
+
+	AddCommandVerify(cmd)
 	return cmd
 }
 
-// VerifyConfigFile validates the content of a JSON configuration file.
-func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.Context) error {
-	manifest := app.NewUpgradeManifest()
-
-	destinationChainPrefix := "fetch"
-
-	networkInfo, configBytes, err := app.LoadNetworkConfigFromFile(configFilePath)
-	if err != nil {
-		return err
-	}
-	err = ctx.PrintString(fmt.Sprintf("Config hash: %s\n", app.GenerateSha256Hex(*configBytes)))
-	if err != nil {
-		return err
-	}
-
+func LoadGenesisDataFromFile(GenesisFilePath string, cudosConfig *app.CudosMergeConfig, manifest *app.UpgradeManifest) (*app.GenesisData, error) {
 	_, GenDoc, err := genutiltypes.GenesisStateFromGenFile(GenesisFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal genesis state: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal genesis state: %w", err)
 	}
 
 	// unmarshal the app state
 	var cudosJsonData map[string]interface{}
 	if err = json.Unmarshal(GenDoc.AppState, &cudosJsonData); err != nil {
-		return fmt.Errorf("failed to unmarshal app state: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal app state: %w", err)
 	}
-	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
 
 	genesisData, err := app.ParseGenesisData(cudosJsonData, GenDoc, cudosConfig, manifest)
 	if err != nil {
-		return fmt.Errorf("failed to parse genesis data: %w", err)
+		return nil, fmt.Errorf("failed to parse genesis data: %w", err)
+	}
+	return genesisData, nil
+}
+
+// VerifyConfigFile validates the content of a JSON configuration file.
+func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.Context, manifestFilePath string) error {
+	manifest := app.NewUpgradeManifest()
+
+	networkInfo, configBytes, err := app.LoadNetworkConfigFromFile(configFilePath)
+	if err != nil {
+		return err
+	}
+	configHashHex := app.GenerateSha256Hex(*configBytes)
+	err = ctx.PrintString(fmt.Sprintf("Config hash: %s\n", configHashHex))
+	if err != nil {
+		return err
+	}
+	manifest.NetworkConfigFileSha256 = configHashHex
+
+	genesisHashHex, err := app.GenerateSHA256FromFile(GenesisFilePath)
+	if err != nil {
+		return err
+	}
+	manifest.GenesisFileSha256 = genesisHashHex
+
+	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
+	genesisData, err := LoadGenesisDataFromFile(GenesisFilePath, cudosConfig, manifest)
+
+	if err != nil {
+		return fmt.Errorf("failed to load genesis data: %w", err)
 	}
 
 	if networkInfo.MergeSourceChainID != genesisData.ChainId {
@@ -128,65 +159,65 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 	}
 
 	// Verify addresses
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.IbcTargetAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.IbcTargetAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("ibc targer address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingStakingBalanceAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingStakingBalanceAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("remaining staking balance address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingGravityBalanceAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingGravityBalanceAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("remaining gravity balance address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.RemainingDistributionBalanceAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingDistributionBalanceAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("remaining distribution balance address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.ContractDestinationFallbackAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.ContractDestinationFallbackAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("contract destination fallback address error: %v", err)
 	}
 
 	// Community pool address is optional
-	if networkInfo.CudosMerge.CommunityPoolBalanceDestAddr != "" {
-		err = app.VerifyAddressPrefix(networkInfo.CudosMerge.CommunityPoolBalanceDestAddr, genesisData.Prefix)
+	if cudosConfig.Config.CommunityPoolBalanceDestAddr != "" {
+		err = app.VerifyAddressPrefix(cudosConfig.Config.CommunityPoolBalanceDestAddr, genesisData.Prefix)
 		if err != nil {
 			return fmt.Errorf("community pool balance destination address error: %v", err)
 		}
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.CommissionFetchAddr, destinationChainPrefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.CommissionFetchAddr, DestinationChainPrefix)
 	if err != nil {
 		return fmt.Errorf("comission address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.ExtraSupplyFetchAddr, destinationChainPrefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.ExtraSupplyFetchAddr, DestinationChainPrefix)
 	if err != nil {
 		return fmt.Errorf("extra supply address error: %v", err)
 	}
 
-	err = app.VerifyAddressPrefix(networkInfo.CudosMerge.VestingCollisionDestAddr, genesisData.Prefix)
+	err = app.VerifyAddressPrefix(cudosConfig.Config.VestingCollisionDestAddr, genesisData.Prefix)
 	if err != nil {
 		return fmt.Errorf("vesting collision destination address error: %v", err)
 	}
 
 	// Verify extra supply
 	bondDenomSourceTotalSupply := genesisData.TotalSupply.AmountOf(genesisData.BondDenom)
-	if networkInfo.CudosMerge.TotalCudosSupply.LT(bondDenomSourceTotalSupply) {
-		return fmt.Errorf("total supply %s from config is smaller than total supply %s in genesis", networkInfo.CudosMerge.TotalCudosSupply.String(), bondDenomSourceTotalSupply.String())
+	if cudosConfig.Config.TotalCudosSupply.LT(bondDenomSourceTotalSupply) {
+		return fmt.Errorf("total supply %s from config is smaller than total supply %s in genesis", cudosConfig.Config.TotalCudosSupply.String(), bondDenomSourceTotalSupply.String())
 	}
 
-	if len(networkInfo.CudosMerge.BalanceConversionConstants) == 0 {
+	if len(cudosConfig.Config.BalanceConversionConstants) == 0 {
 		return fmt.Errorf("list of conversion constants is empty")
 	}
 
-	if len(networkInfo.CudosMerge.BackupValidators) == 0 {
+	if len(cudosConfig.Config.BackupValidators) == 0 {
 		return fmt.Errorf("list of backup validators is empty")
 	}
 
@@ -194,6 +225,14 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 	err = app.ProcessSourceNetworkGenesis(logger, cudosConfig, genesisData, manifest)
 	if err != nil {
 		return err
+	}
+
+	if manifestFilePath != "" {
+		err = app.SaveManifestToPath(manifest, manifestFilePath)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil

@@ -375,7 +375,7 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 		return fmt.Errorf("remaining distribution balance %s is too high", remainingBalance.String())
 	}
 
-	err = moveGenesisBalance(genesisData, genesisData.DistributionInfo.DistributionModuleAccountAddress, cudosCfg.config.RemainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)
+	err = moveGenesisBalance(genesisData, genesisData.DistributionInfo.DistributionModuleAccountAddress, cudosCfg.Config.RemainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -658,7 +658,7 @@ func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val 
 		/*
 			baseDenom, _ := sdk.GetBaseDenom()
 			if baseDenom == "" {
-				baseDenom = cudosCfg.config.OriginalDenom
+				baseDenom = cudosCfg.Config.OriginalDenom
 			}
 		*/
 		baseDenom := genesisData.BondDenom
