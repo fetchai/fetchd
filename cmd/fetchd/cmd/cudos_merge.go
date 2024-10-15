@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/libs/log"
+	"math"
 	"os"
 )
 
@@ -296,16 +298,133 @@ func ExtractAddressInfo(configFilePath string, GenesisFilePath string, address s
 }
 
 func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Context) error {
+	totalAvailableBalance := sdk.NewCoins()
+
 	accountInfo, exists := genesisData.Accounts.Get(address)
 	if !exists {
-		err := ctx.PrintString(fmt.Sprintf("Account %s doesn't exist", address))
+		err := ctx.PrintString(fmt.Sprintf("Account %s doesn't exist\n", address))
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 
-	print(accountInfo.Balance.String())
+	err := ctx.PrintString(fmt.Sprintf("Account type: %s\n", accountInfo.AccountType))
+	if err != nil {
+		return err
+	}
+
+	if accountInfo.Name != "" {
+		err = ctx.PrintString(fmt.Sprintf("Account name: %s\n", accountInfo.Name))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !accountInfo.OriginalVesting.IsZero() {
+		err = ctx.PrintString(fmt.Sprintf("Vested balance: %s\n", accountInfo.OriginalVesting))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Get bank balance
+	totalAvailableBalance = totalAvailableBalance.Add(accountInfo.Balance...)
+	err = ctx.PrintString(fmt.Sprintf("Bank balance: %s\n", accountInfo.Balance))
+	if err != nil {
+		return err
+	}
+
+	// Bonded tokens
+	err = ctx.PrintString("Balance in delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.Delegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Unbonding tokens
+	err = ctx.PrintString("Balance in unbonding delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.UnbondingDelegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Unbonded tokens
+	err = ctx.PrintString("Balance in unbonded delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.UnbondedDelegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Get distribution module rewards
+	err = ctx.PrintString("Rewards:\n")
+	if err != nil {
+		return err
+	}
+	blockHeight := uint64(math.MaxUint64)
+	for _, validatorOpertorAddr := range genesisData.DistributionInfo.DelegatorStartingInfos.Keys() {
+		validator := genesisData.Validators.MustGet(validatorOpertorAddr)
+
+		delegatorStartInfo := genesisData.DistributionInfo.DelegatorStartingInfos.MustGet(validatorOpertorAddr)
+
+		endingPeriod := app.UpdateValidatorData(genesisData.DistributionInfo, validator)
+
+		if !delegatorStartInfo.Has(address) {
+			continue
+		}
+		delegation := validator.Delegations.MustGet(address)
+
+		rewardsRaw, err := app.CalculateDelegationRewards(blockHeight, genesisData.DistributionInfo, validator, delegation, endingPeriod)
+		if err != nil {
+			return err
+		}
+		reward, _ := rewardsRaw.TruncateDecimal()
+
+		if !reward.IsZero() {
+
+			totalAvailableBalance = totalAvailableBalance.Add(reward...)
+
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorOpertorAddr, reward))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = ctx.PrintString(fmt.Sprintf("Total available balance: %s\n", totalAvailableBalance))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

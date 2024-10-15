@@ -111,10 +111,12 @@ type GenesisData struct {
 	Prefix      string
 	BondDenom   string
 
-	Accounts    *OrderedMap[string, *AccountInfo]
-	Contracts   *OrderedMap[string, *ContractInfo]
-	IbcAccounts *OrderedMap[string, *IBCInfo]
-	Delegations *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	Accounts             *OrderedMap[string, *AccountInfo]
+	Contracts            *OrderedMap[string, *ContractInfo]
+	IbcAccounts          *OrderedMap[string, *IBCInfo]
+	Delegations          *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	UnbondedDelegations  *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	UnbondingDelegations *OrderedMap[string, *OrderedMap[string, sdk.Int]]
 
 	Validators           *OrderedMap[string, *ValidatorInfo]
 	BondedPoolAddress    string
@@ -333,9 +335,14 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 		return nil, fmt.Errorf("failed to get validators map: %w", err)
 	}
 
-	genesisData.Delegations, err = parseGenesisDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
+	genesisData.Delegations, genesisData.UnbondedDelegations, err = parseGenesisDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get delegations map: %w", err)
+	}
+
+	genesisData.UnbondingDelegations, err = parseGenesisUnbondingDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get unbonding delegations map: %w", err)
 	}
 
 	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.Accounts)
@@ -585,22 +592,24 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	return accountMap, nil
 }
 
-func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
+func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], *OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
 	// Handle delegations
 	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+	unbondingDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+
 	for i := range validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
 
-		for j := range validator.delegations.Iterate() {
+		for j := range validator.Delegations.Iterate() {
 			delegatorAddress, delegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			currentValidatorInfo := validators.MustGet(validatorOperatorAddress)
-			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
+			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.Shares).TruncateInt()
 
 			if delegatorTokens.IsZero() {
 				// This happens when number of shares is less than 1
@@ -608,49 +617,92 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 			}
 
 			// Subtract balance from bonded or not-bonded pool
-			if currentValidatorInfo.status == BondedStatus {
+			if currentValidatorInfo.Status == BondedStatus {
 
 				// Store delegation to delegated map
 				resolvedDelegatorMap, _ := delegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
 				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
 				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
+			} else {
+				// Store delegation to delegated map
+				resolvedDelegatorMap, _ := unbondingDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
+				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
+				unbondingDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 			}
 		}
 	}
 
-	return delegatedBalanceMap, nil
+	return delegatedBalanceMap, unbondingDelegatedBalanceMap, nil
+}
+
+func parseGenesisUnbondingDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
+	// Handle delegations
+	unbondedDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+
+	for i := range validators.Iterate() {
+		validatorOperatorAddress, validator := i.Key, i.Value
+
+		for j := range validator.UnbondingDelegations.Iterate() {
+			delegatorAddress, delegation := j.Key, j.Value
+
+			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
+			if err != nil {
+				return nil, err
+			}
+
+			delegatorTokens := sdk.NewInt(0)
+
+			for _, entry := range delegation.Entries {
+				delegatorTokens = delegatorTokens.Add(entry.Balance)
+			}
+
+			if delegatorTokens.IsZero() {
+				// This happens when number of shares is less than 1
+				continue
+			}
+
+			// Store delegation to delegated map
+			resolvedDelegatorMap, _ := unbondedDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+			resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
+			resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
+			unbondedDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
+		}
+	}
+
+	return unbondedDelegatedBalanceMap, nil
 }
 
 type DelegationInfo struct {
-	delegatorAddress string
-	shares           sdk.Dec
+	DelegatorAddress string
+	Shares           sdk.Dec
 }
 
 type UnbondingDelegationInfo struct {
-	delegatorAddress string
-	entries          []*UnbondingDelegationEntry
+	DelegatorAddress string
+	Entries          []*UnbondingDelegationEntry
 }
 
 type UnbondingDelegationEntry struct {
-	balance        sdk.Int
-	initialBalance sdk.Int
-	creationHeight uint64
-	completionTime string
+	Balance        sdk.Int
+	InitialBalance sdk.Int
+	CreationHeight uint64
+	CompletionTime string
 }
 
 type ValidatorInfo struct {
-	stake                sdk.Int
-	shares               sdk.Dec
-	status               string
-	operatorAddress      string
-	consensusPubkey      cryptotypes.PubKey
-	delegations          *OrderedMap[string, *DelegationInfo]
-	unbondingDelegations *OrderedMap[string, *UnbondingDelegationInfo]
+	Stake                sdk.Int
+	Shares               sdk.Dec
+	Status               string
+	OperatorAddress      string
+	ConsensusPubkey      cryptotypes.PubKey
+	Delegations          *OrderedMap[string, *DelegationInfo]
+	UnbondingDelegations *OrderedMap[string, *UnbondingDelegationInfo]
 }
 
 func (v ValidatorInfo) TokensFromShares(shares sdk.Dec) sdk.Dec {
-	return (shares.MulInt(v.stake)).Quo(v.shares)
+	return (shares.MulInt(v.Stake)).Quo(v.Shares)
 }
 
 func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string, *ValidatorInfo], error) {
@@ -687,13 +739,13 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 		}
 
 		validatorInfoMap.SetNew(operatorAddress, &ValidatorInfo{
-			stake:                tokensInt,
-			shares:               validatorSharesDec,
-			status:               status,
-			operatorAddress:      operatorAddress,
-			consensusPubkey:      decodedConsensusPubkey,
-			delegations:          NewOrderedMap[string, *DelegationInfo](),
-			unbondingDelegations: NewOrderedMap[string, *UnbondingDelegationInfo](),
+			Stake:                tokensInt,
+			Shares:               validatorSharesDec,
+			Status:               status,
+			OperatorAddress:      operatorAddress,
+			ConsensusPubkey:      decodedConsensusPubkey,
+			Delegations:          NewOrderedMap[string, *DelegationInfo](),
+			UnbondingDelegations: NewOrderedMap[string, *UnbondingDelegationInfo](),
 		})
 
 	}
@@ -711,7 +763,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.delegations.SetNew(delegatorAddress, &DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
+		validator.Delegations.SetNew(delegatorAddress, &DelegationInfo{DelegatorAddress: delegatorAddress, Shares: delegatorSharesDec})
 	}
 
 	unbondingDelegations := staking["unbonding_delegations"].([]interface{})
@@ -740,11 +792,11 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 
 			completionTime := entryMap["completion_time"].(string)
 
-			unbondingDelegationEntries = append(unbondingDelegationEntries, &UnbondingDelegationEntry{balance: balance, initialBalance: initialBalance, creationHeight: creationHeight, completionTime: completionTime})
+			unbondingDelegationEntries = append(unbondingDelegationEntries, &UnbondingDelegationEntry{Balance: balance, InitialBalance: initialBalance, CreationHeight: creationHeight, CompletionTime: completionTime})
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.unbondingDelegations.SetNew(delegatorAddress, &UnbondingDelegationInfo{delegatorAddress: delegatorAddress, entries: unbondingDelegationEntries})
+		validator.UnbondingDelegations.SetNew(delegatorAddress, &UnbondingDelegationInfo{DelegatorAddress: delegatorAddress, Entries: unbondingDelegationEntries})
 	}
 
 	return validatorInfoMap, nil
@@ -755,7 +807,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	for i := range genesisData.Validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
 
-		for j := range validator.delegations.Iterate() {
+		for j := range validator.Delegations.Iterate() {
 			delegatorAddress, delegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.Contracts, cudosCfg)
@@ -764,7 +816,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			}
 
 			currentValidatorInfo := genesisData.Validators.MustGet(validatorOperatorAddress)
-			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
+			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.Shares).TruncateInt()
 
 			// Move balance to delegator Address
 			delegatorBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, delegatorTokens))
@@ -775,7 +827,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			}
 
 			// Subtract balance from bonded or not-bonded pool
-			if currentValidatorInfo.status == BondedStatus {
+			if currentValidatorInfo.Status == BondedStatus {
 				// Move balance from bonded pool to delegator
 				err := moveGenesisBalance(genesisData, genesisData.BondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, "bonded_delegation", manifest, cudosCfg)
 				if err != nil {
@@ -795,7 +847,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 		}
 
 		// Handle unbonding delegations
-		for j := range validator.unbondingDelegations.Iterate() {
+		for j := range validator.UnbondingDelegations.Iterate() {
 			delegatorAddress, unbondingDelegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.Contracts, cudosCfg)
@@ -803,8 +855,8 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 				return err
 			}
 
-			for _, entry := range unbondingDelegation.entries {
-				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, entry.balance))
+			for _, entry := range unbondingDelegation.Entries {
+				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, entry.Balance))
 
 				// Move unbonding balance from not-bonded pool to delegator Address
 				err := moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, "unbonding_delegation", manifest, cudosCfg)
