@@ -205,7 +205,7 @@ func (app *App) WithdrawReconciliationBalances(ctx types.Context, networkInfo *N
 	}
 
 	if !app.AccountKeeper.HasAccount(ctx, landingAddr) {
-		return fmt.Errorf("landing address does not exist")
+		return fmt.Errorf("landing Address does not exist")
 	}
 
 	transfers := UpgradeReconciliationTransfers{}
@@ -480,11 +480,11 @@ func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConf
 	return nil
 }
 
-// getContractData returns the contract address, info, and states for a given contract address
+// getContractData returns the contract Address, info, and states for a given contract Address
 func (app *App) getContractData(ctx types.Context, contractAddr string) (*types.AccAddress, *types.KVStore, *prefix.Store, error) {
 	addr, err := types.AccAddressFromBech32(contractAddr)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("invalid contract address: %v", err)
+		return nil, nil, nil, fmt.Errorf("invalid contract Address: %v", err)
 	}
 
 	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])

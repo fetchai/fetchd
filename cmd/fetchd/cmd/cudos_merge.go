@@ -89,6 +89,32 @@ It checks whether the network merge config file conforms to expected schema - pr
 	networkMergeCmd.AddCommand(cmd)
 }
 
+func AddCommandExtractAddressInfo(networkMergeCmd *cobra.Command) {
+	cmd := &cobra.Command{
+		Use:   "extract-address-info [network_merge_config_json_file_path] [source_chain_genesis_json_file_path] [address]",
+		Short: "Extracts balance information for a specific address",
+		Long: `This command retrieves all balance information for a given address, including the amount delegated to validators, rewards, and other relevant data.
+It utilizes the provided network merge config and genesis JSON files to perform the extraction and display the results.`,
+		Args: cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := client.GetClientContextFromCmd(cmd)
+
+			configFilePath := args[0]
+			GenesisFilePath := args[1]
+			address := args[2]
+
+			// Call a function to extract address info
+			err := ExtractAddressInfo(configFilePath, GenesisFilePath, address, ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	networkMergeCmd.AddCommand(cmd)
+}
+
 func utilNetworkMergeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        "network-merge",
@@ -99,6 +125,7 @@ func utilNetworkMergeCommand() *cobra.Command {
 	}
 
 	AddCommandVerify(cmd)
+	AddCommandExtractAddressInfo(cmd)
 	return cmd
 }
 
@@ -234,6 +261,51 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 		}
 
 	}
+
+	return nil
+}
+
+func ExtractAddressInfo(configFilePath string, GenesisFilePath string, address string, ctx client.Context) error {
+	manifest := app.NewUpgradeManifest()
+
+	networkInfo, _, err := app.LoadNetworkConfigFromFile(configFilePath)
+	if err != nil {
+		return err
+	}
+
+	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
+	genesisData, err := LoadGenesisDataFromFile(GenesisFilePath, cudosConfig, manifest)
+	if err != nil {
+		return err
+	}
+
+	err = printAccInfo(genesisData, address, ctx)
+	if err != nil {
+		return err
+	}
+
+	/*
+		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+		err = app.ProcessSourceNetworkGenesis(logger, cudosConfig, genesisData, manifest)
+		if err != nil {
+			return err
+		}
+	*/
+
+	return nil
+}
+
+func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Context) error {
+	accountInfo, exists := genesisData.Accounts.Get(address)
+	if !exists {
+		err := ctx.PrintString(fmt.Sprintf("Account %s doesn't exist", address))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	print(accountInfo.Balance.String())
 
 	return nil
 }

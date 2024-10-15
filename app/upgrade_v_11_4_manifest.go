@@ -240,8 +240,8 @@ func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount *Accoun
 	}
 
 	collision := VestingCollision{
-		OriginalAccountFunds: originalAccount.balance,
-		OriginalAccount:      originalAccount.rawAccData,
+		OriginalAccountFunds: originalAccount.Balance,
+		OriginalAccount:      originalAccount.RawAddress,
 	}
 	if targetAccount != nil {
 		res, err := codec.MarshalJSONIndent(authtypes.ModuleCdc.LegacyAmino, targetAccount)

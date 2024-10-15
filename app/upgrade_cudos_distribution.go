@@ -358,11 +358,11 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 		return err
 	}
 
-	// Withdraw Community pool balance to address if defined
+	// Withdraw Community pool balance to Address if defined
 	communityBalance, _ := genesisData.DistributionInfo.FeePool.CommunityPool.TruncateDecimal()
 	distributionModuleAccount := genesisData.Accounts.MustGet(genesisData.DistributionInfo.DistributionModuleAccountAddress)
 
-	remainingBalance := distributionModuleAccount.balance.Sub(communityBalance)
+	remainingBalance := distributionModuleAccount.Balance.Sub(communityBalance)
 
 	// Withdraw remaining balance
 	if logger != nil {
@@ -375,7 +375,7 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 		return fmt.Errorf("remaining distribution balance %s is too high", remainingBalance.String())
 	}
 
-	err = moveGenesisBalance(genesisData, genesisData.DistributionInfo.DistributionModuleAccountAddress, cudosCfg.Config.RemainingDistributionBalanceAddr, distributionModuleAccount.balance, "remaining_distribution_module_balance", manifest, cudosCfg)
+	err = moveGenesisBalance(genesisData, genesisData.DistributionInfo.DistributionModuleAccountAddress, cudosCfg.Config.RemainingDistributionBalanceAddr, distributionModuleAccount.Balance, "remaining_distribution_module_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -585,7 +585,7 @@ func calculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 	return rewards, nil
 }
 
-// get the delegator withdraw address, defaulting to the delegator address
+// get the delegator withdraw Address, defaulting to the delegator Address
 func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
 	b, exists := d.DelegatorWithdrawInfos.Get(delAddr)
 	if !exists {
