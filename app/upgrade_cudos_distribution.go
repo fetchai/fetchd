@@ -48,8 +48,11 @@ type DistributionInfo struct {
 
 	DelegatorStartingInfos           *OrderedMap[string, *OrderedMap[string, *DelegatorStartingInfo]] // validator_addr -> delegator_addr -> starting_info
 	DelegatorWithdrawInfos           *OrderedMap[string, string]                                      // delegator_address -> withdraw_address
-	ValidatorSlashEvents             *OrderedMap[string, *OrderedMap[uint64, *ValidatorSlashEvent]]   // validatior_address -> height -> validator_slash_event
+	ValidatorSlashEvents             *OrderedMap[string, *OrderedMap[uint64, *ValidatorSlashEvent]]   // validator_address -> height -> validator_slash_event
 	DistributionModuleAccountAddress string
+
+	// Aggregated values
+	Rewards *OrderedMap[string, *OrderedMap[string, sdk.DecCoins]] // delegator_addr -> validator_addr -> reward
 }
 
 func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedMap[string, *OrderedMap[string, *DelegatorStartingInfo]], error) {
@@ -242,7 +245,38 @@ func parseDelegatorWithdrawInfos(distribution map[string]interface{}) (*OrderedM
 	return delegatorWithdrawInfos, nil
 }
 
-func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *OrderedMap[string, *AccountInfo]) (*DistributionInfo, error) {
+func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap[string, *ValidatorInfo]) error {
+	blockHeight := uint64(math.MaxUint64)
+
+	if distributionInfo.Rewards == nil {
+		distributionInfo.Rewards = NewOrderedMap[string, *OrderedMap[string, sdk.DecCoins]]()
+	}
+
+	// Withdraw all delegation rewards
+	for i := range distributionInfo.DelegatorStartingInfos.Iterate() {
+		validatorOperatorAddr, delegatorStartInfo := i.Key, i.Value
+		validator := validators.MustGet(validatorOperatorAddr)
+
+		endingPeriod := UpdateValidatorData(distributionInfo, validator)
+
+		for _, delegatorAddr := range delegatorStartInfo.Keys() {
+			delegation := validator.Delegations.MustGet(delegatorAddr)
+
+			rewardsRaw, err := CalculateDelegationRewards(blockHeight, distributionInfo, validator, delegation, endingPeriod)
+			if err != nil {
+				return err
+			}
+
+			delegatorRewards, _ := distributionInfo.Rewards.GetOrSetDefault(delegatorAddr, NewOrderedMap[string, sdk.DecCoins]())
+			delegatorRewards.SetNew(validatorOperatorAddr, rewardsRaw)
+		}
+
+	}
+
+	return nil
+}
+
+func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *OrderedMap[string, *AccountInfo], validators *OrderedMap[string, *ValidatorInfo]) (*DistributionInfo, error) {
 	distribution := jsonData[distributiontypes.ModuleName].(map[string]interface{})
 	distributionInfo := DistributionInfo{}
 	var err error
@@ -292,6 +326,11 @@ func parseGenesisDistribution(jsonData map[string]interface{}, genesisAccounts *
 		return nil, err
 	}
 
+	err = aggregateRewards(&distributionInfo, validators)
+	if err != nil {
+		return nil, err
+	}
+
 	return &distributionInfo, nil
 }
 
@@ -327,10 +366,10 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 	blockHeight := uint64(math.MaxUint64)
 
 	// Withdraw all delegation rewards
-	for _, validatorOpertorAddr := range genesisData.DistributionInfo.DelegatorStartingInfos.Keys() {
-		validator := genesisData.Validators.MustGet(validatorOpertorAddr)
+	for _, validatorOperatorAddr := range genesisData.DistributionInfo.DelegatorStartingInfos.Keys() {
+		validator := genesisData.Validators.MustGet(validatorOperatorAddr)
 
-		delegatorStartInfo := genesisData.DistributionInfo.DelegatorStartingInfos.MustGet(validatorOpertorAddr)
+		delegatorStartInfo := genesisData.DistributionInfo.DelegatorStartingInfos.MustGet(validatorOperatorAddr)
 
 		endingPeriod := UpdateValidatorData(genesisData.DistributionInfo, validator)
 

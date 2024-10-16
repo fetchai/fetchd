@@ -345,7 +345,7 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 		return nil, fmt.Errorf("failed to get unbonding delegations map: %w", err)
 	}
 
-	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.Accounts)
+	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.Accounts, genesisData.Validators)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get distribution module map: %w", err)
 	}
@@ -639,7 +639,7 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 
 func parseGenesisUnbondingDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
 	// Handle delegations
-	unbondedDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+	unbondingDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
 
 	for i := range validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
@@ -664,14 +664,14 @@ func parseGenesisUnbondingDelegations(validators *OrderedMap[string, *ValidatorI
 			}
 
 			// Store delegation to delegated map
-			resolvedDelegatorMap, _ := unbondedDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+			resolvedDelegatorMap, _ := unbondingDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
 			resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
 			resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
-			unbondedDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
+			unbondingDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 		}
 	}
 
-	return unbondedDelegatedBalanceMap, nil
+	return unbondingDelegatedBalanceMap, nil
 }
 
 type DelegationInfo struct {

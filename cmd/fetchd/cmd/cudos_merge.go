@@ -10,7 +10,6 @@ import (
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/libs/log"
-	"math"
 	"os"
 )
 
@@ -391,33 +390,20 @@ func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Conte
 	if err != nil {
 		return err
 	}
-	blockHeight := uint64(math.MaxUint64)
-	for _, validatorOpertorAddr := range genesisData.DistributionInfo.DelegatorStartingInfos.Keys() {
-		validator := genesisData.Validators.MustGet(validatorOpertorAddr)
 
-		delegatorStartInfo := genesisData.DistributionInfo.DelegatorStartingInfos.MustGet(validatorOpertorAddr)
+	if DelegatorRewards, exists := genesisData.DistributionInfo.Rewards.Get(address); exists {
+		for j := range DelegatorRewards.Iterate() {
+			validatorOperatorAddr, rewardDecAmount := j.Key, j.Value
+			rewardAmount, _ := rewardDecAmount.TruncateDecimal()
+			if !rewardAmount.IsZero() {
+				totalAvailableBalance = totalAvailableBalance.Add(rewardAmount...)
 
-		endingPeriod := app.UpdateValidatorData(genesisData.DistributionInfo, validator)
-
-		if !delegatorStartInfo.Has(address) {
-			continue
-		}
-		delegation := validator.Delegations.MustGet(address)
-
-		rewardsRaw, err := app.CalculateDelegationRewards(blockHeight, genesisData.DistributionInfo, validator, delegation, endingPeriod)
-		if err != nil {
-			return err
-		}
-		reward, _ := rewardsRaw.TruncateDecimal()
-
-		if !reward.IsZero() {
-
-			totalAvailableBalance = totalAvailableBalance.Add(reward...)
-
-			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorOpertorAddr, reward))
-			if err != nil {
-				return err
+				err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorOperatorAddr, rewardAmount))
+				if err != nil {
+					return err
+				}
 			}
+
 		}
 	}
 
