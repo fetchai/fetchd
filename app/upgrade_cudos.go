@@ -241,9 +241,8 @@ func updateActiveDelegatorsSet(app *App, ctx sdk.Context, cudosCfg *CudosMergeCo
 		params.MaxValidators = cudosCfg.Config.NewMaxValidators
 		// Set the new params
 		app.StakingKeeper.SetParams(ctx, params)
+		manifest.NewMaxValidators = params.MaxValidators
 	}
-
-	manifest.NewMaxValidators = params.MaxValidators
 
 	return nil
 }
