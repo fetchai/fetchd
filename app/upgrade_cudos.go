@@ -820,7 +820,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			currentValidatorInfo := genesisData.Validators.MustGet(validatorOperatorAddress)
 			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.Shares).TruncateInt()
 
-			// Move balance to delegator Address
+			// Move balance to delegator address
 			delegatorBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, delegatorTokens))
 
 			if delegatorTokens.IsZero() {
@@ -860,7 +860,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			for _, entry := range unbondingDelegation.Entries {
 				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, entry.Balance))
 
-				// Move unbonding balance from not-bonded pool to delegator Address
+				// Move unbonding balance from not-bonded pool to delegator address
 				err := moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, "unbonding_delegation", manifest, cudosCfg)
 				if err != nil {
 					return err
@@ -1382,10 +1382,10 @@ func resolveIfContractAddressWithFallback(address string, contracts *OrderedMap[
 	}
 
 	if resolvedAddress == nil || strings.TrimSpace(*resolvedAddress) == "" {
-		// Use fallback Address
+		// Use fallback address
 		return cudosCfg.Config.ContractDestinationFallbackAddr, nil
 	} else {
-		// Use resolved Address
+		// Use resolved address
 		return *resolvedAddress, nil
 	}
 }
@@ -1757,7 +1757,7 @@ func GetAddressByName(genesisAccounts *OrderedMap[string, *AccountInfo], name st
 
 	}
 
-	return "", fmt.Errorf("Address not found in genesis accounts: %s", name)
+	return "", fmt.Errorf("address not found in genesis accounts: %s", name)
 }
 
 func checkDecTolerance(coins sdk.DecCoins, maxToleratedDiff sdk.Int) error {
@@ -1820,11 +1820,11 @@ func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount *AccountInf
 	var newBaseAccount *authtypes.BaseAccount
 	var err error
 
-	// Check for Pubkey collision
+	// Check for pubkey collision
 	if existingAccount != nil {
 		// Handle collision
 
-		// Set Pubkey from newAcc if is not in existingAccount
+		// Set pubkey from newAcc if is not in existingAccount
 		if existingAccount.GetPubKey() == nil && genesisAccount.Pubkey != nil {
 			err := existingAccount.SetPubKey(genesisAccount.Pubkey)
 			if err != nil {

@@ -328,7 +328,7 @@ type CudosMergeConfigJSON struct {
 
 	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
 	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
-	VestingCollisionDestAddr string `json:"vesting_collision_dest_addr"` // This gets converted to raw Address, so it can be fetch or cudos Address
+	VestingCollisionDestAddr string `json:"vesting_collision_dest_addr"` // This gets converted to raw address, so it can be fetch or cudos address
 
 	VestingPeriod int64 `json:"vesting_period"` // Vesting period
 

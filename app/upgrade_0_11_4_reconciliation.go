@@ -484,7 +484,7 @@ func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConf
 func (app *App) getContractData(ctx types.Context, contractAddr string) (*types.AccAddress, *types.KVStore, *prefix.Store, error) {
 	addr, err := types.AccAddressFromBech32(contractAddr)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("invalid contract Address: %v", err)
+		return nil, nil, nil, fmt.Errorf("invalid contract address: %v", err)
 	}
 
 	store := ctx.KVStore(app.keys[wasmTypes.StoreKey])

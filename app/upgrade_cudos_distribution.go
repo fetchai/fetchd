@@ -388,7 +388,7 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 		return err
 	}
 
-	// Withdraw Community pool balance to Address if defined
+	// Withdraw Community pool balance to address if defined
 	communityBalance, _ := genesisData.DistributionInfo.FeePool.CommunityPool.TruncateDecimal()
 	distributionModuleAccount := genesisData.Accounts.MustGet(genesisData.DistributionInfo.DistributionModuleAccountAddress)
 
