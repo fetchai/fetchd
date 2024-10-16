@@ -361,22 +361,13 @@ func verifyOutstandingBalances(genesisData *GenesisData) error {
 }
 
 func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
-	// block height is used only to early stop rewards calculation
-	//blockHeight := getMaxBlockHeight(genesisData) + 1
-	blockHeight := uint64(math.MaxUint64)
-
 	// Withdraw all delegation rewards
 	for _, validatorOperatorAddr := range genesisData.DistributionInfo.DelegatorStartingInfos.Keys() {
-		validator := genesisData.Validators.MustGet(validatorOperatorAddr)
-
 		delegatorStartInfo := genesisData.DistributionInfo.DelegatorStartingInfos.MustGet(validatorOperatorAddr)
 
-		endingPeriod := UpdateValidatorData(genesisData.DistributionInfo, validator)
-
 		for _, delegatorAddr := range delegatorStartInfo.Keys() {
-			delegation := validator.Delegations.MustGet(delegatorAddr)
 
-			_, err := withdrawDelegationRewards(logger, genesisData, validator, delegation, endingPeriod, blockHeight, cudosCfg, manifest)
+			_, err := withdrawDelegationRewards(logger, genesisData, validatorOperatorAddr, delegatorAddr, cudosCfg, manifest)
 			if err != nil {
 				return err
 			}
@@ -633,22 +624,18 @@ func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
 	return b
 }
 
-func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val *ValidatorInfo, del *DelegationInfo, endingPeriod uint64, blockHeight uint64, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
+func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, validatorOperatorAddress string, delegatorAddress string, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) (sdk.Coins, error) {
 
 	// check existence of delegator starting info
-	genesisData.DistributionInfo.DelegatorStartingInfos.Has(val.OperatorAddress)
-	StartingInfoMap, exists := genesisData.DistributionInfo.DelegatorStartingInfos.Get(val.OperatorAddress)
-	if !exists || !StartingInfoMap.Has(del.DelegatorAddress) {
+	genesisData.DistributionInfo.DelegatorStartingInfos.Has(validatorOperatorAddress)
+	StartingInfoMap, exists := genesisData.DistributionInfo.DelegatorStartingInfos.Get(validatorOperatorAddress)
+	if !exists || !StartingInfoMap.Has(delegatorAddress) {
 		return nil, fmt.Errorf("delegator starting info not found")
 	}
 
-	// end current period and calculate rewards
-	//endingPeriod := k.IncrementValidatorPeriod(ctx, val)
-	rewardsRaw, err := CalculateDelegationRewards(blockHeight, genesisData.DistributionInfo, val, del, endingPeriod)
-	if err != nil {
-		return nil, err
-	}
-	outstanding := genesisData.DistributionInfo.OutstandingRewards.MustGet(val.OperatorAddress)
+	delegatorRewards := genesisData.DistributionInfo.Rewards.MustGet(delegatorAddress)
+	rewardsRaw := delegatorRewards.MustGet(validatorOperatorAddress)
+	outstanding := genesisData.DistributionInfo.OutstandingRewards.MustGet(validatorOperatorAddress)
 
 	// defensive edge case may happen on the very final digits
 	// of the decCoins due to operation order of the distribution mechanism.
@@ -657,8 +644,8 @@ func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val 
 		if logger != nil {
 			logger.Error(
 				"rounding error withdrawing rewards from validator",
-				"delegator", del.DelegatorAddress,
-				"validator", val.OperatorAddress,
+				"delegator", delegatorAddress,
+				"validator", validatorOperatorAddress,
 				"got", rewards.String(),
 				"expected", rewardsRaw.String(),
 			)
@@ -670,7 +657,7 @@ func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val 
 
 	// add coins to user account
 	if !finalRewards.IsZero() {
-		withdrawAddr := genesisData.DistributionInfo.GetDelegatorWithdrawAddr(del.DelegatorAddress)
+		withdrawAddr := genesisData.DistributionInfo.GetDelegatorWithdrawAddr(delegatorAddress)
 
 		// SendCoinsFromModuleToAccount
 		err := moveGenesisBalance(genesisData, genesisData.DistributionInfo.DistributionModuleAccountAddress, withdrawAddr, finalRewards, "delegation_reward", manifest, cudosCfg)
@@ -682,7 +669,7 @@ func withdrawDelegationRewards(logger log.Logger, genesisData *GenesisData, val 
 	// update the outstanding rewards and the community pool only if the
 	// transaction was successful
 
-	genesisData.DistributionInfo.OutstandingRewards.Set(val.OperatorAddress, outstanding.Sub(rewards))
+	genesisData.DistributionInfo.OutstandingRewards.Set(validatorOperatorAddress, outstanding.Sub(rewards))
 	genesisData.DistributionInfo.FeePool.CommunityPool = genesisData.DistributionInfo.FeePool.CommunityPool.Add(remainder...)
 
 	// decrement reference count of starting period
