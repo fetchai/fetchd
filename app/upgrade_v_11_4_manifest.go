@@ -21,6 +21,8 @@ type UpgradeManifest struct {
 	SourceChainBlockHeight      int64  `json:"source_chain_block_height"`
 	DestinationChainBlockHeight int64  `json:"destination_chain_block_height"`
 	GovProposalUpgradePlanName  string `json:"gov_proposal_upgrade_plan_name"`
+	OriginalMaxValidators       uint32 `json:"original_max_validators"`
+	NewMaxValidators            uint32 `json:"new_max_validators,omitempty"`
 
 	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
 	Contracts          *Contracts                 `json:"contracts,omitempty"`

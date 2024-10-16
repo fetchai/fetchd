@@ -212,6 +212,13 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed process accounts: %w", err)
 	}
 
+	err = updateActiveDelegatorsSet(app, ctx, cudosCfg, manifest)
+	{
+		if err != nil {
+			return fmt.Errorf("cudos merge: failed to update active delegators set: %w", err)
+		}
+	}
+
 	err = createGenesisDelegations(ctx, app, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
@@ -221,6 +228,22 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to verify supply: %w", err)
 	}
+
+	return nil
+}
+
+func updateActiveDelegatorsSet(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+
+	params := app.StakingKeeper.GetParams(ctx)
+	manifest.OriginalMaxValidators = params.MaxValidators
+
+	if cudosCfg.Config.NewMaxValidators != 0 {
+		params.MaxValidators = cudosCfg.Config.NewMaxValidators
+		// Set the new params
+		app.StakingKeeper.SetParams(ctx, params)
+	}
+
+	manifest.NewMaxValidators = params.MaxValidators
 
 	return nil
 }
