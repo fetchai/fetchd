@@ -76,7 +76,7 @@ func VerifyAddressPrefix(addr string, expectedPrefix string) error {
 	}
 
 	if prefix != expectedPrefix {
-		return fmt.Errorf("invalid Address prefix: expected %s, got %s", expectedPrefix, prefix)
+		return fmt.Errorf("invalid address prefix: expected %s, got %s", expectedPrefix, prefix)
 	}
 
 	return nil

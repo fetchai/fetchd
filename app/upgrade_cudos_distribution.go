@@ -615,7 +615,7 @@ func CalculateDelegationRewards(blockHeight uint64, distributionInfo *Distributi
 	return rewards, nil
 }
 
-// get the delegator withdraw Address, defaulting to the delegator Address
+// get the delegator withdraw address, defaulting to the delegator address
 func (d DistributionInfo) GetDelegatorWithdrawAddr(delAddr string) string {
 	b, exists := d.DelegatorWithdrawInfos.Get(delAddr)
 	if !exists {

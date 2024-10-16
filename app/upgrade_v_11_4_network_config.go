@@ -319,15 +319,15 @@ func LoadAndVerifyNetworkConfigFromFile(configFilePath string, expectedSha256Hex
 }
 
 type CudosMergeConfigJSON struct {
-	IbcTargetAddr                    string `json:"ibc_target_addr"`                            // Cudos Address
+	IbcTargetAddr                    string `json:"ibc_target_addr"`                            // Cudos address
 	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`             // Cudos account for remaining bonded and not-bonded pool balances
-	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`             // Cudos Address
-	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"`        // Cudos Address
-	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`         // Cudos Address
-	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr,omitempty"` // Cudos Address, funds are moved to destination chain community pool if not set
+	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`             // Cudos address
+	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"`        // Cudos address
+	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`         // Cudos address
+	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr,omitempty"` // Cudos address, funds are moved to destination chain community pool if not set
 
-	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch Address for commission
-	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch Address for extra supply
+	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
+	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
 	VestingCollisionDestAddr string `json:"vesting_collision_dest_addr"` // This gets converted to raw Address, so it can be fetch or cudos Address
 
 	VestingPeriod int64 `json:"vesting_period"` // Vesting period

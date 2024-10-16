@@ -44,9 +44,10 @@ const (
 	PermanentLockedAccount   = "/cosmos.vesting.v1beta1.PermanentLockedAccount"
 	PeriodicVestingAccount   = "/cosmos.vesting.v1beta1.PeriodicVestingAccount"
 
-	UnbondedStatus  = "BOND_STATUS_UNBONDED"
-	UnbondingStatus = "BOND_STATUS_UNBONDING"
-	BondedStatus    = "BOND_STATUS_BONDED"
+	UnspecifiedBondStatus = "BOND_STATUS_UNSPECIFIED"
+	UnbondedStatus        = "BOND_STATUS_UNBONDED"
+	UnbondingStatus       = "BOND_STATUS_UNBONDING"
+	BondedStatus          = "BOND_STATUS_BONDED"
 
 	// Modules with balance
 	BondedPoolAccName    = "bonded_tokens_pool"
@@ -247,7 +248,7 @@ func GetAccPrefix(jsonData map[string]interface{}) (string, error) {
 
 		prefix, _, err := bech32.DecodeAndConvert(accountInfo.Address)
 		if err != nil {
-			lastErr = fmt.Errorf("failed to decode Address %s: %w", accountInfo.Address, err)
+			lastErr = fmt.Errorf("failed to decode address %s: %w", accountInfo.Address, err)
 			continue
 		}
 
@@ -432,7 +433,7 @@ func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *Ac
 	}
 	accountInfo.Pubkey = AccPubKey
 
-	// Get raw Address
+	// Get raw address
 	_, accRawAddr, err := bech32.DecodeAndConvert(accountInfo.Address)
 
 	accountInfo.RawAddress = accRawAddr
@@ -625,6 +626,7 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 			} else {
+
 				// Store delegation to delegated map
 				resolvedDelegatorMap, _ := unbondingDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
 				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
@@ -1397,12 +1399,12 @@ func resolveIfContractAddress(address string, contracts *OrderedMap[string, *Con
 		if !exists {
 			return &address, nil
 		}
-		// If the contract has an admin that is not itself, continue with the admin Address.
+		// If the contract has an admin that is not itself, continue with the admin address.
 		if len(creatorsMap) == 0 && len(adminsMap) < RecursionDepthLimit && contractInfo.Admin != "" && contractInfo.Admin != address && !adminsMap[contractInfo.Admin] {
 			adminsMap[contractInfo.Admin] = true
 			address = contractInfo.Admin
 		} else if len(creatorsMap) < RecursionDepthLimit && contractInfo.Creator != "" && !creatorsMap[contractInfo.Creator] {
-			// Otherwise, if the creator is present, continue with the creator Address.
+			// Otherwise, if the creator is present, continue with the creator address.
 			creatorsMap[contractInfo.Creator] = true
 			address = contractInfo.Creator
 		} else {
@@ -1432,7 +1434,7 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 
 		// Ensure the byte slice is the correct length for a secp256k1 public key
 		if len(keyBytes) != secp256k1.PubKeySize {
-			return nil, fmt.Errorf("invalid Pubkey length: got %d, expected %d", len(keyBytes), secp256k1.PubKeySize)
+			return nil, fmt.Errorf("invalid pubkey length: got %d, expected %d", len(keyBytes), secp256k1.PubKeySize)
 		}
 
 		pubKey := secp256k1.PubKey{
@@ -1453,7 +1455,7 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 
 		// Ensure the byte slice is the correct length for an ed25519 public key
 		if len(keyBytes) != ed25519.PubKeySize {
-			return nil, fmt.Errorf("invalid Pubkey length: got %d, expected %d", len(keyBytes), ed25519.PubKeySize)
+			return nil, fmt.Errorf("invalid pubkey length: got %d, expected %d", len(keyBytes), ed25519.PubKeySize)
 		}
 
 		pubKey := ed25519.PubKey{
