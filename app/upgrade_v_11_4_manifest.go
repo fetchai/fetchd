@@ -40,8 +40,8 @@ func NewUpgradeManifest() *UpgradeManifest {
 }
 
 type ParamsChange[T any] struct {
-	OriginalVal T `json:"original_val,omitempty"`
-	NewVal      T `json:"new_val,omitempty"`
+	OriginalVal T `json:"original_val"`
+	NewVal      T `json:"new_val"`
 }
 
 type Contracts struct {

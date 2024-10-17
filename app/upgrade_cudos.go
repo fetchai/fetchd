@@ -235,11 +235,11 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 func updateMaxValidators(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest, allowReductionOfMaxValidators bool) error {
 	params := app.StakingKeeper.GetParams(ctx)
 
-	if !allowReductionOfMaxValidators && cudosCfg.Config.NewMaxValidators < params.MaxValidators {
-		return fmt.Errorf("the NewMaxValidators config parameter (= %v) is smaller than the current value of MaxValidators in staking params (= %v)", cudosCfg.Config.NewMaxValidators, params.MaxValidators)
-	}
-
 	if cudosCfg.Config.NewMaxValidators != 0 && cudosCfg.Config.NewMaxValidators != params.MaxValidators {
+		if !allowReductionOfMaxValidators && cudosCfg.Config.NewMaxValidators < params.MaxValidators {
+			return fmt.Errorf("the NewMaxValidators config parameter (= %v) is smaller than the current value of MaxValidators in staking params (= %v)", cudosCfg.Config.NewMaxValidators, params.MaxValidators)
+		}
+
 		manifest.MaxValidatorsChange = &ParamsChange[uint32]{}
 
 		manifest.MaxValidatorsChange.OriginalVal = params.MaxValidators
