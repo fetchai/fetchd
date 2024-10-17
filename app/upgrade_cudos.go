@@ -212,10 +212,10 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed process accounts: %w", err)
 	}
 
-	err = updateActiveDelegatorsSet(app, ctx, cudosCfg, manifest)
+	err = updateMaxValidators(app, ctx, cudosCfg, manifest, false)
 	{
 		if err != nil {
-			return fmt.Errorf("cudos merge: failed to update active delegators set: %w", err)
+			return fmt.Errorf("cudos merge: failed to update active validators set: %w", err)
 		}
 	}
 
@@ -232,10 +232,13 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	return nil
 }
 
-func updateActiveDelegatorsSet(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
-
+func updateMaxValidators(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest, allowReductionOfMaxValidators bool) error {
 	params := app.StakingKeeper.GetParams(ctx)
 	manifest.OriginalMaxValidators = params.MaxValidators
+
+	if !allowReductionOfMaxValidators && cudosCfg.Config.NewMaxValidators < params.MaxValidators {
+		return fmt.Errorf("the NewMaxValidators config parameter (= %v) is smaller than the current value of MaxValidators in staking params (= %v)", cudosCfg.Config.NewMaxValidators, params.MaxValidators)
+	}
 
 	if cudosCfg.Config.NewMaxValidators != 0 {
 		params.MaxValidators = cudosCfg.Config.NewMaxValidators

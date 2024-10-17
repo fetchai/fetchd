@@ -86,8 +86,8 @@ var NetworkInfos = map[string]NetworkConfig{
 			VestingCollisionDestAddr:     "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			CommunityPoolBalanceDestAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
-			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
-			//NewMaxValidators: 80,
+			VestingPeriod:    3 * 30 * 24 * 60 * 60, // 3 months period
+			NewMaxValidators: 91,
 
 			BalanceConversionConstants: []Pair[string, sdk.Dec]{
 				{"acudos", newDec("118.344")},
@@ -154,8 +154,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			VestingCollisionDestAddr:     "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 			CommunityPoolBalanceDestAddr: "cudos1dslwarknhfsw3pfjzxxf5mn28q3ewfectw0gta",
 
-			VestingPeriod:    3 * 30 * 24 * 60 * 60, // 3 months period
-			NewMaxValidators: 80,
+			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
 
 			BalanceConversionConstants: []Pair[string, sdk.Dec]{
 				{"acudos", newDec("266.629")}},
