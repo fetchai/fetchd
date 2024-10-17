@@ -44,9 +44,10 @@ const (
 	PermanentLockedAccount   = "/cosmos.vesting.v1beta1.PermanentLockedAccount"
 	PeriodicVestingAccount   = "/cosmos.vesting.v1beta1.PeriodicVestingAccount"
 
-	UnbondedStatus  = "BOND_STATUS_UNBONDED"
-	UnbondingStatus = "BOND_STATUS_UNBONDING"
-	BondedStatus    = "BOND_STATUS_BONDED"
+	UnspecifiedBondStatus = "BOND_STATUS_UNSPECIFIED"
+	UnbondedStatus        = "BOND_STATUS_UNBONDED"
+	UnbondingStatus       = "BOND_STATUS_UNBONDING"
+	BondedStatus          = "BOND_STATUS_BONDED"
 
 	// Modules with balance
 	BondedPoolAccName    = "bonded_tokens_pool"
@@ -111,10 +112,12 @@ type GenesisData struct {
 	Prefix      string
 	BondDenom   string
 
-	Accounts    *OrderedMap[string, *AccountInfo]
-	Contracts   *OrderedMap[string, *ContractInfo]
-	IbcAccounts *OrderedMap[string, *IBCInfo]
-	Delegations *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	Accounts             *OrderedMap[string, *AccountInfo]
+	Contracts            *OrderedMap[string, *ContractInfo]
+	IbcAccounts          *OrderedMap[string, *IBCInfo]
+	Delegations          *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	UnbondedDelegations  *OrderedMap[string, *OrderedMap[string, sdk.Int]]
+	UnbondingDelegations *OrderedMap[string, *OrderedMap[string, sdk.Int]]
 
 	Validators           *OrderedMap[string, *ValidatorInfo]
 	BondedPoolAddress    string
@@ -272,9 +275,9 @@ func GetAccPrefix(jsonData map[string]interface{}) (string, error) {
 			continue
 		}
 
-		prefix, _, err := bech32.DecodeAndConvert(accountInfo.address)
+		prefix, _, err := bech32.DecodeAndConvert(accountInfo.Address)
 		if err != nil {
-			lastErr = fmt.Errorf("failed to decode address %s: %w", accountInfo.address, err)
+			lastErr = fmt.Errorf("failed to decode address %s: %w", accountInfo.Address, err)
 			continue
 		}
 
@@ -362,12 +365,17 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 		return nil, fmt.Errorf("failed to get validators map: %w", err)
 	}
 
-	genesisData.Delegations, err = parseGenesisDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
+	genesisData.Delegations, genesisData.UnbondedDelegations, err = parseGenesisDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get delegations map: %w", err)
 	}
 
-	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.Accounts)
+	genesisData.UnbondingDelegations, err = parseGenesisUnbondingDelegations(genesisData.Validators, genesisData.Contracts, cudosCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get unbonding delegations map: %w", err)
+	}
+
+	distributionInfo, err := parseGenesisDistribution(jsonData, genesisData.Accounts, genesisData.Validators)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get distribution module map: %w", err)
 	}
@@ -389,19 +397,19 @@ func ParseGenesisData(jsonData map[string]interface{}, genDoc *tmtypes.GenesisDo
 
 type AccountInfo struct {
 	// Base
-	pubkey     cryptotypes.PubKey
-	address    string
-	rawAddress sdk.AccAddress
+	Pubkey     cryptotypes.PubKey
+	Address    string
+	RawAddress sdk.AccAddress
 
 	// Bank
-	balance sdk.Coins
+	Balance sdk.Coins
 
 	// Module
-	name string
+	Name string
 
 	// BaseVesting
-	endTime         int64
-	originalVesting sdk.Coins
+	EndTime         int64
+	OriginalVesting sdk.Coins
 	//delegated_free
 	//delegated_vesting
 
@@ -409,24 +417,24 @@ type AccountInfo struct {
 	// --
 
 	// ContinuousVesting
-	startTime int64
+	StartTime int64
 
 	// Custom
-	accountType AccountType
-	migrated    bool
+	AccountType AccountType
+	Migrated    bool
 
-	rawAccData map[string]interface{}
+	RawAccData map[string]interface{}
 }
 
 func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountInfo *AccountInfo) error {
 	// Parse specific base vesting account types
-	accountInfo.endTime = cast.ToInt64(baseVestingAccData["end_time"].(string))
+	accountInfo.EndTime = cast.ToInt64(baseVestingAccData["end_time"].(string))
 
 	originalVesting, err := getCoinsFromInterfaceSlice(baseVestingAccData["original_vesting"].([]interface{}))
 	if err != nil {
 		return err
 	}
-	accountInfo.originalVesting = originalVesting
+	accountInfo.OriginalVesting = originalVesting
 
 	// Parse inner base account
 	baseAccData := baseVestingAccData["base_account"].(map[string]interface{})
@@ -439,9 +447,9 @@ func parseGenesisBaseVesting(baseVestingAccData map[string]interface{}, accountI
 }
 
 func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *AccountInfo) error {
-	accountInfo.address = baseAccData["address"].(string)
+	accountInfo.Address = baseAccData["address"].(string)
 
-	// Parse pubkey
+	// Parse Pubkey
 	var AccPubKey cryptotypes.PubKey
 	var err error
 	if pk, ok := baseAccData["pub_key"]; ok {
@@ -452,12 +460,12 @@ func parseGenesisBaseAccount(baseAccData map[string]interface{}, accountInfo *Ac
 			}
 		}
 	}
-	accountInfo.pubkey = AccPubKey
+	accountInfo.Pubkey = AccPubKey
 
 	// Get raw address
-	_, accRawAddr, err := bech32.DecodeAndConvert(accountInfo.address)
+	_, accRawAddr, err := bech32.DecodeAndConvert(accountInfo.Address)
 
-	accountInfo.rawAddress = accRawAddr
+	accountInfo.RawAddress = accRawAddr
 	if err != nil {
 		return err
 	}
@@ -481,7 +489,7 @@ func parseGenesisDelayedVestingAccount(accMap map[string]interface{}, accountInf
 func parseGenesisContinuousVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific continuous vesting stuff
 
-	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
+	accountInfo.StartTime = cast.ToInt64(accMap["start_time"].(string))
 
 	baseVestingAccData := accMap["base_vesting_account"].(map[string]interface{})
 	err := parseGenesisBaseVesting(baseVestingAccData, accountInfo)
@@ -504,7 +512,7 @@ func parseGenesisPermanentLockedAccount(accMap map[string]interface{}, accountIn
 
 func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific periodic stuff
-	accountInfo.startTime = cast.ToInt64(accMap["start_time"].(string))
+	accountInfo.StartTime = cast.ToInt64(accMap["start_time"].(string))
 
 	// parse periods
 	// Do we care?
@@ -520,7 +528,7 @@ func parseGenesisPeriodicVestingAccount(accMap map[string]interface{}, accountIn
 
 func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *AccountInfo) error {
 	// Specific module account values
-	accountInfo.name = accMap["name"].(string)
+	accountInfo.Name = accMap["name"].(string)
 
 	// parse inner base account
 	baseAccData := accMap["base_account"].(map[string]interface{})
@@ -533,7 +541,7 @@ func parseGenesisModuleAccount(accMap map[string]interface{}, accountInfo *Accou
 }
 
 func parseGenesisAccount(accMap map[string]interface{}) (*AccountInfo, error) {
-	accountInfo := AccountInfo{balance: sdk.NewCoins(), migrated: false, rawAccData: accMap}
+	accountInfo := AccountInfo{Balance: sdk.NewCoins(), Migrated: false, RawAccData: accMap}
 	accType := accMap["@type"]
 
 	// Extract base account and special values
@@ -542,37 +550,37 @@ func parseGenesisAccount(accMap map[string]interface{}) (*AccountInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = ModuleAccountType
+		accountInfo.AccountType = ModuleAccountType
 	} else if accType == DelayedVestingAccount {
 		err := parseGenesisDelayedVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = DelayedVestingAccountType
+		accountInfo.AccountType = DelayedVestingAccountType
 	} else if accType == ContinuousVestingAccount {
 		err := parseGenesisContinuousVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = ContinuousVestingAccountType
+		accountInfo.AccountType = ContinuousVestingAccountType
 	} else if accType == PermanentLockedAccount {
 		err := parseGenesisPermanentLockedAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = PermanentLockedAccountType
+		accountInfo.AccountType = PermanentLockedAccountType
 	} else if accType == PeriodicVestingAccount {
 		err := parseGenesisPeriodicVestingAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = PeriodicVestingAccountType
+		accountInfo.AccountType = PeriodicVestingAccountType
 	} else if accType == BaseAccount {
 		err := parseGenesisBaseAccount(accMap, &accountInfo)
 		if err != nil {
 			return nil, err
 		}
-		accountInfo.accountType = BaseAccountType
+		accountInfo.AccountType = BaseAccountType
 
 	} else {
 		return nil, fmt.Errorf("unknown account type %s", accType)
@@ -596,13 +604,13 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 		}
 
 		// Check if not contract or IBC type
-		if _, exists := contractAccountMap.Get(accountInfo.address); exists {
-			accountInfo.accountType = ContractAccountType
-		} else if _, exists := IBCAccountsMap.Get(accountInfo.address); exists {
-			accountInfo.accountType = IBCAccountType
+		if _, exists := contractAccountMap.Get(accountInfo.Address); exists {
+			accountInfo.AccountType = ContractAccountType
+		} else if _, exists := IBCAccountsMap.Get(accountInfo.Address); exists {
+			accountInfo.AccountType = IBCAccountType
 		}
 
-		accountMap.SetNew(accountInfo.address, accountInfo)
+		accountMap.SetNew(accountInfo.Address, accountInfo)
 	}
 
 	// Add balances to accounts map
@@ -614,22 +622,24 @@ func parseGenesisAccounts(jsonData map[string]interface{}, contractAccountMap *O
 	return accountMap, nil
 }
 
-func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
+func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], *OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
 	// Handle delegations
 	delegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+	unbondingDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+
 	for i := range validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
 
-		for j := range validator.delegations.Iterate() {
+		for j := range validator.Delegations.Iterate() {
 			delegatorAddress, delegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			currentValidatorInfo := validators.MustGet(validatorOperatorAddress)
-			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
+			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.Shares).TruncateInt()
 
 			if delegatorTokens.IsZero() {
 				// This happens when number of shares is less than 1
@@ -637,53 +647,97 @@ func parseGenesisDelegations(validators *OrderedMap[string, *ValidatorInfo], con
 			}
 
 			// Subtract balance from bonded or not-bonded pool
-			if currentValidatorInfo.status == BondedStatus {
+			if currentValidatorInfo.Status == BondedStatus {
 
 				// Store delegation to delegated map
 				resolvedDelegatorMap, _ := delegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
 				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
 				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
 				delegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
+			} else {
+
+				// Store delegation to delegated map
+				resolvedDelegatorMap, _ := unbondingDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+				resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
+				resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
+				unbondingDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
 			}
 		}
 	}
 
-	return delegatedBalanceMap, nil
+	return delegatedBalanceMap, unbondingDelegatedBalanceMap, nil
+}
+
+func parseGenesisUnbondingDelegations(validators *OrderedMap[string, *ValidatorInfo], contracts *OrderedMap[string, *ContractInfo], cudosCfg *CudosMergeConfig) (*OrderedMap[string, *OrderedMap[string, sdk.Int]], error) {
+	// Handle delegations
+	unbondingDelegatedBalanceMap := NewOrderedMap[string, *OrderedMap[string, sdk.Int]]()
+
+	for i := range validators.Iterate() {
+		validatorOperatorAddress, validator := i.Key, i.Value
+
+		for j := range validator.UnbondingDelegations.Iterate() {
+			delegatorAddress, delegation := j.Key, j.Value
+
+			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, contracts, cudosCfg)
+			if err != nil {
+				return nil, err
+			}
+
+			delegatorTokens := sdk.NewInt(0)
+
+			for _, entry := range delegation.Entries {
+				delegatorTokens = delegatorTokens.Add(entry.Balance)
+			}
+
+			if delegatorTokens.IsZero() {
+				// This happens when number of shares is less than 1
+				continue
+			}
+
+			// Store delegation to delegated map
+			resolvedDelegatorMap, _ := unbondingDelegatedBalanceMap.GetOrSetDefault(resolvedDelegatorAddress, NewOrderedMap[string, sdk.Int]())
+			resolvedDelegator, _ := resolvedDelegatorMap.GetOrSetDefault(validatorOperatorAddress, sdk.NewInt(0))
+			resolvedDelegatorMap.Set(validatorOperatorAddress, resolvedDelegator.Add(delegatorTokens))
+			unbondingDelegatedBalanceMap.Set(resolvedDelegatorAddress, resolvedDelegatorMap)
+		}
+	}
+
+	return unbondingDelegatedBalanceMap, nil
 }
 
 type DelegationInfo struct {
-	delegatorAddress string
-	shares           sdk.Dec
+	DelegatorAddress string
+	Shares           sdk.Dec
 }
 
 type UnbondingDelegationInfo struct {
-	delegatorAddress string
-	entries          []*UnbondingDelegationEntry
+	DelegatorAddress string
+	Entries          []*UnbondingDelegationEntry
 }
 
 type UnbondingDelegationEntry struct {
-	balance        sdk.Int
-	initialBalance sdk.Int
-	creationHeight uint64
-	completionTime string
+	Balance        sdk.Int
+	InitialBalance sdk.Int
+	CreationHeight uint64
+	CompletionTime string
 }
 
 type ValidatorInfo struct {
-	stake                sdk.Int
-	shares               sdk.Dec
-	status               string
-	operatorAddress      string
-	consensusPubkey      cryptotypes.PubKey
-	delegations          *OrderedMap[string, *DelegationInfo]
-	unbondingDelegations *OrderedMap[string, *UnbondingDelegationInfo]
+	Stake                sdk.Int
+	Shares               sdk.Dec
+	Status               string
+	OperatorAddress      string
+	ConsensusPubkey      cryptotypes.PubKey
+	Delegations          *OrderedMap[string, *DelegationInfo]
+	UnbondingDelegations *OrderedMap[string, *UnbondingDelegationInfo]
 }
 
 func (v ValidatorInfo) TokensFromShares(shares sdk.Dec) sdk.Dec {
-	return (shares.MulInt(v.stake)).Quo(v.shares)
+	return (shares.MulInt(v.Stake)).Quo(v.Shares)
 }
 
 func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string, *ValidatorInfo], error) {
-	// Validator pubkey hex -> ValidatorInfo
+	// Validator Pubkey hex -> ValidatorInfo
 	validatorInfoMap := NewOrderedMap[string, *ValidatorInfo]()
 
 	staking := jsonData[stakingtypes.ModuleName].(map[string]interface{})
@@ -716,13 +770,13 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 		}
 
 		validatorInfoMap.SetNew(operatorAddress, &ValidatorInfo{
-			stake:                tokensInt,
-			shares:               validatorSharesDec,
-			status:               status,
-			operatorAddress:      operatorAddress,
-			consensusPubkey:      decodedConsensusPubkey,
-			delegations:          NewOrderedMap[string, *DelegationInfo](),
-			unbondingDelegations: NewOrderedMap[string, *UnbondingDelegationInfo](),
+			Stake:                tokensInt,
+			Shares:               validatorSharesDec,
+			Status:               status,
+			OperatorAddress:      operatorAddress,
+			ConsensusPubkey:      decodedConsensusPubkey,
+			Delegations:          NewOrderedMap[string, *DelegationInfo](),
+			UnbondingDelegations: NewOrderedMap[string, *UnbondingDelegationInfo](),
 		})
 
 	}
@@ -740,7 +794,7 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.delegations.SetNew(delegatorAddress, &DelegationInfo{delegatorAddress: delegatorAddress, shares: delegatorSharesDec})
+		validator.Delegations.SetNew(delegatorAddress, &DelegationInfo{DelegatorAddress: delegatorAddress, Shares: delegatorSharesDec})
 	}
 
 	unbondingDelegations := staking["unbonding_delegations"].([]interface{})
@@ -769,11 +823,11 @@ func parseGenesisValidators(jsonData map[string]interface{}) (*OrderedMap[string
 
 			completionTime := entryMap["completion_time"].(string)
 
-			unbondingDelegationEntries = append(unbondingDelegationEntries, &UnbondingDelegationEntry{balance: balance, initialBalance: initialBalance, creationHeight: creationHeight, completionTime: completionTime})
+			unbondingDelegationEntries = append(unbondingDelegationEntries, &UnbondingDelegationEntry{Balance: balance, InitialBalance: initialBalance, CreationHeight: creationHeight, CompletionTime: completionTime})
 		}
 
 		validator := validatorInfoMap.MustGet(validatorAddress)
-		validator.unbondingDelegations.SetNew(delegatorAddress, &UnbondingDelegationInfo{delegatorAddress: delegatorAddress, entries: unbondingDelegationEntries})
+		validator.UnbondingDelegations.SetNew(delegatorAddress, &UnbondingDelegationInfo{DelegatorAddress: delegatorAddress, Entries: unbondingDelegationEntries})
 	}
 
 	return validatorInfoMap, nil
@@ -784,7 +838,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	for i := range genesisData.Validators.Iterate() {
 		validatorOperatorAddress, validator := i.Key, i.Value
 
-		for j := range validator.delegations.Iterate() {
+		for j := range validator.Delegations.Iterate() {
 			delegatorAddress, delegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.Contracts, cudosCfg)
@@ -793,7 +847,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			}
 
 			currentValidatorInfo := genesisData.Validators.MustGet(validatorOperatorAddress)
-			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.shares).TruncateInt()
+			delegatorTokens := currentValidatorInfo.TokensFromShares(delegation.Shares).TruncateInt()
 
 			// Move balance to delegator address
 			delegatorBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, delegatorTokens))
@@ -804,7 +858,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 			}
 
 			// Subtract balance from bonded or not-bonded pool
-			if currentValidatorInfo.status == BondedStatus {
+			if currentValidatorInfo.Status == BondedStatus {
 				// Move balance from bonded pool to delegator
 				err := moveGenesisBalance(genesisData, genesisData.BondedPoolAddress, resolvedDelegatorAddress, delegatorBalance, "bonded_delegation", manifest, cudosCfg)
 				if err != nil {
@@ -824,7 +878,7 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 		}
 
 		// Handle unbonding delegations
-		for j := range validator.unbondingDelegations.Iterate() {
+		for j := range validator.UnbondingDelegations.Iterate() {
 			delegatorAddress, unbondingDelegation := j.Key, j.Value
 
 			resolvedDelegatorAddress, err := resolveIfContractAddressWithFallback(delegatorAddress, genesisData.Contracts, cudosCfg)
@@ -832,8 +886,8 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 				return err
 			}
 
-			for _, entry := range unbondingDelegation.entries {
-				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, entry.balance))
+			for _, entry := range unbondingDelegation.Entries {
+				unbondingDelegationBalance := sdk.NewCoins(sdk.NewCoin(genesisData.BondDenom, entry.Balance))
 
 				// Move unbonding balance from not-bonded pool to delegator address
 				err := moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, resolvedDelegatorAddress, unbondingDelegationBalance, "unbonding_delegation", manifest, cudosCfg)
@@ -851,16 +905,16 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	bondedPool := genesisData.Accounts.MustGet(genesisData.BondedPoolAddress)
 
 	// TODO: Write to manifest?
-	err := checkTolerance(bondedPool.balance, maxToleratedRemainingStakingBalance)
+	err := checkTolerance(bondedPool.Balance, maxToleratedRemainingStakingBalance)
 	if err != nil {
-		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.balance.String())
+		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.Balance.String())
 	}
 
 	if logger != nil {
-		logger.Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.balance.String())
+		logger.Info("cudos merge: remaining bonded pool balance", "amount", bondedPool.Balance.String())
 	}
 
-	err = moveGenesisBalance(genesisData, genesisData.BondedPoolAddress, cudosCfg.Config.RemainingStakingBalanceAddr, bondedPool.balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
+	err = moveGenesisBalance(genesisData, genesisData.BondedPoolAddress, cudosCfg.Config.RemainingStakingBalanceAddr, bondedPool.Balance, "remaining_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -869,16 +923,16 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	notBondedPool := genesisData.Accounts.MustGet(genesisData.NotBondedPoolAddress)
 
 	// TODO: Write to manifest?
-	err = checkTolerance(notBondedPool.balance, maxToleratedRemainingStakingBalance)
+	err = checkTolerance(notBondedPool.Balance, maxToleratedRemainingStakingBalance)
 	if err != nil {
-		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.balance.String())
+		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.Balance.String())
 	}
 
 	if logger != nil {
-		logger.Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.balance.String())
+		logger.Info("cudos merge: remaining not-bonded pool balance", "amount", notBondedPool.Balance.String())
 	}
 
-	err = moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, cudosCfg.Config.RemainingStakingBalanceAddr, notBondedPool.balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
+	err = moveGenesisBalance(genesisData, genesisData.NotBondedPoolAddress, cudosCfg.Config.RemainingStakingBalanceAddr, notBondedPool.Balance, "remaining_not_bonded_pool_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -968,16 +1022,16 @@ func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisD
 	}
 
 	if cudosCfg.Config.CommunityPoolBalanceDestAddr == "" {
-		// If community pool balance destination address is not we move community pool balance to destination chain community pool
+		// If community pool balance destination Address is not we move community pool balance to destination chain community pool
 
-		// Mint balance to distribution leftover address
-		err = migrateToAccount(ctx, app, minttypes.ModuleName, RemainingDistributionBalanceAccount.rawAddress, communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
+		// Mint balance to distribution leftover Address
+		err = migrateToAccount(ctx, app, minttypes.ModuleName, RemainingDistributionBalanceAccount.RawAddress, communityPoolBalance, convertedCommunityPoolBalance, "community_pool_balance", manifest)
 		if err != nil {
 			return err
 		}
 
 		// Move balance to destination chain community pool
-		err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, RemainingDistributionBalanceAccount.rawAddress)
+		err = app.DistrKeeper.FundCommunityPool(ctx, convertedCommunityPoolBalance, RemainingDistributionBalanceAccount.RawAddress)
 		if err != nil {
 			return err
 		}
@@ -990,7 +1044,7 @@ func handleCommunityPoolBalance(ctx sdk.Context, app *App, genesisData *GenesisD
 
 	} else {
 		// If community pool destination balance is set we move community pool tokens there.
-		err = moveGenesisBalance(genesisData, RemainingDistributionBalanceAccount.address, cudosCfg.Config.CommunityPoolBalanceDestAddr, communityPoolBalance, "community_pool_balance", manifest, cudosCfg)
+		err = moveGenesisBalance(genesisData, RemainingDistributionBalanceAccount.Address, cudosCfg.Config.CommunityPoolBalanceDestAddr, communityPoolBalance, "community_pool_balance", manifest, cudosCfg)
 		if err != nil {
 			return fmt.Errorf("failed to move community pool balance %w", err)
 		}
@@ -1113,7 +1167,7 @@ func withdrawGenesisContractBalances(genesisData *GenesisData, manifest *Upgrade
 
 		contractBalance, contractBalancePresent := genesisData.Accounts.Get(contractAddress)
 		if contractBalancePresent {
-			err := moveGenesisBalance(genesisData, contractAddress, resolvedAddress, contractBalance.balance, "contract_balance", manifest, cudosCfg)
+			err := moveGenesisBalance(genesisData, contractAddress, resolvedAddress, contractBalance.Balance, "contract_balance", manifest, cudosCfg)
 			if err != nil {
 				return err
 			}
@@ -1155,15 +1209,15 @@ func ensureAccount(addrStr string, genesisAccountsMap *OrderedMap[string, *Accou
 		return nil
 	}
 
-	_, accRawAddress, err := bech32.DecodeAndConvert(addrStr)
+	_, accRawAddresss, err := bech32.DecodeAndConvert(addrStr)
 
 	if err != nil {
 		return err
 	}
 	accountInfoEntry := &AccountInfo{
-		rawAddress:  accRawAddress,
-		address:     addrStr,
-		accountType: BaseAccountType,
+		RawAddress:  accRawAddresss,
+		Address:     addrStr,
+		AccountType: BaseAccountType,
 	}
 
 	genesisAccountsMap.Set(addrStr, accountInfoEntry)
@@ -1185,7 +1239,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 
 		addr := balance.(map[string]interface{})["address"]
 		if addr == nil {
-			return fmt.Errorf("failed to get address")
+			return fmt.Errorf("failed to get Address")
 		}
 		addrStr := addr.(string)
 
@@ -1210,7 +1264,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 				return err
 			}
 			accountInfoEntry := genesisAccountsMap.MustGet(addrStr)
-			accountInfoEntry.balance = sdkBalance
+			accountInfoEntry.Balance = sdkBalance
 			genesisAccountsMap.Set(addrStr, accountInfoEntry)
 		}
 
@@ -1220,7 +1274,7 @@ func fillGenesisBalancesToAccountsMap(jsonData map[string]interface{}, genesisAc
 
 func genesisUpgradeWithdrawIBCChannelsBalances(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	if cudosCfg.Config.IbcTargetAddr == "" {
-		return fmt.Errorf("no IBC withdrawal address set")
+		return fmt.Errorf("no IBC withdrawal Address set")
 	}
 
 	ibcWithdrawalAddress := cudosCfg.Config.IbcTargetAddr
@@ -1237,7 +1291,7 @@ func genesisUpgradeWithdrawIBCChannelsBalances(genesisData *GenesisData, cudosCf
 		var channelBalance sdk.Coins
 		if IBCAccountExists {
 
-			channelBalance = IBCaccount.balance
+			channelBalance = IBCaccount.Balance
 			err := moveGenesisBalance(genesisData, IBCaccountAddress, ibcWithdrawalAddress, channelBalance, "ibc_balance", manifest, cudosCfg)
 			if err != nil {
 				return err
@@ -1475,7 +1529,7 @@ func decodePubKeyFromMap(pubKeyMap map[string]interface{}) (cryptotypes.PubKey, 
 func getNewBaseAccount(ctx sdk.Context, app *App, accountInfo *AccountInfo) (*authtypes.BaseAccount, error) {
 	// Create new account
 	newAccNumber := app.AccountKeeper.GetNextAccountNumber(ctx)
-	newBaseAccount := authtypes.NewBaseAccount(accountInfo.rawAddress, accountInfo.pubkey, newAccNumber, 0)
+	newBaseAccount := authtypes.NewBaseAccount(accountInfo.RawAddress, accountInfo.Pubkey, newAccNumber, 0)
 	return newBaseAccount, nil
 }
 
@@ -1526,11 +1580,11 @@ func markAccountAsMigrated(genesisData *GenesisData, accountAddress string) erro
 		return fmt.Errorf("genesis account %s not found", accountAddress)
 	}
 
-	if AccountInfoRecord.migrated {
+	if AccountInfoRecord.Migrated {
 		return fmt.Errorf("genesis account %s already migrated", accountAddress)
 	}
 
-	AccountInfoRecord.migrated = true
+	AccountInfoRecord.Migrated = true
 
 	genesisData.Accounts.Set(accountAddress, AccountInfoRecord)
 
@@ -1658,18 +1712,18 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 		return err
 	}
 
-	if toAcc := genesisData.Accounts.MustGet(toAddress); toAcc.migrated {
+	if toAcc := genesisData.Accounts.MustGet(toAddress); toAcc.Migrated {
 		return fmt.Errorf("genesis account %s already migrated", toAddress)
 	}
-	if fromAcc := genesisData.Accounts.MustGet(fromAddress); fromAcc.migrated {
+	if fromAcc := genesisData.Accounts.MustGet(fromAddress); fromAcc.Migrated {
 		return fmt.Errorf("genesis account %s already migrated", fromAddress)
 	}
 
 	genesisToBalance := genesisData.Accounts.MustGet(toAddress)
 	genesisFromBalance := genesisData.Accounts.MustGet(fromAddress)
 
-	genesisToBalance.balance = genesisToBalance.balance.Add(amount...)
-	genesisFromBalance.balance = genesisFromBalance.balance.Sub(amount)
+	genesisToBalance.Balance = genesisToBalance.Balance.Add(amount...)
+	genesisFromBalance.Balance = genesisFromBalance.Balance.Sub(amount)
 
 	genesisData.Accounts.Set(toAddress, genesisToBalance)
 	genesisData.Accounts.Set(fromAddress, genesisFromBalance)
@@ -1686,13 +1740,13 @@ func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk
 		return err
 	}
 
-	if toAcc := genesisData.Accounts.MustGet(toAddress); toAcc.migrated {
+	if toAcc := genesisData.Accounts.MustGet(toAddress); toAcc.Migrated {
 		return fmt.Errorf("genesis account %s already migrated", toAddress)
 	}
 
 	genesisToBalance := genesisData.Accounts.MustGet(toAddress)
 
-	genesisToBalance.balance = genesisToBalance.balance.Add(amount...)
+	genesisToBalance.Balance = genesisToBalance.Balance.Add(amount...)
 
 	genesisData.Accounts.Set(toAddress, genesisToBalance)
 
@@ -1704,15 +1758,15 @@ func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk
 func removeGenesisBalance(genesisData *GenesisData, address string, amount sdk.Coins, memo string, manifest *UpgradeManifest) error {
 	// Check if fromAddress exists
 	if _, ok := genesisData.Accounts.Get(address); !ok {
-		return fmt.Errorf("address %s does not exist in genesis balances", address)
+		return fmt.Errorf("Address %s does not exist in genesis balances", address)
 	}
 
-	if acc := genesisData.Accounts.MustGet(address); acc.migrated {
+	if acc := genesisData.Accounts.MustGet(address); acc.Migrated {
 		return fmt.Errorf("genesis account %s already migrated", address)
 	}
 
 	genesisAccount := genesisData.Accounts.MustGet(address)
-	genesisAccount.balance = genesisAccount.balance.Sub(amount)
+	genesisAccount.Balance = genesisAccount.Balance.Sub(amount)
 
 	genesisData.Accounts.Set(address, genesisAccount)
 
@@ -1726,7 +1780,7 @@ func GetAddressByName(genesisAccounts *OrderedMap[string, *AccountInfo], name st
 	for _, accAddress := range genesisAccounts.Keys() {
 		acc := genesisAccounts.MustGet(accAddress)
 
-		if acc.name == name {
+		if acc.Name == name {
 			return accAddress, nil
 		}
 
@@ -1746,7 +1800,7 @@ func checkDecTolerance(coins sdk.DecCoins, maxToleratedDiff sdk.Int) error {
 
 func withdrawGenesisGravity(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
-	gravityBalance := genesisData.Accounts.MustGet(genesisData.GravityModuleAccountAddress).balance
+	gravityBalance := genesisData.Accounts.MustGet(genesisData.GravityModuleAccountAddress).Balance
 	err := moveGenesisBalance(genesisData, genesisData.GravityModuleAccountAddress, cudosCfg.Config.RemainingGravityBalanceAddr, gravityBalance, "gravity_balance", manifest, cudosCfg)
 	if err != nil {
 		return err
@@ -1760,29 +1814,29 @@ func accountIToAccountInfo(existingAccount authtypes.AccountI) (*AccountInfo, er
 
 	// Get existing account type
 	if existingAccount != nil {
-		accountInfo.pubkey = existingAccount.GetPubKey()
-		accountInfo.rawAddress = existingAccount.GetAddress()
-		accountInfo.address = accountInfo.rawAddress.String()
+		accountInfo.Pubkey = existingAccount.GetPubKey()
+		accountInfo.RawAddress = existingAccount.GetAddress()
+		accountInfo.Address = accountInfo.RawAddress.String()
 
 		if periodicVestingAccount, ok := existingAccount.(*authvesting.PeriodicVestingAccount); ok {
-			accountInfo.accountType = PeriodicVestingAccountType
-			accountInfo.endTime = periodicVestingAccount.EndTime
-			accountInfo.originalVesting = periodicVestingAccount.OriginalVesting
+			accountInfo.AccountType = PeriodicVestingAccountType
+			accountInfo.EndTime = periodicVestingAccount.EndTime
+			accountInfo.OriginalVesting = periodicVestingAccount.OriginalVesting
 		} else if delayedVestingAccount, ok := existingAccount.(*authvesting.DelayedVestingAccount); ok {
-			accountInfo.accountType = DelayedVestingAccountType
-			accountInfo.endTime = delayedVestingAccount.EndTime
-			accountInfo.originalVesting = delayedVestingAccount.OriginalVesting
+			accountInfo.AccountType = DelayedVestingAccountType
+			accountInfo.EndTime = delayedVestingAccount.EndTime
+			accountInfo.OriginalVesting = delayedVestingAccount.OriginalVesting
 		} else if continuousVestingAccount, ok := existingAccount.(*authvesting.ContinuousVestingAccount); ok {
-			accountInfo.accountType = ContinuousVestingAccountType
-			accountInfo.endTime = continuousVestingAccount.EndTime
-			accountInfo.startTime = continuousVestingAccount.StartTime
-			accountInfo.originalVesting = continuousVestingAccount.OriginalVesting
+			accountInfo.AccountType = ContinuousVestingAccountType
+			accountInfo.EndTime = continuousVestingAccount.EndTime
+			accountInfo.StartTime = continuousVestingAccount.StartTime
+			accountInfo.OriginalVesting = continuousVestingAccount.OriginalVesting
 		} else if permanentLockedAccount, ok := existingAccount.(*authvesting.PermanentLockedAccount); ok {
-			accountInfo.accountType = PermanentLockedAccount
-			accountInfo.originalVesting = permanentLockedAccount.OriginalVesting
+			accountInfo.AccountType = PermanentLockedAccount
+			accountInfo.OriginalVesting = permanentLockedAccount.OriginalVesting
 		} else if _, ok := existingAccount.(*authtypes.BaseAccount); ok {
 			// Handle base account
-			accountInfo.accountType = BaseAccountType
+			accountInfo.AccountType = BaseAccountType
 		} else {
 			return nil, fmt.Errorf("unexpected account type")
 		}
@@ -1800,18 +1854,18 @@ func resolveNewBaseAccount(ctx sdk.Context, app *App, genesisAccount *AccountInf
 		// Handle collision
 
 		// Set pubkey from newAcc if is not in existingAccount
-		if existingAccount.GetPubKey() == nil && genesisAccount.pubkey != nil {
-			err := existingAccount.SetPubKey(genesisAccount.pubkey)
+		if existingAccount.GetPubKey() == nil && genesisAccount.Pubkey != nil {
+			err := existingAccount.SetPubKey(genesisAccount.Pubkey)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		if genesisAccount.pubkey != nil && existingAccount.GetPubKey() != nil && !existingAccount.GetPubKey().Equals(genesisAccount.pubkey) {
-			return nil, fmt.Errorf("account already exists with different pubkey: %s", genesisAccount.address)
+		if genesisAccount.Pubkey != nil && existingAccount.GetPubKey() != nil && !existingAccount.GetPubKey().Equals(genesisAccount.Pubkey) {
+			return nil, fmt.Errorf("account already exists with different Pubkey: %s", genesisAccount.Address)
 		}
 
-		newBaseAccount = authtypes.NewBaseAccount(genesisAccount.rawAddress, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
+		newBaseAccount = authtypes.NewBaseAccount(genesisAccount.RawAddress, existingAccount.GetPubKey(), existingAccount.GetAccountNumber(), existingAccount.GetSequence())
 
 	} else {
 
@@ -1837,7 +1891,7 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount *Accoun
 	if newBalance != nil {
 
 		// Account is not vesting
-		if cudosCfg.NotVestedAccounts.Has(genesisAccount.address) {
+		if cudosCfg.NotVestedAccounts.Has(genesisAccount.Address) {
 			err := createNewNormalAccountFromBaseAccount(ctx, app, newBaseAccount)
 			if err != nil {
 				return err
@@ -1850,7 +1904,7 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount *Accoun
 			}
 		}
 
-		err = migrateToAccount(ctx, app, genesisAccount.address, genesisAccount.rawAddress, genesisAccount.balance, newBalance, "regular_account", manifest)
+		err = migrateToAccount(ctx, app, genesisAccount.Address, genesisAccount.RawAddress, genesisAccount.Balance, newBalance, "regular_account", manifest)
 		if err != nil {
 			return err
 		}
@@ -1868,14 +1922,14 @@ func doRegularAccountMigration(ctx sdk.Context, app *App, genesisAccount *Accoun
 
 func doCollisionMigration(ctx sdk.Context, app *App, genesisData *GenesisData, genesisAccount *AccountInfo, existingAccount authtypes.AccountI, newBalance sdk.Coins, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 	// Keep existing account intact and move cudos balance to account specified in config
-	genesisData.CollisionMap.SetNew(genesisAccount.address, cudosCfg.Config.VestingCollisionDestAddr)
+	genesisData.CollisionMap.SetNew(genesisAccount.Address, cudosCfg.Config.VestingCollisionDestAddr)
 
 	_, destRawAddr, err := bech32.DecodeAndConvert(cudosCfg.Config.VestingCollisionDestAddr)
 	if err != nil {
 		return err
 	}
 
-	err = migrateToAccount(ctx, app, genesisAccount.address, destRawAddr, genesisAccount.balance, newBalance, "vesting_collision_account", manifest)
+	err = migrateToAccount(ctx, app, genesisAccount.Address, destRawAddr, genesisAccount.Balance, newBalance, "vesting_collision_account", manifest)
 	if err != nil {
 		return err
 	}
@@ -1905,7 +1959,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 
 	_, commissionRawAcc, err := bech32.DecodeAndConvert(cudosCfg.Config.CommissionFetchAddr)
 	if err != nil {
-		return fmt.Errorf("failed to get commission account raw address: %w", err)
+		return fmt.Errorf("failed to get commission account raw Address: %w", err)
 	}
 
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
@@ -1932,62 +1986,62 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	for _, genesisAccountAddress := range genesisData.Accounts.Keys() {
 		genesisAccount := genesisData.Accounts.MustGet(genesisAccountAddress)
 
-		if genesisAccount.accountType == ContractAccountType {
+		if genesisAccount.AccountType == ContractAccountType {
 			// All contracts balance should be handled already
-			if genesisAccount.balance.Empty() {
+			if genesisAccount.Balance.Empty() {
 				err = markAccountAsMigrated(genesisData, genesisAccountAddress)
 				if err != nil {
 					return err
 				}
 			} else {
-				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
+				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.Balance.String())
 			}
 			continue
 		}
-		if genesisAccount.accountType == ModuleAccountType {
-			if genesisAccount.balance.Empty() {
+		if genesisAccount.AccountType == ModuleAccountType {
+			if genesisAccount.Balance.Empty() {
 				err = markAccountAsMigrated(genesisData, genesisAccountAddress)
 				if err != nil {
 					return err
 				}
 			} else {
-				return fmt.Errorf("unresolved module balance: %s %s %s", genesisAccountAddress, genesisAccount.balance.String(), genesisAccount.name)
+				return fmt.Errorf("unresolved module balance: %s %s %s", genesisAccountAddress, genesisAccount.Balance.String(), genesisAccount.Name)
 			}
 			continue
 		}
 
-		if genesisAccount.accountType == IBCAccountType {
+		if genesisAccount.AccountType == IBCAccountType {
 			// All IBC balances should be handled already
-			if genesisAccount.balance.Empty() {
+			if genesisAccount.Balance.Empty() {
 				err = markAccountAsMigrated(genesisData, genesisAccountAddress)
 				if err != nil {
 					return err
 				}
 			} else {
-				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.balance.String())
+				return fmt.Errorf("unresolved contract balance: %s %s", genesisAccountAddress, genesisAccount.Balance.String())
 			}
 			continue
 		}
 
-		existingAccount := app.AccountKeeper.GetAccount(ctx, genesisAccount.rawAddress)
+		existingAccount := app.AccountKeeper.GetAccount(ctx, genesisAccount.RawAddress)
 		existingAccountInfo, err := accountIToAccountInfo(existingAccount)
 		if err != nil {
 			return err
 		}
 
 		// Get balance to mint
-		newBalance, err := convertBalance(app.StakingKeeper.BondDenom(ctx), genesisAccount.balance, cudosCfg)
+		newBalance, err := convertBalance(app.StakingKeeper.BondDenom(ctx), genesisAccount.Balance, cudosCfg)
 		if err != nil {
 			return err
 		}
 
 		// Handle all collision cases
 		regularMigration := true
-		if existingAccount != nil && existingAccountInfo.accountType != BaseAccountType {
+		if existingAccount != nil && existingAccountInfo.AccountType != BaseAccountType {
 			regularMigration = false
 		}
 
-		if genesisAccount.accountType != BaseAccountType {
+		if genesisAccount.AccountType != BaseAccountType {
 			regularMigration = false
 		}
 
@@ -2040,12 +2094,12 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 			return nil
 		}
 
-		if fromAcc.balance.IsZero() {
+		if fromAcc.Balance.IsZero() {
 			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "nothing_to_move_err", manifest)
 			return nil
 		}
 
-		fromAccTokensAmount := fromAcc.balance.AmountOfNoDenomValidation(genesisData.BondDenom)
+		fromAccTokensAmount := fromAcc.Balance.AmountOfNoDenomValidation(genesisData.BondDenom)
 
 		// Move entire balance if balance to move is 0 or greater than available balance
 		if accountMovement.Amount == nil || fromAccTokensAmount.LT(*accountMovement.Amount) {
