@@ -217,6 +217,7 @@ func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeMan
 		if account, exists := genesisData.Accounts.Get(address); exists {
 			upgradeBalance.BankBalance = account.Balance
 		}
+		upgradeBalances = append(upgradeBalances, upgradeBalance)
 
 	}
 
