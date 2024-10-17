@@ -215,6 +215,13 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: failed process accounts: %w", err)
 	}
 
+	err = updateMaxValidators(app, ctx, cudosCfg, manifest, false)
+	{
+		if err != nil {
+			return fmt.Errorf("cudos merge: failed to update active validators set: %w", err)
+		}
+	}
+
 	err = createGenesisDelegations(ctx, app, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
@@ -223,6 +230,28 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	err = verifySupply(app, ctx, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to verify supply: %w", err)
+	}
+
+	return nil
+}
+
+func updateMaxValidators(app *App, ctx sdk.Context, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest, allowReductionOfMaxValidators bool) error {
+	params := app.StakingKeeper.GetParams(ctx)
+
+	if cudosCfg.Config.NewMaxValidators != 0 && cudosCfg.Config.NewMaxValidators != params.MaxValidators {
+		if !allowReductionOfMaxValidators && cudosCfg.Config.NewMaxValidators < params.MaxValidators {
+			return fmt.Errorf("the NewMaxValidators config parameter (= %v) is smaller than the current value of MaxValidators in staking params (= %v)", cudosCfg.Config.NewMaxValidators, params.MaxValidators)
+		}
+
+		manifest.MaxValidatorsChange = &ParamsChange[uint32]{}
+
+		manifest.MaxValidatorsChange.OriginalVal = params.MaxValidators
+
+		params.MaxValidators = cudosCfg.Config.NewMaxValidators
+		// Set the new params
+		app.StakingKeeper.SetParams(ctx, params)
+
+		manifest.MaxValidatorsChange.NewVal = params.MaxValidators
 	}
 
 	return nil
