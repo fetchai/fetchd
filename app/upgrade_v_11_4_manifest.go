@@ -17,13 +17,14 @@ type UpgradeManifest struct {
 	InitialBalances []UpgradeBalances `json:"initial_balances,omitempty"`
 
 	// Following 2 hash data members are intentionally without `omitempty` parameter in `json:...` decorator
-	GenesisFileSha256           string `json:"genesis_file_sha256"`
-	NetworkConfigFileSha256     string `json:"network_config_file_sha256"`
-	MergeSourceChainID          string `json:"merge_source_chain_id"`
-	DestinationChainID          string `json:"destination_chain_id"`
-	SourceChainBlockHeight      int64  `json:"source_chain_block_height"`
-	DestinationChainBlockHeight int64  `json:"destination_chain_block_height"`
-	GovProposalUpgradePlanName  string `json:"gov_proposal_upgrade_plan_name"`
+	GenesisFileSha256           string                `json:"genesis_file_sha256"`
+	NetworkConfigFileSha256     string                `json:"network_config_file_sha256"`
+	MergeSourceChainID          string                `json:"merge_source_chain_id"`
+	DestinationChainID          string                `json:"destination_chain_id"`
+	SourceChainBlockHeight      int64                 `json:"source_chain_block_height"`
+	DestinationChainBlockHeight int64                 `json:"destination_chain_block_height"`
+	GovProposalUpgradePlanName  string                `json:"gov_proposal_upgrade_plan_name"`
+	MaxValidatorsChange         *ParamsChange[uint32] `json:"max_validators_change,omitempty"`
 
 	Reconciliation     *UpgradeReconciliation     `json:"reconciliation,omitempty"`
 	Contracts          *Contracts                 `json:"contracts,omitempty"`
@@ -39,6 +40,11 @@ type UpgradeManifest struct {
 
 func NewUpgradeManifest() *UpgradeManifest {
 	return &UpgradeManifest{}
+}
+
+type ParamsChange[T any] struct {
+	OriginalVal T `json:"original_val"`
+	NewVal      T `json:"new_val"`
 }
 
 type Contracts struct {
