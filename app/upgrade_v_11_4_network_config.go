@@ -86,7 +86,8 @@ var NetworkInfos = map[string]NetworkConfig{
 			VestingCollisionDestAddr:     "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			CommunityPoolBalanceDestAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
-			VestingPeriod: 3 * 30 * 24 * 60 * 60, // 3 months period
+			VestingPeriod:    3 * 30 * 24 * 60 * 60, // 3 months period
+			NewMaxValidators: 91,
 
 			BalanceConversionConstants: []Pair[string, sdk.Dec]{
 				{"acudos", newDec("118.344")},
@@ -330,7 +331,8 @@ type CudosMergeConfigJSON struct {
 	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
 	VestingCollisionDestAddr string `json:"vesting_collision_dest_addr"` // This gets converted to raw address, so it can be fetch or cudos address
 
-	VestingPeriod int64 `json:"vesting_period"` // Vesting period
+	VestingPeriod    int64  `json:"vesting_period"`               // Vesting period
+	NewMaxValidators uint32 `json:"new_max_validators,omitempty"` // Set new value for staking params max validators
 
 	BalanceConversionConstants []Pair[string, sdk.Dec] `json:"balance_conversion_constants,omitempty"`
 
