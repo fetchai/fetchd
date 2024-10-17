@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"io"
 	"os"
 	"path"
 )
@@ -252,6 +253,30 @@ func SaveManifestToPath(manifest *UpgradeManifest, manifestFilePath string) erro
 	}
 
 	return nil
+}
+
+func LoadManifestFromPath(manifestFilePath string) (*UpgradeManifest, error) {
+	var manifest UpgradeManifest
+
+	// Open the file
+	file, err := os.Open(manifestFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file \"%s\": %w", manifestFilePath, err)
+	}
+	defer file.Close()
+
+	// Read the file contents
+	fileContents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file \"%s\": %w", manifestFilePath, err)
+	}
+
+	// Unmarshal the JSON content into the manifest
+	if err := json.Unmarshal(fileContents, &manifest); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal manifest from file \"%s\": %w", manifestFilePath, err)
+	}
+
+	return &manifest, nil
 }
 
 func RegisterVestingCollision(manifest *UpgradeManifest, originalAccount *AccountInfo, targetAccountFunds types.Coins, targetAccount authtypes.AccountI) error {
