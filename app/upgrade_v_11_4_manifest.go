@@ -13,6 +13,9 @@ import (
 const manifestFilenameBase = "upgrade_manifest.json"
 
 type UpgradeManifest struct {
+	MovedBalances   []UpgradeBalances `json:"moved_balances,omitempty"`
+	InitialBalances []UpgradeBalances `json:"initial_balances,omitempty"`
+
 	// Following 2 hash data members are intentionally without `omitempty` parameter in `json:...` decorator
 	GenesisFileSha256           string `json:"genesis_file_sha256"`
 	NetworkConfigFileSha256     string `json:"network_config_file_sha256"`
@@ -176,6 +179,17 @@ type UpgradeCreatedAccounts struct {
 type UpgradeAccountCreation struct {
 	Address string `json:"address"`
 	Reason  string `json:"reason"`
+}
+
+type UpgradeBalances struct {
+	Address                 string      `json:"address"`
+	BankBalance             types.Coins `json:"bank_balance"`
+	VestedBalance           types.Coins `json:"vested_balance,omitempty"`
+	BondedStakingBalance    types.Coins `json:"bonded_staking_balance,omitempty"`
+	UnbondedStakingBalance  types.Coins `json:"unbonded_staking_balance,omitempty"`
+	UnbondingStakingBalance types.Coins `json:"unbonding_staking_balance,omitempty"`
+	DistributionRewards     types.Coins `json:"distribution_rewards,omitempty"`
+	Memo                    string      `json:"memo,omitempty"`
 }
 
 // app.UpgradeKeeper.GetUpgradeInfoPath()
