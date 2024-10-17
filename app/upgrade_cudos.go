@@ -164,7 +164,12 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 }
 
 func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
-	err := genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
+	err := writeInitialBalancesToManifest(genesisData, manifest)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to write initial balances to manifest: %w", err)
+	}
+
+	err = genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw IBC channels balances: %w", err)
 	}
@@ -192,6 +197,11 @@ func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, 
 	err = DoGenesisAccountMovements(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to move funds: %w", err)
+	}
+
+	err = writeMovedBalancesToManifest(genesisData, manifest)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to write moved balances to manifest")
 	}
 
 	return nil
@@ -294,12 +304,7 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 		return fmt.Errorf("cudos merge: cudos path not set")
 	}
 
-	err := writeInitialBalancesToManifest(genesisData, manifest)
-	if err != nil {
-		return fmt.Errorf("cudos merge: failed to write initial balances to manifest: %w", err)
-	}
-
-	err = ProcessSourceNetworkGenesis(app.Logger(), cudosCfg, genesisData, manifest)
+	err := ProcessSourceNetworkGenesis(app.Logger(), cudosCfg, genesisData, manifest)
 	if err != nil {
 		return err
 	}
@@ -312,11 +317,6 @@ func CudosMergeUpgradeHandler(app *App, ctx sdk.Context, cudosCfg *CudosMergeCon
 	err = createGenesisDelegations(ctx, app, genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed process delegations: %w", err)
-	}
-
-	err = writeMovedBalancesToManifest(genesisData, manifest)
-	if err != nil {
-		return fmt.Errorf("cudos merge: failed to write moved balances to manifest")
 	}
 
 	err = verifySupply(app, ctx, cudosCfg, manifest)
