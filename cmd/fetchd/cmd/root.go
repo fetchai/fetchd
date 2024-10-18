@@ -135,6 +135,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		AddGenesisWasmMsgCmd(app.DefaultNodeHome),
+		utilCommand(),
 	)
 
 	a := appCreator{encodingConfig}
@@ -153,6 +154,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 func addModuleInitFlags(startCmd *cobra.Command) {
 	crisis.AddModuleInitFlags(startCmd)
 	wasm.AddModuleInitFlags(startCmd)
+	AddCudosFlags(startCmd)
 }
 
 func queryCommand() *cobra.Command {
@@ -247,6 +249,10 @@ func (a appCreator) newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, a
 		logger, db, traceStore, true, skipUpgradeHeights,
 		cast.ToString(appOpts.Get(flags.FlagHome)),
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
+		cast.ToString(appOpts.Get(FlagCudosGenesisPath)),
+		cast.ToString(appOpts.Get(FlagCudosMigrationConfigPath)),
+		cast.ToString(appOpts.Get(FlagCudosGenesisSha256)),
+		cast.ToString(appOpts.Get(FlagCudosMigrationConfigSha256)),
 		a.encCfg,
 		app.GetEnabledProposals(),
 		appOpts,
@@ -287,6 +293,10 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
+			"",
+			"",
+			"",
+			"",
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,
@@ -305,6 +315,10 @@ func (a appCreator) appExport(
 			map[int64]bool{},
 			homePath,
 			uint(1),
+			"",
+			"",
+			"",
+			"",
 			a.encCfg,
 			app.GetEnabledProposals(),
 			appOpts,

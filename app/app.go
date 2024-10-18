@@ -86,7 +86,7 @@ import (
 	icahostkeeper "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/keeper"
 	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
-	transfer "github.com/cosmos/ibc-go/v3/modules/apps/transfer"
+	"github.com/cosmos/ibc-go/v3/modules/apps/transfer"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v3/modules/core"
@@ -217,6 +217,11 @@ type App struct {
 
 	invCheckPeriod uint
 
+	cudosGenesisPath           string
+	cudosGenesisSha256         string
+	cudosMigrationConfigPath   string
+	cudosMigrationConfigSha256 string
+
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
 	tkeys   map[string]*sdk.TransientStoreKey
@@ -256,7 +261,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosGenesisPath string, cudosMigrationConfigPath string, cudosGenesisSha256 string, cudosMigrationConfigSha256 string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -280,14 +285,18 @@ func New(
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
 	app := &App{
-		BaseApp:           bApp,
-		legacyAmino:       legacyAmino,
-		appCodec:          appCodec,
-		interfaceRegistry: interfaceRegistry,
-		invCheckPeriod:    invCheckPeriod,
-		keys:              keys,
-		tkeys:             tkeys,
-		memKeys:           memKeys,
+		BaseApp:                    bApp,
+		legacyAmino:                legacyAmino,
+		appCodec:                   appCodec,
+		interfaceRegistry:          interfaceRegistry,
+		invCheckPeriod:             invCheckPeriod,
+		cudosGenesisPath:           cudosGenesisPath,
+		cudosGenesisSha256:         cudosGenesisSha256,
+		cudosMigrationConfigPath:   cudosMigrationConfigPath,
+		cudosMigrationConfigSha256: cudosMigrationConfigSha256,
+		keys:                       keys,
+		tkeys:                      tkeys,
+		memKeys:                    memKeys,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tkeys[paramstypes.TStoreKey])
@@ -718,95 +727,122 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
+func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest, expectedChainIdOfMergeSourceGenesis string) (*NetworkConfig, error) {
+	// Load network config from file if given
+	var networkInfo *NetworkConfig
+	var err error
+	if app.cudosMigrationConfigPath != "" {
+		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "expected sha256", app.cudosMigrationConfigSha256)
+
+		networkInfo, err = LoadAndVerifyNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
+		if err != nil {
+			return nil, err
+		}
+
+		if networkInfo.MergeSourceChainID != expectedChainIdOfMergeSourceGenesis {
+			return nil, fmt.Errorf("mismatch of Merge Source ChainID: the \"merge_source_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id from input merge source genesis json file, which is \"%s\"", networkInfo.MergeSourceChainID, expectedChainIdOfMergeSourceGenesis)
+		}
+		if networkInfo.DestinationChainID != ctx.ChainID() {
+			return nil, fmt.Errorf("mismatch of Destination ChainID: the \"destination_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id of the current running chain, which is \"%s\"", networkInfo.DestinationChainID, ctx.ChainID())
+		}
+
+		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
+
+		// Config file not given, config from hardcoded map
+	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
+		app.Logger().Info("cudos merge: loading network from map", "chain", ctx.ChainID())
+		manifest.NetworkConfigFileSha256 = "config map"
+		networkInfo = &info
+
+	} else {
+		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
+	}
+
+	return networkInfo, nil
+}
+
+func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *UpgradeManifest) (*GenesisData, *NetworkConfig, error) {
+
+	cudosJsonData, cudosGenDoc, err := LoadCudosGenesis(app, manifest)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load genesis data: %w", err)
+	}
+
+	networkInfo, err := getNetworkInfo(app, ctx, manifest, cudosGenDoc.ChainID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load network config: %w", err)
+	}
+
+	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
+
+	genesisData, err := ParseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
+	}
+
+	return genesisData, networkInfo, nil
+}
+
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	const municipalInflationTargetAddress = "fetch1n8d5466h8he33uedc0vsgtahal0mrz55glre03"
-
-	// NOTE(pb): The `fetchd-v0.10.7` upgrade handler *MUST* be present due to the mainnent, where this is the *LAST*
-	//           executed upgrade. Presence of this handler is enforced by the `x/upgrade/abci.go#L31-L40` (see the
-	// https://github.com/fetchai/cosmos-sdk/blob/09cf7baf4297a30acd8d09d9db7dd97d79ffe008/x/upgrade/abci.go#L31-L40).
-	app.UpgradeKeeper.SetUpgradeHandler("fetchd-v0.10.7", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
-	// NOTE(pb): The `v0.11.2` upgrade handler *MUST* be present due to Dorado-1 testnet, where this is the *LAST*
-	//           executed upgrade. Please see the details in the NOTE above.
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.2", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		mobixInfl, err := sdk.NewDecFromStr("0.03")
-		if err != nil {
-			return module.VersionMap{}, err
-		}
-		minter := app.MintKeeper.GetMinter(ctx)
-		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: minttypes.NewMunicipalInflation(municipalInflationTargetAddress, mobixInfl)},
-		}
-
-		app.MintKeeper.SetMinter(ctx, minter)
-
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
 	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		// Introducing the NOMX token **IF** it does not exist yet:
-		const nomxDenom = "nanonomx"
-		const nomxName = "NOMX"
-		const nomxSupply = 1000000000000000000 // = 10^18 < 2^63 (max(int64))
-		if !app.BankKeeper.HasSupply(ctx, nomxDenom) {
-			coinsToMint := sdk.NewCoins(sdk.NewInt64Coin(nomxDenom, nomxSupply))
-			app.MintKeeper.MintCoins(ctx, coinsToMint)
-
-			acc, err := sdk.AccAddressFromBech32(municipalInflationTargetAddress)
-			if err != nil {
-				panic(err)
-			}
-
-			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, acc, coinsToMint)
-			if err != nil {
-				panic(err)
-			}
-
-			ctx.EventManager().EmitEvent(
-				sdk.NewEvent(
-					minttypes.EventTypeMunicipalMint,
-					sdk.NewAttribute(minttypes.AttributeKeyDenom, nomxDenom),
-					sdk.NewAttribute(minttypes.AttributeKeyTargetAddr, municipalInflationTargetAddress),
-					sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
-				),
-			)
-
-			nomxMetadata := banktypes.Metadata{
-				Base:        nomxDenom,
-				Name:        nomxName,
-				Symbol:      nomxName,
-				Display:     nomxName,
-				Description: nomxName + " token",
-				DenomUnits: []*banktypes.DenomUnit{
-					{Denom: nomxName, Exponent: 9, Aliases: nil},
-					{Denom: "mnomx", Exponent: 6, Aliases: nil},
-					{Denom: "unomx", Exponent: 3, Aliases: nil},
-					{Denom: nomxDenom, Exponent: 0, Aliases: nil},
-				},
-			}
-
-			app.BankKeeper.SetDenomMetaData(ctx, nomxMetadata)
-		}
-
-		// Municipal Inflation for MOBX & NOMX tokens:
-		inflation, err := sdk.NewDecFromStr("0.03")
-		if err != nil {
-			return module.VersionMap{}, err
-		}
-
-		minter := app.MintKeeper.GetMinter(ctx)
-		municipalInflation := minttypes.NewMunicipalInflation(municipalInflationTargetAddress, inflation)
-		minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-			{Denom: "nanomobx", Inflation: municipalInflation},
-			{Denom: nomxDenom, Inflation: municipalInflation},
-		}
-
-		app.MintKeeper.SetMinter(ctx, minter)
-
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
+
+	app.UpgradeKeeper.SetUpgradeHandler("v0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+
+		manifest := NewUpgradeManifest()
+
+		cudosGenesisData, networkInfo, err := LoadAndParseMergeSourceInputFiles(app, ctx, manifest)
+		if err != nil {
+			return nil, fmt.Errorf("cudos merge: %w", err)
+		}
+
+		manifest.DestinationChainBlockHeight = ctx.BlockHeight()
+		manifest.DestinationChainID = ctx.ChainID()
+
+		manifest.GovProposalUpgradePlanName = plan.Name
+
+		err = app.DeleteContractStates(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.UpgradeContractAdmins(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractLabels(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ChangeContractVersions(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = app.ProcessReconciliation(ctx, networkInfo, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
+		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, cudosGenesisData, manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		err = SaveManifest(app, manifest, plan.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		// End of migration
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
+
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
