@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/fetchai/fetchd/app"
 	"github.com/spf13/cobra"
@@ -89,6 +90,32 @@ It checks whether the network merge config file conforms to expected schema - pr
 	networkMergeCmd.AddCommand(cmd)
 }
 
+func AddCommandExtractAddressInfo(networkMergeCmd *cobra.Command) {
+	cmd := &cobra.Command{
+		Use:   "extract-address-info [network_merge_config_json_file_path] [source_chain_genesis_json_file_path] [address]",
+		Short: "Extracts balance information for a specific address",
+		Long: `This command retrieves all balance information for a given address, including the amount delegated to validators, rewards, and other relevant data.
+It utilizes the provided network merge config and genesis JSON files to perform the extraction and display the results.`,
+		Args: cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := client.GetClientContextFromCmd(cmd)
+
+			configFilePath := args[0]
+			GenesisFilePath := args[1]
+			address := args[2]
+
+			// Call a function to extract address info
+			err := ExtractAddressInfo(configFilePath, GenesisFilePath, address, ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	networkMergeCmd.AddCommand(cmd)
+}
+
 func utilNetworkMergeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        "network-merge",
@@ -99,6 +126,7 @@ func utilNetworkMergeCommand() *cobra.Command {
 	}
 
 	AddCommandVerify(cmd)
+	AddCommandExtractAddressInfo(cmd)
 	return cmd
 }
 
@@ -233,6 +261,155 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func ExtractAddressInfo(configFilePath string, GenesisFilePath string, address string, ctx client.Context) error {
+	manifest := app.NewUpgradeManifest()
+
+	networkInfo, _, err := app.LoadNetworkConfigFromFile(configFilePath)
+	if err != nil {
+		return err
+	}
+
+	cudosConfig := app.NewCudosMergeConfig(networkInfo.CudosMerge)
+	genesisData, err := LoadGenesisDataFromFile(GenesisFilePath, cudosConfig, manifest)
+	if err != nil {
+		return err
+	}
+
+	err = printAccInfo(genesisData, address, ctx)
+	if err != nil {
+		return err
+	}
+
+	/*
+		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+		err = app.ProcessSourceNetworkGenesis(logger, cudosConfig, genesisData, manifest)
+		if err != nil {
+			return err
+		}
+	*/
+
+	return nil
+}
+
+func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Context) error {
+	totalAvailableBalance := sdk.NewCoins()
+
+	accountInfo, exists := genesisData.Accounts.Get(address)
+	if !exists {
+		err := ctx.PrintString(fmt.Sprintf("Account %s doesn't exist\n", address))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	err := ctx.PrintString(fmt.Sprintf("Account type: %s\n", accountInfo.AccountType))
+	if err != nil {
+		return err
+	}
+
+	if accountInfo.Name != "" {
+		err = ctx.PrintString(fmt.Sprintf("Account name: %s\n", accountInfo.Name))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !accountInfo.OriginalVesting.IsZero() {
+		err = ctx.PrintString(fmt.Sprintf("Vested balance: %s\n", accountInfo.OriginalVesting))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Get bank balance
+	totalAvailableBalance = totalAvailableBalance.Add(accountInfo.Balance...)
+	err = ctx.PrintString(fmt.Sprintf("Bank balance: %s\n", accountInfo.Balance))
+	if err != nil {
+		return err
+	}
+
+	// Bonded tokens
+	err = ctx.PrintString("Balance in delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.Delegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Unbonding tokens
+	err = ctx.PrintString("Balance in unbonding delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.UnbondingDelegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Unbonded tokens
+	err = ctx.PrintString("Balance in unbonded delegations:\n")
+	if err != nil {
+		return err
+	}
+	if delegations, exists := genesisData.UnbondedDelegations.Get(address); exists {
+		for i := range delegations.Iterate() {
+			validatorAddress, delegatedAmount := i.Key, i.Value
+			delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+			totalAvailableBalance = totalAvailableBalance.Add(delegatedBalance)
+			err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorAddress, delegatedBalance))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Get distribution module rewards
+	err = ctx.PrintString("Rewards:\n")
+	if err != nil {
+		return err
+	}
+
+	if DelegatorRewards, exists := genesisData.DistributionInfo.Rewards.Get(address); exists {
+		for j := range DelegatorRewards.Iterate() {
+			validatorOperatorAddr, rewardDecAmount := j.Key, j.Value
+			rewardAmount, _ := rewardDecAmount.TruncateDecimal()
+			if !rewardAmount.IsZero() {
+				totalAvailableBalance = totalAvailableBalance.Add(rewardAmount...)
+
+				err = ctx.PrintString(fmt.Sprintf("%s, %s\n", validatorOperatorAddr, rewardAmount))
+				if err != nil {
+					return err
+				}
+			}
+
+		}
+	}
+
+	err = ctx.PrintString(fmt.Sprintf("Total available balance: %s\n", totalAvailableBalance))
+	if err != nil {
+		return err
 	}
 
 	return nil
