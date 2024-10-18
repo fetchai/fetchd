@@ -127,6 +127,15 @@ func (om *OrderedMap[K, V]) Keys() []K {
 	return om.keys
 }
 
+func (om *OrderedMap[K, V]) SafeKeys() []K {
+	// Create a new slice with the same length
+	clonedSlice := make([]K, len(om.keys))
+
+	// Copy the elements
+	copy(clonedSlice, om.keys)
+	return clonedSlice
+}
+
 // PrintOrdered prints the map in current order
 func (om *OrderedMap[K, V]) PrintOrdered() {
 	for _, key := range om.keys {

@@ -2032,9 +2032,11 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 
 		// Handle delegations movement
 		remainingAmountToMove := sdk.NewIntFromBigInt(accountMovement.Amount.BigInt())
+
 		if sourceDelegations, exists := genesisData.Delegations.Get(accountMovement.SourceAddress); exists {
-			for i := range sourceDelegations.Iterate() {
-				validatorAddr, delegatedAmount := i.Key, i.Value
+			// We iterate and delete from source array at the same time
+			for _, validatorAddr := range sourceDelegations.SafeKeys() {
+				delegatedAmount := sourceDelegations.MustGet(validatorAddr)
 
 				if delegatedAmount.GTE(remainingAmountToMove) {
 					// Split delegation
