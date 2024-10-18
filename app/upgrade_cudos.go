@@ -127,7 +127,8 @@ type GenesisData struct {
 
 	GravityModuleAccountAddress string
 
-	CollisionMap *OrderedMap[string, string]
+	CollisionMap  *OrderedMap[string, string]
+	MovedAccounts *OrderedMap[string, bool]
 }
 
 func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interface{}, *tmtypes.GenesisDoc, error) {
@@ -163,7 +164,12 @@ func LoadCudosGenesis(app *App, manifest *UpgradeManifest) (*map[string]interfac
 }
 
 func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, genesisData *GenesisData, manifest *UpgradeManifest) error {
-	err := genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
+	err := writeInitialBalancesToManifest(genesisData, manifest)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to write initial balances to manifest: %w", err)
+	}
+
+	err = genesisUpgradeWithdrawIBCChannelsBalances(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to withdraw IBC channels balances: %w", err)
 	}
@@ -192,6 +198,100 @@ func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, 
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to move funds: %w", err)
 	}
+
+	err = writeMovedBalancesToManifest(genesisData, manifest)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to write moved balances to manifest")
+	}
+
+	return nil
+}
+
+func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeManifest) error {
+	var upgradeBalances []UpgradeBalances
+
+	for _, address := range genesisData.MovedAccounts.Keys() {
+		var upgradeBalance UpgradeBalances
+		upgradeBalance.Address = address
+
+		if account, exists := genesisData.Accounts.Get(address); exists {
+			upgradeBalance.BankBalance = account.Balance
+		}
+		upgradeBalances = append(upgradeBalances, upgradeBalance)
+
+	}
+
+	manifest.MovedBalances = upgradeBalances
+
+	return nil
+}
+
+func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeManifest) error {
+	var upgradeBalances []UpgradeBalances
+
+	for i := range genesisData.Accounts.Iterate() {
+		address, account := i.Key, i.Value
+
+		var upgradeBalance UpgradeBalances
+		upgradeBalance.Address = address
+
+		// Bank balance
+		upgradeBalance.BankBalance = account.Balance
+
+		if account.OriginalVesting != nil {
+			upgradeBalance.VestedBalance = account.OriginalVesting
+		}
+
+		// Bonded tokens
+		if delegations, exists := genesisData.Delegations.Get(address); exists {
+			totalBalance := sdk.Coins{}
+			for i := range delegations.Iterate() {
+				_, delegatedAmount := i.Key, i.Value
+				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+				totalBalance = totalBalance.Add(delegatedBalance)
+			}
+			upgradeBalance.BondedStakingBalance = totalBalance
+		}
+
+		// Unbonding tokens
+		if delegations, exists := genesisData.UnbondingDelegations.Get(address); exists {
+			totalBalance := sdk.Coins{}
+			for i := range delegations.Iterate() {
+				_, delegatedAmount := i.Key, i.Value
+				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+				totalBalance = totalBalance.Add(delegatedBalance)
+			}
+			upgradeBalance.UnbondingStakingBalance = totalBalance
+		}
+
+		// Unbonded tokens
+		if delegations, exists := genesisData.UnbondedDelegations.Get(address); exists {
+			totalBalance := sdk.Coins{}
+			for i := range delegations.Iterate() {
+				_, delegatedAmount := i.Key, i.Value
+				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+				totalBalance = totalBalance.Add(delegatedBalance)
+			}
+			upgradeBalance.UnbondedStakingBalance = totalBalance
+		}
+
+		// Get distribution module rewards
+		if DelegatorRewards, exists := genesisData.DistributionInfo.Rewards.Get(address); exists {
+			totalBalance := sdk.Coins{}
+			for j := range DelegatorRewards.Iterate() {
+				_, rewardDecAmount := j.Key, j.Value
+				rewardAmount, _ := rewardDecAmount.TruncateDecimal()
+				if !rewardAmount.IsZero() {
+					totalBalance = totalBalance.Add(rewardAmount...)
+				}
+			}
+			upgradeBalance.DistributionRewards = totalBalance
+		}
+
+		upgradeBalances = append(upgradeBalances, upgradeBalance)
+	}
+
+	manifest.InitialBalances = upgradeBalances
 
 	return nil
 }
@@ -1591,7 +1691,7 @@ func markAccountAsMigrated(genesisData *GenesisData, accountAddress string) erro
 	return nil
 }
 
-func registerBalanceMovement(fromAddress, toAddress string, sourceAmount sdk.Coins, destAmount sdk.Coins, memo string, manifest *UpgradeManifest) {
+func registerMintedBalanceMovement(fromAddress, toAddress string, sourceAmount sdk.Coins, destAmount sdk.Coins, memo string, manifest *UpgradeManifest) {
 
 	if manifest.MoveMintedBalance == nil {
 		manifest.MoveMintedBalance = &UpgradeMoveMintedBalance{}
@@ -1700,6 +1800,13 @@ func registerManifestBalanceMovement(fromAddress, toAddress string, amount sdk.C
 
 }
 
+func markAccountBalanceAsMoved(genesisData *GenesisData, address string) {
+	if genesisData.MovedAccounts == nil {
+		genesisData.MovedAccounts = NewOrderedMap[string, bool]()
+	}
+	genesisData.MovedAccounts.Set(address, true)
+}
+
 func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string, amount sdk.Coins, memo string, manifest *UpgradeManifest, cudosCfg *CudosMergeConfig) error {
 	// Check if fromAddress exists
 	if _, ok := genesisData.Accounts.Get(fromAddress); !ok {
@@ -1728,6 +1835,8 @@ func moveGenesisBalance(genesisData *GenesisData, fromAddress, toAddress string,
 	genesisData.Accounts.Set(toAddress, genesisToBalance)
 	genesisData.Accounts.Set(fromAddress, genesisFromBalance)
 
+	markAccountBalanceAsMoved(genesisData, fromAddress)
+	markAccountBalanceAsMoved(genesisData, toAddress)
 	registerManifestBalanceMovement(fromAddress, toAddress, amount, memo, manifest)
 
 	return nil
@@ -1750,6 +1859,7 @@ func createGenesisBalance(genesisData *GenesisData, toAddress string, amount sdk
 
 	genesisData.Accounts.Set(toAddress, genesisToBalance)
 
+	markAccountBalanceAsMoved(genesisData, toAddress)
 	registerManifestBalanceMovement("", toAddress, amount, memo, manifest)
 
 	return nil
@@ -1770,6 +1880,7 @@ func removeGenesisBalance(genesisData *GenesisData, address string, amount sdk.C
 
 	genesisData.Accounts.Set(address, genesisAccount)
 
+	markAccountBalanceAsMoved(genesisData, address)
 	registerManifestBalanceMovement(address, "", amount, memo, manifest)
 
 	return nil
