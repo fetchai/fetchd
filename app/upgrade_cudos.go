@@ -2035,7 +2035,7 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 
 		if sourceDelegations, exists := genesisData.Delegations.Get(accountMovement.SourceAddress); exists {
 			// We iterate and delete from source array at the same time
-			for _, validatorAddr := range sourceDelegations.SafeKeys() {
+			for _, validatorAddr := range sourceDelegations.Keys() {
 				delegatedAmount := sourceDelegations.MustGet(validatorAddr)
 
 				if delegatedAmount.GTE(remainingAmountToMove) {
