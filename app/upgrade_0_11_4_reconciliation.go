@@ -466,9 +466,8 @@ func (app *App) DeleteContractStates(ctx types.Context, networkInfo *NetworkConf
 
 	contractsToWipe = networkInfo.Contracts.Reconciliation.GetContracts(contractsToWipe)
 
-	// NOTE(jv): Commented out intentionally
-	//contractsToWipe = networkInfo.Contracts.Almanac.GetContracts(contractsToWipe)
-	//contractsToWipe = networkInfo.Contracts.AName.GetContracts(contractsToWipe)
+	contractsToWipe = networkInfo.Contracts.Almanac.GetContracts(contractsToWipe)
+	contractsToWipe = networkInfo.Contracts.AName.GetContracts(contractsToWipe)
 
 	for _, contract := range contractsToWipe {
 		err := app.DeleteContractState(ctx, contract, manifest)
