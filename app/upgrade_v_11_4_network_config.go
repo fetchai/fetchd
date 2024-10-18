@@ -45,6 +45,12 @@ type BalanceMovement struct {
 	Memo               string   `json:"memo,omitempty"`
 }
 
+var ReconciliationRecords = map[string]*[][]string{
+	"fetchhub-4":            readInputReconciliationData(reconciliationData),
+	"fetchhub-cudos-test-4": readInputReconciliationData(reconciliationData),
+	"dorado-1":              readInputReconciliationData(reconciliationDataTestnet),
+}
+
 var NetworkInfos = map[string]NetworkConfig{
 	"fetchhub-4": {
 		ReconciliationInfo: &ReconciliationInfo{
@@ -298,6 +304,12 @@ func LoadNetworkConfigFromFile(configFilePath string) (*NetworkConfig, *[]byte, 
 	err = json.Unmarshal(byteValue, &config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+
+	if config.ReconciliationInfo.InputCSVRecords == nil {
+		if val, exists := ReconciliationRecords[config.DestinationChainID]; exists {
+			config.ReconciliationInfo.InputCSVRecords = val
+		}
 	}
 
 	return &config, &byteValue, nil
