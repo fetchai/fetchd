@@ -116,6 +116,30 @@ It utilizes the provided network merge config and genesis JSON files to perform 
 	networkMergeCmd.AddCommand(cmd)
 }
 
+func AddCommandManifestAddressInfo(networkMergeCmd *cobra.Command) {
+	cmd := &cobra.Command{
+		Use:   "manifest-address-info [manifest_file_path] [address]",
+		Short: "Extracts balance information for a specific address",
+		Long:  `This command retrieves all balance information for a given address from almanac, including the amount delegated to validators, and rewards.`,
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := client.GetClientContextFromCmd(cmd)
+
+			manifestFilePath := args[0]
+			address := args[1]
+
+			// Call a function to extract address info
+			err := AlmanacAddressInfo(manifestFilePath, address, ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	networkMergeCmd.AddCommand(cmd)
+}
+
 func utilNetworkMergeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        "network-merge",
@@ -127,6 +151,8 @@ func utilNetworkMergeCommand() *cobra.Command {
 
 	AddCommandVerify(cmd)
 	AddCommandExtractAddressInfo(cmd)
+	AddCommandManifestAddressInfo(cmd)
+
 	return cmd
 }
 
@@ -410,6 +436,113 @@ func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Conte
 	err = ctx.PrintString(fmt.Sprintf("Total available balance: %s\n", totalAvailableBalance))
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+type ManifestData struct {
+	InitialBalances *app.OrderedMap[string, app.UpgradeBalances]
+	MovedBalances   *app.OrderedMap[string, app.UpgradeBalances]
+}
+
+func parseManifestData(manifest *app.UpgradeManifest) (*ManifestData, error) {
+	manifestData := ManifestData{}
+
+	manifestData.InitialBalances = app.NewOrderedMap[string, app.UpgradeBalances]()
+	for _, initialBalanceEntry := range manifest.InitialBalances {
+		manifestData.InitialBalances.SetNew(initialBalanceEntry.Address, initialBalanceEntry)
+	}
+
+	manifestData.MovedBalances = app.NewOrderedMap[string, app.UpgradeBalances]()
+	for _, movedBalanceEntry := range manifest.MovedBalances {
+		manifestData.MovedBalances.SetNew(movedBalanceEntry.Address, movedBalanceEntry)
+	}
+
+	return &manifestData, nil
+}
+
+func printBalancesEntry(upgradeBalances app.UpgradeBalances, ctx client.Context) error {
+	if !upgradeBalances.BankBalance.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Bank balance: %s\n", upgradeBalances.BankBalance))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !upgradeBalances.VestedBalance.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Vested balance: %s\n", upgradeBalances.VestedBalance))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !upgradeBalances.BondedStakingBalance.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Bonded staking balance: %s\n", upgradeBalances.BondedStakingBalance))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !upgradeBalances.UnbondedStakingBalance.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Unbonded staking balance: %s\n", upgradeBalances.UnbondedStakingBalance))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !upgradeBalances.UnbondingStakingBalance.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Unbonding staking balance: %s\n", upgradeBalances.UnbondingStakingBalance))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !upgradeBalances.DistributionRewards.IsZero() {
+		err := ctx.PrintString(fmt.Sprintf("Distribution rewards: %s\n", upgradeBalances.DistributionRewards))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func AlmanacAddressInfo(almanacFilePath string, address string, ctx client.Context) error {
+	manifest := app.NewUpgradeManifest()
+
+	manifest, err := app.LoadManifestFromPath(almanacFilePath)
+	if err != nil {
+		return err
+	}
+
+	manifestData, err := parseManifestData(manifest)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.PrintString("Initial balances:\n")
+	if err != nil {
+		return err
+	}
+
+	if InitialBalances, exists := manifestData.InitialBalances.Get(address); exists {
+		err = printBalancesEntry(InitialBalances, ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = ctx.PrintString("Moved balances:\n")
+	if err != nil {
+		return err
+	}
+
+	if MovedBalances, exists := manifestData.MovedBalances.Get(address); exists {
+		err = printBalancesEntry(MovedBalances, ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
