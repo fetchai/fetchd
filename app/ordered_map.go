@@ -112,13 +112,17 @@ func (om *OrderedMap[K, V]) Has(key K) bool {
 func (om *OrderedMap[K, V]) Delete(key K) {
 	if _, exists := om.values[key]; exists {
 		delete(om.values, key)
-		// Remove key from slice
-		for i, k := range om.keys {
-			if k == key {
-				om.keys = append(om.keys[:i], om.keys[i+1:]...)
-				break
+		// Create a new slice to avoid modifying the original reference
+		newKeys := make([]K, 0, len(om.keys)-1)
+
+		// Remove the key from the keys slice
+		for _, k := range om.keys {
+			if k != key {
+				newKeys = append(newKeys, k)
 			}
 		}
+
+		om.keys = newKeys // Assign the newly created slice to om.keys
 	}
 }
 
