@@ -262,7 +262,7 @@ func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap
 		validator := validators.MustGet(validatorOperatorAddr)
 
 		// Get initial outstanding reward
-		outstandingReward := distributionInfo.OutstandingRewards.MustGet(validatorOperatorAddr)
+		outstandingRewards := distributionInfo.OutstandingRewards.MustGet(validatorOperatorAddr)
 
 		endingPeriod := UpdateValidatorData(distributionInfo, validator)
 
@@ -277,8 +277,7 @@ func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap
 			delegatorRewards, _ := distributionInfo.Rewards.GetOrSetDefault(delegatorAddr, NewOrderedMap[string, sdk.DecCoins]())
 			delegatorRewards.SetNew(validatorOperatorAddr, rewardsRaw)
 
-			rewards := rewardsRaw.Intersect(outstandingReward)
-			outstandingReward = outstandingReward.Sub(rewards)
+			outstandingRewards = outstandingRewards.Sub(rewardsRaw.Intersect(outstandingRewards))
 
 		}
 
@@ -287,7 +286,7 @@ func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap
 			return err
 		}
 
-		distributionInfo.ValidatorRewards.Set(validatorAccountAddress, outstandingReward)
+		distributionInfo.ValidatorRewards.Set(validatorAccountAddress, outstandingRewards)
 
 	}
 

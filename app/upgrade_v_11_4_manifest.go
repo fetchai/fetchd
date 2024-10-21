@@ -189,21 +189,15 @@ type UpgradeAccountCreation struct {
 }
 
 type UpgradeBalances struct {
-	Address                 string      `json:"address"`
-	BankBalance             types.Coins `json:"bank_balance"`
-	VestedBalance           types.Coins `json:"vested_balance,omitempty"`
-	BondedStakingBalance    types.Coins `json:"bonded_staking_balance,omitempty"`
-	UnbondedStakingBalance  types.Coins `json:"unbonded_staking_balance,omitempty"`
-	UnbondingStakingBalance types.Coins `json:"unbonding_staking_balance,omitempty"`
-	DelegatorRewards        types.Coins `json:"delegator_rewards,omitempty"`
-	ValidatorRewards        types.Coins `json:"validator_rewards,omitempty"`
-	Memo                    string      `json:"memo,omitempty"`
+	Address                      string      `json:"address"`
+	BankBalance                  types.Coins `json:"bank_balance"`
+	VestedBalance                types.Coins `json:"vested_balance,omitempty"`
+	BondedStakingBalancesAggr    types.Coins `json:"bonded_staking_balances_aggr,omitempty"`
+	UnbondedStakingBalancesAggr  types.Coins `json:"unbonded_staking_balances_aggr,omitempty"`
+	UnbondingStakingBalancesAggr types.Coins `json:"unbonding_staking_balances_aggr,omitempty"`
+	DelegatorRewardsAggr         types.Coins `json:"delegator_rewards_aggr,omitempty"`
+	ValidatorRewards             types.Coins `json:"validator_rewards,omitempty"`
 }
-
-// app.UpgradeKeeper.GetUpgradeInfoPath()
-// 	if upgradeFilePath, err = app.UpgradeKeeper.GetUpgradeInfoPath(); err != nil {
-//		return "", err
-//	}
 
 func getManifestFilePath(app *App, prefix string) (string, error) {
 	var upgradeFilePath string
