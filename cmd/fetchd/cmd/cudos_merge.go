@@ -120,7 +120,7 @@ func AddCommandManifestAddressInfo(networkMergeCmd *cobra.Command) {
 	cmd := &cobra.Command{
 		Use:   "manifest-address-info [manifest_file_path] [address]",
 		Short: "Extracts balance information for a specific address",
-		Long:  `This command retrieves all balance information for a given address from almanac, including the amount delegated to validators, and rewards.`,
+		Long:  `This command retrieves all balance information for a given address from manifest, including the amount delegated to validators, and rewards.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := client.GetClientContextFromCmd(cmd)
@@ -129,7 +129,7 @@ func AddCommandManifestAddressInfo(networkMergeCmd *cobra.Command) {
 			address := args[1]
 
 			// Call a function to extract address info
-			err := AlmanacAddressInfo(manifestFilePath, address, ctx)
+			err := ManifestAddressInfo(manifestFilePath, address, ctx)
 			if err != nil {
 				return err
 			}
@@ -463,55 +463,21 @@ func parseManifestData(manifest *app.UpgradeManifest) (*ManifestData, error) {
 }
 
 func printBalancesEntry(upgradeBalances app.UpgradeBalances, ctx client.Context) error {
-	if !upgradeBalances.BankBalance.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Bank balance: %s\n", upgradeBalances.BankBalance))
-		if err != nil {
-			return err
-		}
+	data, err := json.MarshalIndent(upgradeBalances, "", "  ")
+	if err != nil {
+		return err
 	}
-
-	if !upgradeBalances.VestedBalance.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Vested balance: %s\n", upgradeBalances.VestedBalance))
-		if err != nil {
-			return err
-		}
+	err = ctx.PrintString(fmt.Sprintf("%s\n", string(data)))
+	if err != nil {
+		return err
 	}
-
-	if !upgradeBalances.BondedStakingBalance.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Bonded staking balance: %s\n", upgradeBalances.BondedStakingBalance))
-		if err != nil {
-			return err
-		}
-	}
-
-	if !upgradeBalances.UnbondedStakingBalance.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Unbonded staking balance: %s\n", upgradeBalances.UnbondedStakingBalance))
-		if err != nil {
-			return err
-		}
-	}
-
-	if !upgradeBalances.UnbondingStakingBalance.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Unbonding staking balance: %s\n", upgradeBalances.UnbondingStakingBalance))
-		if err != nil {
-			return err
-		}
-	}
-
-	if !upgradeBalances.DistributionRewards.IsZero() {
-		err := ctx.PrintString(fmt.Sprintf("Distribution rewards: %s\n", upgradeBalances.DistributionRewards))
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-func AlmanacAddressInfo(almanacFilePath string, address string, ctx client.Context) error {
+func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Context) error {
 	manifest := app.NewUpgradeManifest()
 
-	manifest, err := app.LoadManifestFromPath(almanacFilePath)
+	manifest, err := app.LoadManifestFromPath(manifestFilePath)
 	if err != nil {
 		return err
 	}

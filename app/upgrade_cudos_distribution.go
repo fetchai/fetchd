@@ -52,7 +52,8 @@ type DistributionInfo struct {
 	DistributionModuleAccountAddress string
 
 	// Aggregated values
-	Rewards *OrderedMap[string, *OrderedMap[string, sdk.DecCoins]] // delegator_addr -> validator_addr -> reward
+	Rewards          *OrderedMap[string, *OrderedMap[string, sdk.DecCoins]] // delegator_addr -> validator_addr -> reward
+	ValidatorRewards *OrderedMap[string, sdk.DecCoins]                      // validator_addr -> validator_rewards
 }
 
 func parseDelegatorStartingInfos(distribution map[string]interface{}) (*OrderedMap[string, *OrderedMap[string, *DelegatorStartingInfo]], error) {
@@ -251,11 +252,17 @@ func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap
 	if distributionInfo.Rewards == nil {
 		distributionInfo.Rewards = NewOrderedMap[string, *OrderedMap[string, sdk.DecCoins]]()
 	}
+	if distributionInfo.ValidatorRewards == nil {
+		distributionInfo.ValidatorRewards = NewOrderedMap[string, sdk.DecCoins]()
+	}
 
 	// Withdraw all delegation rewards
 	for i := range distributionInfo.DelegatorStartingInfos.Iterate() {
 		validatorOperatorAddr, delegatorStartInfo := i.Key, i.Value
 		validator := validators.MustGet(validatorOperatorAddr)
+
+		// Get initial outstanding reward
+		outstandingRewards := distributionInfo.OutstandingRewards.MustGet(validatorOperatorAddr)
 
 		endingPeriod := UpdateValidatorData(distributionInfo, validator)
 
@@ -269,7 +276,17 @@ func aggregateRewards(distributionInfo *DistributionInfo, validators *OrderedMap
 
 			delegatorRewards, _ := distributionInfo.Rewards.GetOrSetDefault(delegatorAddr, NewOrderedMap[string, sdk.DecCoins]())
 			delegatorRewards.SetNew(validatorOperatorAddr, rewardsRaw)
+
+			outstandingRewards = outstandingRewards.Sub(rewardsRaw.Intersect(outstandingRewards))
+
 		}
+
+		validatorAccountAddress, err := convertOperatorAddressToAccount(validatorOperatorAddr)
+		if err != nil {
+			return err
+		}
+
+		distributionInfo.ValidatorRewards.Set(validatorAccountAddress, outstandingRewards)
 
 	}
 
