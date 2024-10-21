@@ -243,11 +243,14 @@ func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeMan
 		if delegations, exists := genesisData.Delegations.Get(address); exists {
 			bondedBalance := sdk.Coins{}
 			for i := range delegations.Iterate() {
-				_, delegatedAmount := i.Key, i.Value
+				validatorOperatorAddr, delegatedAmount := i.Key, i.Value
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				bondedBalance = bondedBalance.Add(delegatedBalance)
+				upgradeBalance.BondedStakingBalances = append(upgradeBalance.BondedStakingBalances, ValidatorBalance{Validator: validatorOperatorAddr, Balance: sdk.NewCoins(delegatedBalance)})
 			}
+
 			upgradeBalance.BondedStakingBalancesAggr = bondedBalance
+			// Bonded balance is part of the bank balance in this case, so we need to subtract it
 			upgradeBalance.BankBalance = upgradeBalance.BankBalance.Sub(bondedBalance)
 		}
 
@@ -280,9 +283,12 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 		if delegations, exists := genesisData.Delegations.Get(address); exists {
 			totalBalance := sdk.Coins{}
 			for i := range delegations.Iterate() {
-				_, delegatedAmount := i.Key, i.Value
+				validatorOperatorAddr, delegatedAmount := i.Key, i.Value
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
+
+				upgradeBalance.BondedStakingBalances = append(upgradeBalance.BondedStakingBalances, ValidatorBalance{Validator: validatorOperatorAddr, Balance: sdk.NewCoins(delegatedBalance)})
+
 			}
 			upgradeBalance.BondedStakingBalancesAggr = totalBalance
 		}
@@ -291,9 +297,10 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 		if delegations, exists := genesisData.UnbondingDelegations.Get(address); exists {
 			totalBalance := sdk.Coins{}
 			for i := range delegations.Iterate() {
-				_, delegatedAmount := i.Key, i.Value
+				validatorOperatorAddr, delegatedAmount := i.Key, i.Value
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
+				upgradeBalance.UnbondingStakingBalances = append(upgradeBalance.UnbondingStakingBalances, ValidatorBalance{Validator: validatorOperatorAddr, Balance: sdk.NewCoins(delegatedBalance)})
 			}
 			upgradeBalance.UnbondingStakingBalancesAggr = totalBalance
 		}
@@ -302,9 +309,11 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 		if delegations, exists := genesisData.UnbondedDelegations.Get(address); exists {
 			totalBalance := sdk.Coins{}
 			for i := range delegations.Iterate() {
-				_, delegatedAmount := i.Key, i.Value
+				validatorOperatorAddr, delegatedAmount := i.Key, i.Value
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
+				upgradeBalance.UnbondedStakingBalances = append(upgradeBalance.UnbondedStakingBalances, ValidatorBalance{Validator: validatorOperatorAddr, Balance: sdk.NewCoins(delegatedBalance)})
+
 			}
 			upgradeBalance.UnbondedStakingBalancesAggr = totalBalance
 		}
@@ -313,11 +322,13 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 		if DelegatorRewards, exists := genesisData.DistributionInfo.Rewards.Get(address); exists {
 			totalBalance := sdk.Coins{}
 			for j := range DelegatorRewards.Iterate() {
-				_, rewardDecAmount := j.Key, j.Value
+				validatorOperatorAddr, rewardDecAmount := j.Key, j.Value
 				rewardAmount, _ := rewardDecAmount.TruncateDecimal()
 				if !rewardAmount.IsZero() {
 					totalBalance = totalBalance.Add(rewardAmount...)
+					upgradeBalance.DelegatorRewards = append(upgradeBalance.DelegatorRewards, ValidatorBalance{Validator: validatorOperatorAddr, Balance: rewardAmount})
 				}
+
 			}
 			upgradeBalance.DelegatorRewardsAggr = totalBalance
 		}
