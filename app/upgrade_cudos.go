@@ -78,6 +78,27 @@ func convertAddressPrefix(addr string, newPrefix string) (string, error) {
 	return newAddress, nil
 }
 
+func convertOperatorAddressToAccount(addr string) (string, error) {
+	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
+	if err != nil {
+		return "", err
+	}
+
+	suffix := "valoper"
+	if strings.HasSuffix(prefix, suffix) {
+		prefix = prefix[:len(prefix)-len(suffix)]
+	} else {
+		return "", fmt.Errorf("wrong operator address")
+	}
+
+	newAddress, err := bech32.ConvertAndEncode(prefix, decodedAddrData)
+	if err != nil {
+		return "", err
+	}
+
+	return newAddress, nil
+}
+
 func ensureCudosconvertAddressToRaw(addr string, genesisData *GenesisData) (sdk.AccAddress, error) {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 
@@ -217,6 +238,19 @@ func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeMan
 		if account, exists := genesisData.Accounts.Get(address); exists {
 			upgradeBalance.BankBalance = account.Balance
 		}
+
+		// Bonded tokens will be delegated after conversion
+		if delegations, exists := genesisData.Delegations.Get(address); exists {
+			bondedBalance := sdk.Coins{}
+			for i := range delegations.Iterate() {
+				_, delegatedAmount := i.Key, i.Value
+				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
+				bondedBalance = bondedBalance.Add(delegatedBalance)
+			}
+			upgradeBalance.BondedStakingBalance = bondedBalance
+			upgradeBalance.BankBalance = upgradeBalance.BankBalance.Sub(bondedBalance)
+		}
+
 		upgradeBalances = append(upgradeBalances, upgradeBalance)
 
 	}
@@ -275,7 +309,7 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 			upgradeBalance.UnbondedStakingBalance = totalBalance
 		}
 
-		// Get distribution module rewards
+		// Get distribution module delegator rewards
 		if DelegatorRewards, exists := genesisData.DistributionInfo.Rewards.Get(address); exists {
 			totalBalance := sdk.Coins{}
 			for j := range DelegatorRewards.Iterate() {
@@ -285,7 +319,13 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 					totalBalance = totalBalance.Add(rewardAmount...)
 				}
 			}
-			upgradeBalance.DistributionRewards = totalBalance
+			upgradeBalance.DelegatorRewards = totalBalance
+		}
+
+		// Get distribution module validator rewards
+		if ValidatorDecRewards, exists := genesisData.DistributionInfo.ValidatorRewards.Get(address); exists {
+			ValidatorRewards, _ := ValidatorDecRewards.TruncateDecimal()
+			upgradeBalance.ValidatorRewards = ValidatorRewards
 		}
 
 		upgradeBalances = append(upgradeBalances, upgradeBalance)

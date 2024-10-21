@@ -195,7 +195,8 @@ type UpgradeBalances struct {
 	BondedStakingBalance    types.Coins `json:"bonded_staking_balance,omitempty"`
 	UnbondedStakingBalance  types.Coins `json:"unbonded_staking_balance,omitempty"`
 	UnbondingStakingBalance types.Coins `json:"unbonding_staking_balance,omitempty"`
-	DistributionRewards     types.Coins `json:"distribution_rewards,omitempty"`
+	DelegatorRewards        types.Coins `json:"delegator_rewards,omitempty"`
+	ValidatorRewards        types.Coins `json:"validator_rewards,omitempty"`
 	Memo                    string      `json:"memo,omitempty"`
 }
 
