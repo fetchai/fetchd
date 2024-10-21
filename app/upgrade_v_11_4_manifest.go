@@ -188,6 +188,11 @@ type UpgradeAccountCreation struct {
 	Reason  string `json:"reason"`
 }
 
+type ValidatorBalance struct {
+	Validator string      `json:"validator"`
+	Balance   types.Coins `json:"balance"`
+}
+
 type UpgradeBalances struct {
 	Address                      string      `json:"address"`
 	BankBalance                  types.Coins `json:"bank_balance"`
@@ -197,6 +202,11 @@ type UpgradeBalances struct {
 	UnbondingStakingBalancesAggr types.Coins `json:"unbonding_staking_balances_aggr,omitempty"`
 	DelegatorRewardsAggr         types.Coins `json:"delegator_rewards_aggr,omitempty"`
 	ValidatorRewards             types.Coins `json:"validator_rewards,omitempty"`
+
+	BondedStakingBalances    []ValidatorBalance `json:"bonded_staking_balances,omitempty"`
+	UnbondedStakingBalances  []ValidatorBalance `json:"unbonded_staking_balances,omitempty"`
+	UnbondingStakingBalances []ValidatorBalance `json:"unbonding_staking_balances,omitempty"`
+	DelegatorRewards         []ValidatorBalance `json:"delegator_rewards,omitempty"`
 }
 
 func getManifestFilePath(app *App, prefix string) (string, error) {
