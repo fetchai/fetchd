@@ -247,7 +247,7 @@ func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeMan
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				bondedBalance = bondedBalance.Add(delegatedBalance)
 			}
-			upgradeBalance.BondedStakingBalance = bondedBalance
+			upgradeBalance.BondedStakingBalancesAggr = bondedBalance
 			upgradeBalance.BankBalance = upgradeBalance.BankBalance.Sub(bondedBalance)
 		}
 
@@ -284,7 +284,7 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
 			}
-			upgradeBalance.BondedStakingBalance = totalBalance
+			upgradeBalance.BondedStakingBalancesAggr = totalBalance
 		}
 
 		// Unbonding tokens
@@ -295,7 +295,7 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
 			}
-			upgradeBalance.UnbondingStakingBalance = totalBalance
+			upgradeBalance.UnbondingStakingBalancesAggr = totalBalance
 		}
 
 		// Unbonded tokens
@@ -306,7 +306,7 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				totalBalance = totalBalance.Add(delegatedBalance)
 			}
-			upgradeBalance.UnbondedStakingBalance = totalBalance
+			upgradeBalance.UnbondedStakingBalancesAggr = totalBalance
 		}
 
 		// Get distribution module delegator rewards
@@ -319,7 +319,7 @@ func writeInitialBalancesToManifest(genesisData *GenesisData, manifest *UpgradeM
 					totalBalance = totalBalance.Add(rewardAmount...)
 				}
 			}
-			upgradeBalance.DelegatorRewards = totalBalance
+			upgradeBalance.DelegatorRewardsAggr = totalBalance
 		}
 
 		// Get distribution module validator rewards
