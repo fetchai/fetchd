@@ -243,11 +243,14 @@ func writeMovedBalancesToManifest(genesisData *GenesisData, manifest *UpgradeMan
 		if delegations, exists := genesisData.Delegations.Get(address); exists {
 			bondedBalance := sdk.Coins{}
 			for i := range delegations.Iterate() {
-				_, delegatedAmount := i.Key, i.Value
+				validatorOperatorAddr, delegatedAmount := i.Key, i.Value
 				delegatedBalance := sdk.NewCoin(genesisData.BondDenom, delegatedAmount)
 				bondedBalance = bondedBalance.Add(delegatedBalance)
+				upgradeBalance.BondedStakingBalances = append(upgradeBalance.BondedStakingBalances, ValidatorBalance{Validator: validatorOperatorAddr, Balance: sdk.NewCoins(delegatedBalance)})
 			}
+
 			upgradeBalance.BondedStakingBalancesAggr = bondedBalance
+			// Bonded balance is part of the bank balance in this case, so we need to subtract it
 			upgradeBalance.BankBalance = upgradeBalance.BankBalance.Sub(bondedBalance)
 		}
 
