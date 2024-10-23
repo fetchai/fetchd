@@ -442,20 +442,45 @@ func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Conte
 	return nil
 }
 
+type MigratedBalance struct {
+	Address       string    `json:"address"`
+	SourceBalance sdk.Coins `json:"source_balance,omitempty"`
+	DestBalance   sdk.Coins `json:"dest_balance,omitempty"`
+}
+
+type DelegationsAggrEntry struct {
+	Address      string  `json:"address"`
+	SourceTokens sdk.Int `json:"source_tokens,omitempty"`
+	DestTokens   sdk.Int `json:"dest_tokens,omitempty"`
+}
+
 type ManifestData struct {
 	InitialBalances *app.OrderedMap[string, app.UpgradeBalances]
 	MovedBalances   *app.OrderedMap[string, app.UpgradeBalances]
 
-	MigratedBalances *app.OrderedMap[string, []app.UpgradeBalanceMovement]
-	Delegations      *app.OrderedMap[string, []app.UpgradeDelegation]
+	MigratedBalances     *app.OrderedMap[string, []app.UpgradeBalanceMovement]
+	MigratedBalancesAggr *app.OrderedMap[string, MigratedBalance]
+
+	Delegations     *app.OrderedMap[string, []app.UpgradeDelegation]
+	DelegationsAggr *app.OrderedMap[string, DelegationsAggrEntry]
+
+	sourcePrefix string
 }
 
-func parseManifestData(manifest *app.UpgradeManifest, prefix string) (*ManifestData, error) {
+func parseManifestData(manifest *app.UpgradeManifest) (*ManifestData, error) {
 	manifestData := ManifestData{}
 
 	manifestData.InitialBalances = app.NewOrderedMap[string, app.UpgradeBalances]()
 	for _, initialBalanceEntry := range manifest.InitialBalances {
 		manifestData.InitialBalances.SetNew(initialBalanceEntry.Address, initialBalanceEntry)
+
+		if manifestData.sourcePrefix == "" {
+			prefix, _, err := bech32.DecodeAndConvert(initialBalanceEntry.Address)
+			if err != nil {
+				return nil, err
+			}
+			manifestData.sourcePrefix = prefix
+		}
 	}
 
 	manifestData.MovedBalances = app.NewOrderedMap[string, app.UpgradeBalances]()
@@ -465,25 +490,38 @@ func parseManifestData(manifest *app.UpgradeManifest, prefix string) (*ManifestD
 
 	// Make map of minted destination chain balances
 	manifestData.MigratedBalances = app.NewOrderedMap[string, []app.UpgradeBalanceMovement]()
+	manifestData.MigratedBalancesAggr = app.NewOrderedMap[string, MigratedBalance]()
 	for _, migrationEntry := range manifest.Migration.Migrations {
-		convertedAddr, err := app.ConvertAddressPrefix(migrationEntry.To, prefix)
+		convertedAddr, err := app.ConvertAddressPrefix(migrationEntry.To, manifestData.sourcePrefix)
 		if err != nil {
 			return nil, err
 		}
 
 		MigratedBalances, _ := manifestData.MigratedBalances.GetOrSetDefault(convertedAddr, []app.UpgradeBalanceMovement{})
 		manifestData.MigratedBalances.Set(convertedAddr, append(MigratedBalances, migrationEntry))
+
+		MigratedBalancesAggr, _ := manifestData.MigratedBalancesAggr.GetOrSetDefault(convertedAddr, MigratedBalance{})
+		MigratedBalancesAggr.Address = convertedAddr
+		MigratedBalancesAggr.SourceBalance = MigratedBalancesAggr.SourceBalance.Add(migrationEntry.SourceBalance...)
+		MigratedBalancesAggr.DestBalance = MigratedBalancesAggr.DestBalance.Add(migrationEntry.DestBalance...)
+		manifestData.MigratedBalancesAggr.Set(convertedAddr, MigratedBalancesAggr)
 	}
 
 	manifestData.Delegations = app.NewOrderedMap[string, []app.UpgradeDelegation]()
+	manifestData.DelegationsAggr = app.NewOrderedMap[string, DelegationsAggrEntry]()
 	for _, DelegationsEntry := range manifest.Delegate.Delegations {
-		convertedAddr, err := app.ConvertAddressPrefix(DelegationsEntry.NewDelegator, prefix)
+		convertedAddr, err := app.ConvertAddressPrefix(DelegationsEntry.NewDelegator, manifestData.sourcePrefix)
 		if err != nil {
 			return nil, err
 		}
-		//manifestData.Delegations.SetNew(convertedAddr, DelegationsEntry)
 		Delegations, _ := manifestData.Delegations.GetOrSetDefault(convertedAddr, []app.UpgradeDelegation{})
 		manifestData.Delegations.Set(convertedAddr, append(Delegations, DelegationsEntry))
+
+		DelegationsAggr, _ := manifestData.DelegationsAggr.GetOrSetDefault(convertedAddr, DelegationsAggrEntry{SourceTokens: sdk.NewIntFromUint64(0), DestTokens: sdk.NewIntFromUint64(0)})
+		DelegationsAggr.Address = convertedAddr
+		DelegationsAggr.SourceTokens = DelegationsAggr.SourceTokens.Add(DelegationsEntry.OriginalTokens)
+		DelegationsAggr.DestTokens = DelegationsAggr.DestTokens.Add(DelegationsEntry.NewTokens)
+		manifestData.DelegationsAggr.Set(convertedAddr, DelegationsAggr)
 	}
 
 	return &manifestData, nil
@@ -502,17 +540,17 @@ func printJSONEntry(upgradeBalances any, ctx client.Context) error {
 }
 
 func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Context) error {
-	prefix, _, err := bech32.DecodeAndConvert(address)
-	if err != nil {
-		return err
-	}
-
 	manifest, err := app.LoadManifestFromPath(manifestFilePath)
 	if err != nil {
 		return err
 	}
 
-	manifestData, err := parseManifestData(manifest, prefix)
+	manifestData, err := parseManifestData(manifest)
+	if err != nil {
+		return err
+	}
+
+	address, err = app.ConvertAddressPrefix(address, manifestData.sourcePrefix)
 	if err != nil {
 		return err
 	}
@@ -563,6 +601,17 @@ func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Con
 		}
 	}
 
+	err = ctx.PrintString("Aggregated migrations:\n")
+	if err != nil {
+		return err
+	}
+	if MigratedBalancesAggr, exists := manifestData.MigratedBalancesAggr.Get(address); exists {
+		err = printJSONEntry(MigratedBalancesAggr, ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = ctx.PrintString("Created delegations:\n")
 	if err != nil {
 		return err
@@ -570,6 +619,17 @@ func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Con
 
 	if Delegations, exists := manifestData.Delegations.Get(address); exists {
 		err = printJSONEntry(Delegations, ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = ctx.PrintString("Aggregated delegations:\n")
+	if err != nil {
+		return err
+	}
+	if DelegationsAggr, exists := manifestData.DelegationsAggr.Get(address); exists {
+		err = printJSONEntry(DelegationsAggr, ctx)
 		if err != nil {
 			return err
 		}
