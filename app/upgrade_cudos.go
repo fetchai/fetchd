@@ -2249,16 +2249,21 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
 
 	for _, accountMovement := range cudosCfg.Config.MovedAccounts {
+		// Skip if source and destination address is the same
+		if accountMovement.SourceAddress == accountMovement.DestinationAddress {
+			continue
+		}
+
 		fromAcc, exists := genesisData.Accounts.Get(accountMovement.SourceAddress)
 
 		if !exists {
 			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "non_existing_from_account", manifest)
-			return nil
+			continue
 		}
 
 		if fromAcc.Balance.IsZero() {
 			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "nothing_to_move_err", manifest)
-			return nil
+			continue
 		}
 
 		fromAccTokensAmount := fromAcc.Balance.AmountOfNoDenomValidation(genesisData.BondDenom)
