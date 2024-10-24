@@ -133,7 +133,7 @@ func utilJsonCommand() *cobra.Command {
 			}
 
 			ctx := client.GetClientContextFromCmd(cmd)
-			return ctx.PrintString(fmt.Sprintf("%s\n",jsonNormalised))
+			return ctx.PrintString(fmt.Sprintf("%s\n", jsonNormalised))
 		},
 	}
 
@@ -253,7 +253,7 @@ func utilAddressCommand() *cobra.Command {
 			}
 
 			ctx := client.GetClientContextFromCmd(cmd)
-			return ctx.PrintString(fmt.Sprintf("%s\n"newAddress))
+			return ctx.PrintString(fmt.Sprintf("%s\n", newAddress))
 		},
 	}
 
