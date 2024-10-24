@@ -64,7 +64,7 @@ const (
 	RecursionDepthLimit = 50
 )
 
-func convertAddressPrefix(addr string, newPrefix string) (string, error) {
+func ConvertAddressPrefix(addr string, newPrefix string) (string, error) {
 	_, decodedAddrData, err := bech32.DecodeAndConvert(addr)
 	if err != nil {
 		return "", err
@@ -2127,7 +2127,7 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	err = migrateToAccount(ctx, app, "mint_module", commissionRawAcc, sdk.NewCoins(), totalCommission, "total_commission", manifest)
 
 	extraSupplyInCudos := cudosCfg.Config.TotalCudosSupply.Sub(genesisData.TotalSupply.AmountOf(genesisData.BondDenom))
-	extraSupplyCudosAddress, err := convertAddressPrefix(cudosCfg.Config.ExtraSupplyFetchAddr, genesisData.Prefix)
+	extraSupplyCudosAddress, err := ConvertAddressPrefix(cudosCfg.Config.ExtraSupplyFetchAddr, genesisData.Prefix)
 	if err != nil {
 		return err
 	}
