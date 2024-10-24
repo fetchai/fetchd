@@ -2251,18 +2251,19 @@ func DoGenesisAccountMovements(genesisData *GenesisData, cudosCfg *CudosMergeCon
 	for _, accountMovement := range cudosCfg.Config.MovedAccounts {
 		// Skip if source and destination address is the same
 		if accountMovement.SourceAddress == accountMovement.DestinationAddress {
+			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "movement_to_itself_skipping", manifest)
 			continue
 		}
 
 		fromAcc, exists := genesisData.Accounts.Get(accountMovement.SourceAddress)
 
 		if !exists {
-			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "non_existing_from_account", manifest)
+			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "non_existing_from_account_skipping", manifest)
 			continue
 		}
 
 		if fromAcc.Balance.IsZero() {
-			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "nothing_to_move_err", manifest)
+			registerManifestBalanceMovement(accountMovement.SourceAddress, accountMovement.DestinationAddress, nil, "no_source_balance_to_move_skipping", manifest)
 			continue
 		}
 
