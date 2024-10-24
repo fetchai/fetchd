@@ -444,14 +444,14 @@ func printAccInfo(genesisData *app.GenesisData, address string, ctx client.Conte
 
 type MigratedBalance struct {
 	Address       string    `json:"address"`
-	SourceBalance sdk.Coins `json:"source_balance,omitempty"`
+	SourceBalance sdk.Coins `json:"src_balance,omitempty"`
 	DestBalance   sdk.Coins `json:"dest_balance,omitempty"`
 }
 
 type DelegationsAggrEntry struct {
 	Address      string  `json:"address"`
-	SourceTokens sdk.Int `json:"source_tokens,omitempty"`
-	DestTokens   sdk.Int `json:"dest_tokens,omitempty"`
+	SourceTokens sdk.Int `json:"src_amount,omitempty"`
+	DestTokens   sdk.Int `json:"dest_amount,omitempty"`
 }
 
 type ManifestData struct {
@@ -550,17 +550,17 @@ func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Con
 		return err
 	}
 
-	address, err = app.ConvertAddressPrefix(address, manifestData.sourcePrefix)
-	if err != nil {
-		return err
-	}
-
 	err = ctx.PrintString("Frontend records:\n")
 	if err != nil {
 		return err
 	}
 
 	err = ctx.PrintString("Initial balances:\n")
+	if err != nil {
+		return err
+	}
+	
+	address, err = app.ConvertAddressPrefix(address, manifestData.sourcePrefix)
 	if err != nil {
 		return err
 	}
