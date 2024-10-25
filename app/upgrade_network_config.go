@@ -9,10 +9,17 @@ import (
 )
 
 var (
-	maxToleratedRemainingDistributionBalance, _ = sdk.NewIntFromString("1000000000000000000")
-	maxToleratedRemainingStakingBalance, _      = sdk.NewIntFromString("100000000")
-	maxToleratedRemainingMintBalance, _         = sdk.NewIntFromString("100000000")
+	DefaultMaxToleratedRemainingDistributionBalance, _ = sdk.NewIntFromString("1000000000000000000")
+	DefaultMaxToleratedRemainingStakingBalance, _      = sdk.NewIntFromString("100000000")
+	DefaultMaxToleratedRemainingMintBalance, _         = sdk.NewIntFromString("100000000")
 )
+
+func unwrapOrDefault[T any](ptr *T, defaultValue T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return defaultValue
+}
 
 func newInt(val string) sdk.Int {
 	res, ok := sdk.NewIntFromString(val)
@@ -361,6 +368,10 @@ type CudosMergeConfigJSON struct {
 	ValidatorsMap []Pair[string, string] `json:"validators_map,omitempty"`
 
 	BackupValidators []string `json:"backup_validators,omitempty"`
+
+	MaxToleratedRemainingDistributionBalance *sdk.Int `json:"max_remaining_distribution_module_balance,omitempty"`
+	MaxToleratedRemainingStakingBalance      *sdk.Int `json:"max_remaining_staking_module_balance,omitempty"`
+	MaxToleratedRemainingMintBalance         *sdk.Int `json:"max_remaining_mint_module_balance,omitempty"`
 }
 
 type CudosMergeConfig struct {

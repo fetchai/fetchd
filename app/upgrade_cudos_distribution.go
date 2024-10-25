@@ -360,7 +360,13 @@ func checkTolerance(coins sdk.Coins, maxToleratedDiff sdk.Int) error {
 	return nil
 }
 
-func verifyOutstandingBalances(genesisData *GenesisData) error {
+func verifyOutstandingBalances(genesisData *GenesisData, cudosCfg *CudosMergeConfig) error {
+
+	maxToleratedRemainingDistributionBalance := unwrapOrDefault(
+		cudosCfg.Config.MaxToleratedRemainingDistributionBalance,
+		DefaultMaxToleratedRemainingDistributionBalance,
+	)
+
 	for i := range genesisData.DistributionInfo.OutstandingRewards.Iterate() {
 		validatorAddr, validatorOutstandingReward := i.Key, i.Value
 
@@ -393,7 +399,7 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 	}
 
 	// Check that remaining balance is equal to AccumulatedCommissions
-	err := verifyOutstandingBalances(genesisData)
+	err := verifyOutstandingBalances(genesisData, cudosCfg)
 	if err != nil {
 		return err
 	}
@@ -416,7 +422,11 @@ func withdrawGenesisDistributionRewards(logger log.Logger, genesisData *GenesisD
 		logger.Info("cudos merge: remaining dist balance", "amount", remainingBalance.String())
 	}
 
-	// TODO: Write to manifest?
+	maxToleratedRemainingDistributionBalance := unwrapOrDefault(
+		cudosCfg.Config.MaxToleratedRemainingDistributionBalance,
+		DefaultMaxToleratedRemainingDistributionBalance,
+	)
+
 	err = checkTolerance(remainingBalance, maxToleratedRemainingDistributionBalance)
 	if err != nil {
 		return fmt.Errorf("remaining distribution balance %s is too high", remainingBalance.String())

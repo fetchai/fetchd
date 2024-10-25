@@ -1060,7 +1060,11 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	// Handle remaining bonded pool balance
 	bondedPool := genesisData.Accounts.MustGet(genesisData.BondedPoolAddress)
 
-	// TODO: Write to manifest?
+	maxToleratedRemainingStakingBalance := unwrapOrDefault(
+		cudosCfg.Config.MaxToleratedRemainingStakingBalance,
+		DefaultMaxToleratedRemainingStakingBalance,
+	)
+
 	err := checkTolerance(bondedPool.Balance, maxToleratedRemainingStakingBalance)
 	if err != nil {
 		return fmt.Errorf("remaining bonded pool balance %s is too high", bondedPool.Balance.String())
@@ -1078,7 +1082,6 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	// Handle remaining not-bonded pool balance
 	notBondedPool := genesisData.Accounts.MustGet(genesisData.NotBondedPoolAddress)
 
-	// TODO: Write to manifest?
 	err = checkTolerance(notBondedPool.Balance, maxToleratedRemainingStakingBalance)
 	if err != nil {
 		return fmt.Errorf("remaining not-bonded pool balance %s is too high", notBondedPool.Balance.String())
@@ -2261,6 +2264,11 @@ func MigrateGenesisAccounts(genesisData *GenesisData, ctx sdk.Context, app *App,
 	// Move remaining mint module balance
 	remainingMintBalance := app.BankKeeper.GetAllBalances(ctx, mintModuleAddr)
 	remainingMintBalance = remainingMintBalance.Sub(initialMintBalance)
+
+	maxToleratedRemainingMintBalance := unwrapOrDefault(
+		cudosCfg.Config.MaxToleratedRemainingMintBalance,
+		DefaultMaxToleratedRemainingMintBalance,
+	)
 
 	err = checkTolerance(remainingMintBalance, maxToleratedRemainingMintBalance)
 	if err != nil {
