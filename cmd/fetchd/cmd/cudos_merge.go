@@ -239,6 +239,11 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 		return fmt.Errorf("contract destination fallback address error: %v", err)
 	}
 
+	err = app.VerifyAddressPrefix(cudosConfig.Config.GenericModuleRemainingBalance, genesisData.Prefix)
+	if err != nil {
+		return fmt.Errorf("remaining general module balance address error: %v", err)
+	}
+
 	// Community pool address is optional
 	if cudosConfig.Config.CommunityPoolBalanceDestAddr != "" {
 		err = app.VerifyAddressPrefix(cudosConfig.Config.CommunityPoolBalanceDestAddr, genesisData.Prefix)
@@ -559,7 +564,7 @@ func ManifestAddressInfo(manifestFilePath string, address string, ctx client.Con
 	if err != nil {
 		return err
 	}
-	
+
 	address, err = app.ConvertAddressPrefix(address, manifestData.sourcePrefix)
 	if err != nil {
 		return err

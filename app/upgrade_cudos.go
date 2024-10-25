@@ -215,6 +215,11 @@ func ProcessSourceNetworkGenesis(logger log.Logger, cudosCfg *CudosMergeConfig, 
 		return fmt.Errorf("cudos merge: failed to withdraw gravity: %w", err)
 	}
 
+	err = withdrawGenesisRemainingModulesBalance(genesisData, cudosCfg, manifest)
+	if err != nil {
+		return fmt.Errorf("cudos merge: failed to withdraw remaining modules balance: %w", err)
+	}
+
 	err = DoGenesisAccountMovements(genesisData, cudosCfg, manifest)
 	if err != nil {
 		return fmt.Errorf("cudos merge: failed to move funds: %w", err)
@@ -1957,6 +1962,27 @@ func checkDecTolerance(coins sdk.DecCoins, maxToleratedDiff sdk.Int) error {
 			return fmt.Errorf("remaining balance %s is too high", coin.String())
 		}
 	}
+	return nil
+}
+
+func withdrawGenesisRemainingModulesBalance(genesisData *GenesisData, cudosCfg *CudosMergeConfig, manifest *UpgradeManifest) error {
+
+	if cudosCfg.Config.GenericModuleRemainingBalance == "" {
+		return fmt.Errorf("no remaining modules balances destination address provided")
+	}
+	for _, genesisAccountAddress := range genesisData.Accounts.Keys() {
+		genesisAccount := genesisData.Accounts.MustGet(genesisAccountAddress)
+		if genesisAccount.AccountType == ModuleAccountType && !genesisAccount.Balance.IsZero() {
+			memo := fmt.Sprintf("leftover_module_balance_%s", genesisAccount.Name)
+			err := moveGenesisBalance(genesisData, genesisAccountAddress, cudosCfg.Config.GenericModuleRemainingBalance, genesisAccount.Balance, memo, manifest, cudosCfg)
+			if err != nil {
+				return err
+			}
+
+		}
+
+	}
+
 	return nil
 }
 
