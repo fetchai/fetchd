@@ -1099,6 +1099,10 @@ func withdrawGenesisStakingDelegations(logger log.Logger, genesisData *GenesisDa
 	return nil
 }
 
+func canReceiveDelegations(targetValidator *stakingtypes.Validator) bool {
+	return targetValidator != nil && !targetValidator.Jailed
+}
+
 func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress string, cudosCfg *CudosMergeConfig) (*stakingtypes.Validator, error) {
 	if targetOperatorStringAddress, exists := cudosCfg.ValidatorsMap.Get(operatorAddress); exists {
 		targetOperatorAddress, err := sdk.ValAddressFromBech32(targetOperatorStringAddress)
@@ -1107,11 +1111,10 @@ func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress stri
 		}
 
 		if targetValidator, found := app.StakingKeeper.GetValidator(ctx, targetOperatorAddress); found {
-			if targetValidator.Status.String() == BondedStatus && !targetValidator.Jailed {
+			if canReceiveDelegations(&targetValidator) {
 				return &targetValidator, nil
 			}
 		}
-
 	}
 
 	for _, targetOperatorStringAddress := range cudosCfg.Config.BackupValidators {
@@ -1121,7 +1124,7 @@ func resolveDestinationValidator(ctx sdk.Context, app *App, operatorAddress stri
 		}
 
 		if targetValidator, found := app.StakingKeeper.GetValidator(ctx, targetOperatorAddress); found {
-			if targetValidator.Status.String() == BondedStatus && !targetValidator.Jailed {
+			if canReceiveDelegations(&targetValidator) {
 				return &targetValidator, nil
 			}
 		}
