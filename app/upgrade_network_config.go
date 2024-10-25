@@ -554,18 +554,18 @@ func (c *ProdDevContract) GetContracts(contracts []string) []string {
 func verifyAddress(address string, expectedPrefix *string) error {
 	prefix, decodedAddrData, err := bech32.DecodeAndConvert(address)
 	if err != nil {
-		return err
+		return fmt.Errorf("decoding of the '%s' address failed: %w", address, err)
 	}
 	if expectedPrefix != nil && prefix != *expectedPrefix {
-		return fmt.Errorf("expected address prefix %s, got %s", *expectedPrefix, prefix)
+		return fmt.Errorf("expected address prefix '%s', got '%s'", *expectedPrefix, prefix)
 	}
 
 	reconstructedAddr, err := bech32.ConvertAndEncode(prefix, decodedAddrData)
 	if err != nil {
-		return err
+		return fmt.Errorf("encoding raw addr repr. of the '%s' orig. address failed: %w", address, err)
 	}
 	if address != reconstructedAddr {
-		return fmt.Errorf("Invalid address '%s'", address)
+		return fmt.Errorf("invalid address '%s'", address)
 	}
 
 	return nil
