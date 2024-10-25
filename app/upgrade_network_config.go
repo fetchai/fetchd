@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"io/ioutil"
 	"os"
 )
@@ -341,13 +342,13 @@ func LoadAndVerifyNetworkConfigFromFile(configFilePath string, expectedSha256Hex
 }
 
 type CudosMergeConfigJSON struct {
-	IbcTargetAddr                    string `json:"ibc_target_addr"`                     // Cudos address
-	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`      // Cudos account for remaining bonded and not-bonded pool balances
-	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`      // Cudos address
-	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"` // Cudos address
-	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`  // Cudos address
-	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr"`    // Cudos address, funds are moved to destination chain community pool if not set
-	GenericModuleRemainingBalance    string `json:"generic_module_remaining_balance"`    // Cudos address for all leftover funds remaining on module accounts after the processing
+	IbcTargetAddr                    string `json:"ibc_target_addr"`                            // Cudos address
+	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`             // Cudos account for remaining bonded and not-bonded pool balances
+	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`             // Cudos address
+	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"`        // Cudos address
+	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`         // Cudos address
+	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr,omitempty"` // Cudos address, funds are moved to destination chain community pool if not set
+	GenericModuleRemainingBalance    string `json:"generic_module_remaining_balance"`           // Cudos address for all leftover funds remaining on module accounts after the processing
 
 	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
 	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
@@ -548,4 +549,135 @@ func (c *ProdDevContract) GetContracts(contracts []string) []string {
 	}
 
 	return contracts
+}
+
+func verifyAddress(address string, expectedPrefix *string) error {
+	prefix, decodedAddrData, err := bech32.DecodeAndConvert(address)
+	if err != nil {
+		return err
+	}
+	if expectedPrefix != nil && prefix != *expectedPrefix {
+		return fmt.Errorf("expected address prefix %s, got %s", *expectedPrefix, prefix)
+	}
+
+	reconstructedAddr, err := bech32.ConvertAndEncode(prefix, decodedAddrData)
+	if err != nil {
+		return err
+	}
+	if address != reconstructedAddr {
+		return fmt.Errorf("Invalid address '%s'", address)
+	}
+
+	return nil
+}
+
+func VerifyConfig(cudosCfg *CudosMergeConfig, sourceAddrPrefix string, DestAddrPrefix string) error {
+	expectedSourceValoperPrefix := sourceAddrPrefix + ValAddressPrefix
+	expectedDestValoperPrefix := DestAddrPrefix + ValAddressPrefix
+
+	for i := range cudosCfg.ValidatorsMap.Iterate() {
+		srcValidator, DestValidator := i.Key, i.Value
+		err := verifyAddress(srcValidator, &expectedSourceValoperPrefix)
+		if err != nil {
+			return err
+		}
+		err = verifyAddress(DestValidator, &expectedDestValoperPrefix)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, notDelegatedAccount := range cudosCfg.NotDelegatedAccounts.Keys() {
+		err := verifyAddress(notDelegatedAccount, &sourceAddrPrefix)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, notVestedAccount := range cudosCfg.NotVestedAccounts.Keys() {
+		err := verifyAddress(notVestedAccount, &sourceAddrPrefix)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, movement := range cudosCfg.Config.MovedAccounts {
+		err := verifyAddress(movement.SourceAddress, &sourceAddrPrefix)
+		if err != nil {
+			return err
+		}
+		err = verifyAddress(movement.DestinationAddress, &sourceAddrPrefix)
+		if err != nil {
+			return err
+		}
+		if movement.SourceAddress == movement.DestinationAddress {
+			return fmt.Errorf("movement source and destination address is the same for %s", movement.SourceAddress)
+		}
+		if movement.Amount != nil && movement.Amount.IsNegative() {
+			return fmt.Errorf("negative amount %s for movement from account %s to %s", movement.Amount, movement.SourceAddress, movement.DestinationAddress)
+		}
+	}
+
+	err := verifyAddress(cudosCfg.Config.IbcTargetAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("ibc targer address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.RemainingStakingBalanceAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("remaining staking balance address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.RemainingGravityBalanceAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("remaining gravity balance address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.RemainingDistributionBalanceAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("remaining distribution balance address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.ContractDestinationFallbackAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("contract destination fallback address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.GenericModuleRemainingBalance, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("remaining general module balance address error: %v", err)
+	}
+
+	// Community pool address is optional
+	if cudosCfg.Config.CommunityPoolBalanceDestAddr != "" {
+		err = verifyAddress(cudosCfg.Config.CommunityPoolBalanceDestAddr, &sourceAddrPrefix)
+		if err != nil {
+			return fmt.Errorf("community pool balance destination address error: %v", err)
+		}
+	}
+
+	err = verifyAddress(cudosCfg.Config.CommissionFetchAddr, &DestAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("comission address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.ExtraSupplyFetchAddr, &DestAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("extra supply address error: %v", err)
+	}
+
+	err = verifyAddress(cudosCfg.Config.VestingCollisionDestAddr, &sourceAddrPrefix)
+	if err != nil {
+		return fmt.Errorf("vesting collision destination address error: %v", err)
+	}
+
+	if len(cudosCfg.Config.BalanceConversionConstants) == 0 {
+		return fmt.Errorf("list of conversion constants is empty")
+	}
+
+	if len(cudosCfg.Config.BackupValidators) == 0 {
+		return fmt.Errorf("list of backup validators is empty")
+	}
+
+	return nil
 }

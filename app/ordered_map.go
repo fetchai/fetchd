@@ -33,7 +33,7 @@ func NewOrderedMapFromPairs[K comparable, V any](pairs []Pair[K, V]) *OrderedMap
 	newMap := NewOrderedMap[K, V]()
 
 	for _, pair := range pairs {
-		newMap.Set(pair.Key, pair.Value)
+		newMap.SetNew(pair.Key, pair.Value)
 	}
 
 	return newMap
