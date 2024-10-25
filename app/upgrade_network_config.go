@@ -86,6 +86,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			RemainingGravityBalanceAddr:      "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			RemainingDistributionBalanceAddr: "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 			ContractDestinationFallbackAddr:  "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
+			GenericModuleRemainingBalance:    "cudos1qqz5ezf9ylgft0eq97d66v5aakynux540ds9mv", // Replace!!
 
 			CommissionFetchAddr:          "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
 			ExtraSupplyFetchAddr:         "fetch122j02czdt5ca8cf576wy2hassyxyx67wg5xmgc", // Replace!!
@@ -154,6 +155,7 @@ var NetworkInfos = map[string]NetworkConfig{
 			RemainingGravityBalanceAddr:      "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 			RemainingDistributionBalanceAddr: "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 			ContractDestinationFallbackAddr:  "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
+			GenericModuleRemainingBalance:    "cudos1nj49l56x7sss5hqyvfmctxr3mq64whg273g3x5",
 
 			CommissionFetchAddr:          "fetch15p3rl5aavw9rtu86tna5lgxfkz67zzr6ed4yhw", // Fetch ecosystem wallet
 			ExtraSupplyFetchAddr:         "fetch1wp8fl6fl4je40cfh2reeyj6cvucve9s6antdav",
@@ -332,12 +334,13 @@ func LoadAndVerifyNetworkConfigFromFile(configFilePath string, expectedSha256Hex
 }
 
 type CudosMergeConfigJSON struct {
-	IbcTargetAddr                    string `json:"ibc_target_addr"`                            // Cudos address
-	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`             // Cudos account for remaining bonded and not-bonded pool balances
-	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`             // Cudos address
-	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"`        // Cudos address
-	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`         // Cudos address
-	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr,omitempty"` // Cudos address, funds are moved to destination chain community pool if not set
+	IbcTargetAddr                    string `json:"ibc_target_addr"`                     // Cudos address
+	RemainingStakingBalanceAddr      string `json:"remaining_staking_balance_addr"`      // Cudos account for remaining bonded and not-bonded pool balances
+	RemainingGravityBalanceAddr      string `json:"remaining_gravity_balance_addr"`      // Cudos address
+	RemainingDistributionBalanceAddr string `json:"remaining_distribution_balance_addr"` // Cudos address
+	ContractDestinationFallbackAddr  string `json:"contract_destination_fallback_addr"`  // Cudos address
+	CommunityPoolBalanceDestAddr     string `json:"community_pool_balance_dest_addr"`    // Cudos address, funds are moved to destination chain community pool if not set
+	GenericModuleRemainingBalance    string `json:"generic_module_remaining_balance"`    // Cudos address for all leftover funds remaining on module accounts after the processing
 
 	CommissionFetchAddr      string `json:"commission_fetch_addr"`       // Fetch address for commission
 	ExtraSupplyFetchAddr     string `json:"extra_supply_fetch_addr"`     // Fetch address for extra supply
