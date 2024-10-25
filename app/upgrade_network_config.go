@@ -610,6 +610,9 @@ func VerifyConfig(cudosCfg *CudosMergeConfig, sourceAddrPrefix string, DestAddrP
 		if err != nil {
 			return err
 		}
+		if movement.SourceAddress == movement.DestinationAddress {
+			return fmt.Errorf("movement source and destination address is the same for %s", movement.SourceAddress)
+		}
 		if movement.Amount != nil && movement.Amount.IsNegative() {
 			return fmt.Errorf("negative amount %s for movement from account %s to %s", movement.Amount, movement.SourceAddress, movement.DestinationAddress)
 		}
