@@ -829,6 +829,12 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		}
 
 		cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
+
+		err = VerifyConfig(cudosConfig, cudosGenesisData.Prefix, AccountAddressPrefix)
+		if err != nil {
+			return nil, err
+		}
+
 		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, cudosGenesisData, manifest)
 		if err != nil {
 			return nil, err

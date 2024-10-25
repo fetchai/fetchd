@@ -22,8 +22,6 @@ const (
 	FlagCudosMigrationConfigSha256 = "cudos-migration-config-sha256"
 
 	FlagManifestDestinationPath = "manifest-destination-path"
-
-	DestinationChainPrefix = "fetch"
 )
 
 func AddCudosFlags(startCmd *cobra.Command) {
@@ -213,72 +211,15 @@ func VerifyConfigFile(configFilePath string, GenesisFilePath string, ctx client.
 		return fmt.Errorf("destination chain id is empty")
 	}
 
-	// Verify addresses
-	err = app.VerifyAddressPrefix(cudosConfig.Config.IbcTargetAddr, genesisData.Prefix)
+	err = app.VerifyConfig(cudosConfig, genesisData.Prefix, app.AccountAddressPrefix)
 	if err != nil {
-		return fmt.Errorf("ibc targer address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingStakingBalanceAddr, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("remaining staking balance address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingGravityBalanceAddr, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("remaining gravity balance address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.RemainingDistributionBalanceAddr, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("remaining distribution balance address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.ContractDestinationFallbackAddr, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("contract destination fallback address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.GenericModuleRemainingBalance, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("remaining general module balance address error: %v", err)
-	}
-
-	// Community pool address is optional
-	if cudosConfig.Config.CommunityPoolBalanceDestAddr != "" {
-		err = app.VerifyAddressPrefix(cudosConfig.Config.CommunityPoolBalanceDestAddr, genesisData.Prefix)
-		if err != nil {
-			return fmt.Errorf("community pool balance destination address error: %v", err)
-		}
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.CommissionFetchAddr, DestinationChainPrefix)
-	if err != nil {
-		return fmt.Errorf("comission address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.ExtraSupplyFetchAddr, DestinationChainPrefix)
-	if err != nil {
-		return fmt.Errorf("extra supply address error: %v", err)
-	}
-
-	err = app.VerifyAddressPrefix(cudosConfig.Config.VestingCollisionDestAddr, genesisData.Prefix)
-	if err != nil {
-		return fmt.Errorf("vesting collision destination address error: %v", err)
+		return err
 	}
 
 	// Verify extra supply
 	bondDenomSourceTotalSupply := genesisData.TotalSupply.AmountOf(genesisData.BondDenom)
 	if cudosConfig.Config.TotalCudosSupply.LT(bondDenomSourceTotalSupply) {
 		return fmt.Errorf("total supply %s from config is smaller than total supply %s in genesis", cudosConfig.Config.TotalCudosSupply.String(), bondDenomSourceTotalSupply.String())
-	}
-
-	if len(cudosConfig.Config.BalanceConversionConstants) == 0 {
-		return fmt.Errorf("list of conversion constants is empty")
-	}
-
-	if len(cudosConfig.Config.BackupValidators) == 0 {
-		return fmt.Errorf("list of backup validators is empty")
 	}
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
