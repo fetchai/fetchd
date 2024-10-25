@@ -1806,8 +1806,8 @@ func moveGenesisDelegation(genesisData *GenesisData, fromDelegatorAddress, toDel
 	}
 
 	// Source delegation must exist
-	sourceDelegations, sourceAmount := getDelegationData(genesisData, fromDelegatorAddress, validatorAddress)
-	if sourceDelegations == nil {
+	sourceValidatorsDelegations, sourceAmount := getDelegationData(genesisData, fromDelegatorAddress, validatorAddress)
+	if sourceValidatorsDelegations == nil {
 		return fmt.Errorf("genesis source delegations of %s not found", fromDelegatorAddress)
 	}
 	if sourceAmount == nil {
@@ -1818,26 +1818,25 @@ func moveGenesisDelegation(genesisData *GenesisData, fromDelegatorAddress, toDel
 		return fmt.Errorf("amount to move is greater than delegated amount")
 	}
 
-	destinationDelegations, destinationDelegatedAmount := getDelegationData(genesisData, toDelegatorAddress, validatorAddress)
-	if destinationDelegations == nil {
+	destinationValidatorsDelegations, destinationValidatorDelegatedAmount := getDelegationData(genesisData, toDelegatorAddress, validatorAddress)
+	if destinationValidatorsDelegations == nil {
 		// No destination delegations
-		newMap := NewOrderedMap[string, sdk.Int]()
-		newMap.Set(toDelegatorAddress, amount)
-		genesisData.Delegations.Set(toDelegatorAddress, newMap)
-	} else if destinationDelegatedAmount == nil {
-
+		destinationValidatorsDelegations = NewOrderedMap[string, sdk.Int]()
+		destinationValidatorsDelegations.Set(validatorAddress, amount)
+		genesisData.Delegations.Set(toDelegatorAddress, destinationValidatorsDelegations)
+	} else if destinationValidatorDelegatedAmount == nil {
 		// No delegations to validator
-		destinationDelegations.Set(validatorAddress, amount)
+		destinationValidatorsDelegations.Set(validatorAddress, amount)
 	} else {
 		// Update existing balance
-		destinationDelegations.Set(validatorAddress, destinationDelegatedAmount.Add(amount))
+		destinationValidatorsDelegations.Set(validatorAddress, destinationValidatorDelegatedAmount.Add(amount))
 	}
 
 	// Subtract amount from source or remove if nothing left
 	if amount.Equal(*sourceAmount) {
-		sourceDelegations.Delete(validatorAddress)
+		sourceValidatorsDelegations.Delete(validatorAddress)
 	} else {
-		sourceDelegations.Set(validatorAddress, sourceAmount.Sub(amount))
+		sourceValidatorsDelegations.Set(validatorAddress, sourceAmount.Sub(amount))
 	}
 
 	registerManifestMoveDelegations(fromDelegatorAddress, toDelegatorAddress, validatorAddress, amount, memo, manifest)
