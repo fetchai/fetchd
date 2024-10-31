@@ -137,7 +137,7 @@ replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.4-0.20241031215606-fab9223c8e10
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.4-0.20241031233359-3262b1f64b61
 
 // This is to add support for Ledger Nano S-Plus on linux + new macOS
 // usb bus device enumeration (it needs to be reiterated here, even though
