@@ -139,6 +139,8 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alp
 
 replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.4
 
+replace github.com/cosmos/ibc-go/v3 => github.com/fetchai/ibc-go/v3 v3.1.1-fetchai
+
 // This is to add support for Ledger Nano S-Plus on linux + new macOS
 // usb bus device enumeration (it needs to be reiterated here, even though
 // it is already defined on cosmos-sdk module level):

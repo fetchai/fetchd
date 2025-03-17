@@ -785,10 +785,6 @@ func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *Upgr
 }
 
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	app.UpgradeKeeper.SetUpgradeHandler("v0.11.3", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
 	app.UpgradeKeeper.SetUpgradeHandler("v0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 
 		manifest := NewUpgradeManifest()
@@ -849,6 +845,9 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
 
+	app.UpgradeKeeper.SetUpgradeHandler("v0.14.1", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, cfg, fromVM)
+	})
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
