@@ -35,6 +35,7 @@ nav:
     - Setup: 'validators/setup.md'
   - Joining a Testnet: 'joining-a-testnet.md'
   - Single Node Testnet: 'single-node-network.md'
+  - Deploying a Fetch.ai node: 'deploying-a-fetch-node.md'
   - Block Explorer: 'block-explorer.md'
   - Governance: 'governance.md'
   - Faucet: 'faucet.md'
