@@ -217,11 +217,6 @@ type App struct {
 
 	invCheckPeriod uint
 
-	cudosGenesisPath           string
-	cudosGenesisSha256         string
-	cudosMigrationConfigPath   string
-	cudosMigrationConfigSha256 string
-
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
 	tkeys   map[string]*sdk.TransientStoreKey
@@ -261,7 +256,7 @@ type App struct {
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, cudosGenesisPath string, cudosMigrationConfigPath string, cudosGenesisSha256 string, cudosMigrationConfigSha256 string, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
+	skipUpgradeHeights map[int64]bool, homePath string, invCheckPeriod uint, encodingConfig appparams.EncodingConfig, enabledProposals []wasm.ProposalType,
 	appOpts servertypes.AppOptions, wasmOpts []wasm.Option, baseAppOptions ...func(*baseapp.BaseApp),
 ) *App {
 
@@ -285,18 +280,14 @@ func New(
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
 	app := &App{
-		BaseApp:                    bApp,
-		legacyAmino:                legacyAmino,
-		appCodec:                   appCodec,
-		interfaceRegistry:          interfaceRegistry,
-		invCheckPeriod:             invCheckPeriod,
-		cudosGenesisPath:           cudosGenesisPath,
-		cudosGenesisSha256:         cudosGenesisSha256,
-		cudosMigrationConfigPath:   cudosMigrationConfigPath,
-		cudosMigrationConfigSha256: cudosMigrationConfigSha256,
-		keys:                       keys,
-		tkeys:                      tkeys,
-		memKeys:                    memKeys,
+		BaseApp:           bApp,
+		legacyAmino:       legacyAmino,
+		appCodec:          appCodec,
+		interfaceRegistry: interfaceRegistry,
+		invCheckPeriod:    invCheckPeriod,
+		keys:              keys,
+		tkeys:             tkeys,
+		memKeys:           memKeys,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tkeys[paramstypes.TStoreKey])
@@ -378,7 +369,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -727,124 +718,7 @@ func (app *App) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-func getNetworkInfo(app *App, ctx sdk.Context, manifest *UpgradeManifest, expectedChainIdOfMergeSourceGenesis string) (*NetworkConfig, error) {
-	// Load network config from file if given
-	var networkInfo *NetworkConfig
-	var err error
-	if app.cudosMigrationConfigPath != "" {
-		app.Logger().Info("cudos merge: loading network config", "file", app.cudosMigrationConfigPath, "expected sha256", app.cudosMigrationConfigSha256)
-
-		networkInfo, err = LoadAndVerifyNetworkConfigFromFile(app.cudosMigrationConfigPath, &app.cudosMigrationConfigSha256)
-		if err != nil {
-			return nil, err
-		}
-
-		if networkInfo.MergeSourceChainID != expectedChainIdOfMergeSourceGenesis {
-			return nil, fmt.Errorf("mismatch of Merge Source ChainID: the \"merge_source_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id from input merge source genesis json file, which is \"%s\"", networkInfo.MergeSourceChainID, expectedChainIdOfMergeSourceGenesis)
-		}
-		if networkInfo.DestinationChainID != ctx.ChainID() {
-			return nil, fmt.Errorf("mismatch of Destination ChainID: the \"destination_chain_id\" value in the NetworkConfig file contains \"%s\", expected value is chan-id of the current running chain, which is \"%s\"", networkInfo.DestinationChainID, ctx.ChainID())
-		}
-
-		manifest.NetworkConfigFileSha256 = app.cudosMigrationConfigSha256
-
-		// Config file not given, config from hardcoded map
-	} else if info, ok := NetworkInfos[ctx.ChainID()]; ok {
-		app.Logger().Info("cudos merge: loading network from map", "chain", ctx.ChainID())
-		manifest.NetworkConfigFileSha256 = "config map"
-		networkInfo = &info
-
-	} else {
-		return nil, fmt.Errorf("network info not found for chain id: %s", ctx.ChainID())
-	}
-
-	return networkInfo, nil
-}
-
-func LoadAndParseMergeSourceInputFiles(app *App, ctx sdk.Context, manifest *UpgradeManifest) (*GenesisData, *NetworkConfig, error) {
-
-	cudosJsonData, cudosGenDoc, err := LoadCudosGenesis(app, manifest)
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load genesis data: %w", err)
-	}
-
-	networkInfo, err := getNetworkInfo(app, ctx, manifest, cudosGenDoc.ChainID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load network config: %w", err)
-	}
-
-	cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
-
-	genesisData, err := ParseGenesisData(*cudosJsonData, cudosGenDoc, cudosConfig, manifest)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse genesis data: %w", err)
-	}
-
-	return genesisData, networkInfo, nil
-}
-
 func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	app.UpgradeKeeper.SetUpgradeHandler("v0.14.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
-
-		manifest := NewUpgradeManifest()
-
-		cudosGenesisData, networkInfo, err := LoadAndParseMergeSourceInputFiles(app, ctx, manifest)
-		if err != nil {
-			return nil, fmt.Errorf("cudos merge: %w", err)
-		}
-
-		manifest.DestinationChainBlockHeight = ctx.BlockHeight()
-		manifest.DestinationChainID = ctx.ChainID()
-
-		manifest.GovProposalUpgradePlanName = plan.Name
-
-		err = app.DeleteContractStates(ctx, networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.UpgradeContractAdmins(ctx, networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ChangeContractLabels(ctx, networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ChangeContractVersions(ctx, networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = app.ProcessReconciliation(ctx, networkInfo, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		cudosConfig := NewCudosMergeConfig(networkInfo.CudosMerge)
-
-		err = VerifyConfig(cudosConfig, cudosGenesisData.Prefix, AccountAddressPrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		err = CudosMergeUpgradeHandler(app, ctx, cudosConfig, cudosGenesisData, manifest)
-		if err != nil {
-			return nil, err
-		}
-
-		err = SaveManifest(app, manifest, plan.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		// End of migration
-		return app.mm.RunMigrations(ctx, cfg, fromVM)
-	})
-
 	app.UpgradeKeeper.SetUpgradeHandler("v0.14.1", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return app.mm.RunMigrations(ctx, cfg, fromVM)
 	})
