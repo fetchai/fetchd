@@ -13,12 +13,9 @@ import (
 	"io/ioutil"
 	"sort"
 	"strings"
-
-	"github.com/cometbft/cometbft/types"
-	"github.com/cosmos/cosmos-sdk/types/errors"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 )
 
+/*
 func loadAppStateFromGenesis(genesisPath string) (genDoc *types.GenesisDoc, appState genutiltypes.AppMap, err error) {
 	genDoc, err = types.GenesisDocFromFile(genesisPath)
 	if err != nil {
@@ -29,6 +26,8 @@ func loadAppStateFromGenesis(genesisPath string) (genDoc *types.GenesisDoc, appS
 	}
 	return genDoc, appState, nil
 }
+
+*/
 
 func utilCommand() *cobra.Command {
 	cmd := &cobra.Command{
