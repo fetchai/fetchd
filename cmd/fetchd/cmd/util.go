@@ -14,9 +14,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	"github.com/tendermint/tendermint/types"
 )
 
 func loadAppStateFromGenesis(genesisPath string) (genDoc *types.GenesisDoc, appState genutiltypes.AppMap, err error) {
