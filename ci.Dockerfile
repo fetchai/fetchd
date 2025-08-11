@@ -1,4 +1,4 @@
-FROM golang:1.18-buster
+FROM golang:1.24.3-bookworm
 
 WORKDIR /src
 
