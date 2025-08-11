@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"cosmossdk.io/log"
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmcli "github.com/CosmWasm/wasmd/x/wasm/client/cli"
@@ -27,7 +28,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	txmodule "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
@@ -70,8 +70,7 @@ func NewRootCmd() *cobra.Command {
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
 		WithTxConfig(encodingConfig.TxConfig).
 		WithLegacyAmino(encodingConfig.Amino).
-		//WithInput(bufio.NewReader(os.Stdin)).
-		WithInput(os.Stdin).
+		WithInput(bufio.NewReader(os.Stdin)).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithHomeDir(app.DefaultNodeHome).
 		WithViper("FETCH")
@@ -185,14 +184,9 @@ func initAppConfig() (string, interface{}) {
 func initRootCmd(rootCmd *cobra.Command, txConfig client.TxConfig, encodingConfig params.EncodingConfig, basicManager module.BasicManager) {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(basicManager, app.DefaultNodeHome),
-		//config.Cmd(),
-
-		// genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator, txConfig.SigningContext().ValidatorAddressCodec()),
-		// AddStakeReconciliationMigrateCmd(),
-		// genutilcli.GenTxCmd(basicManager, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, txConfig.SigningContext().ValidatorAddressCodec()),
-		// genutilcli.ValidateGenesisCmd(basicManager),
-		// AddGenesisAccountCmd(app.DefaultNodeHome),
-		//AddGenesisDelegationCmd(app.DefaultNodeHome),
+		AddGenesisWasmMsgCmd(app.DefaultNodeHome),
+		AddGenesisAccountCmd(app.DefaultNodeHome),
+		AddGenesisDelegationCmd(app.DefaultNodeHome),
 		cmtcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		confixcmd.ConfigCommand(),
@@ -216,7 +210,6 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxConfig, encodingConfi
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
-	crisis.AddModuleInitFlags(startCmd)
 	wasm.AddModuleInitFlags(startCmd)
 }
 
@@ -249,8 +242,7 @@ func queryCommand() *cobra.Command {
 		server.QueryBlockResultsCmd(),
 	)
 
-	//app.ModuleBasics.AddQueryCommands(cmd)
-	//cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
+	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
 }
@@ -319,7 +311,6 @@ func (a appCreator) appExport(
 			false,
 			map[int64]bool{},
 			uint(1),
-			//app.GetEnabledProposals(),
 			appOpts,
 			emptyWasmOpts,
 		)
@@ -335,7 +326,6 @@ func (a appCreator) appExport(
 			true,
 			map[int64]bool{},
 			uint(1),
-			//app.GetEnabledProposals(),
 			appOpts,
 			emptyWasmOpts,
 		)

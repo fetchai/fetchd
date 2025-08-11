@@ -83,12 +83,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	consensusparamkeeper "github.com/cosmos/cosmos-sdk/x/consensus/keeper"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
-	//"github.com/cosmos/cosmos-sdk/x/capability"
-	//capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	//capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/distribution"
-	//distrclient "github.com/cosmos/cosmos-sdk/x/distribution/client/cli"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	epochskeeper "github.com/cosmos/cosmos-sdk/x/epochs/keeper"
@@ -103,8 +98,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpoolkeeper "github.com/cosmos/cosmos-sdk/x/protocolpool/keeper"
@@ -192,44 +185,6 @@ func GetEnabledProposals() []wasmtypes.ProposalType {
 var (
 	// DefaultNodeHome default home directories for the application daemon
 	DefaultNodeHome string
-
-	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
-	// non-dependant module elements, such as codec registration
-	// and genesis verification.
-	ModuleBasics = module.NewBasicManager(
-		auth.AppModuleBasic{},
-		genutil.AppModuleBasic{},
-		bank.AppModuleBasic{},
-		//capability.AppModuleBasic{},
-		staking.AppModuleBasic{},
-		mint.AppModuleBasic{},
-		distribution.AppModuleBasic{},
-		gov.NewAppModuleBasic([]govclient.ProposalHandler{
-			paramsclient.ProposalHandler,
-		}),
-		/*gov.NewAppModuleBasic(
-			append(
-				wasmclient.ProposalHandlers,
-				paramsclient.ProposalHandler,
-				distrclient.ProposalHandler,
-				upgradeclient.ProposalHandler,
-				upgradeclient.CancelProposalHandler,
-				ibcclientclient.UpdateClientProposalHandler,
-				ibcclientclient.UpgradeProposalHandler,
-			)...,
-		),*/
-		params.AppModuleBasic{},
-		crisis.AppModuleBasic{},
-		slashing.AppModuleBasic{},
-		feegrantmodule.AppModuleBasic{},
-		authzmodule.AppModuleBasic{},
-		ibc.AppModuleBasic{},
-		upgrade.AppModuleBasic{},
-		evidence.AppModuleBasic{},
-		transfer.AppModuleBasic{},
-		vesting.AppModuleBasic{},
-		wasm.AppModuleBasic{},
-	)
 
 	// module account permissions
 	maccPerms = map[string][]string{
@@ -375,7 +330,6 @@ func New(
 		icacontrollertypes.StoreKey,
 	)
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
-	//memKeys := storetypes.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
 	// register streaming services
 	if err := bApp.RegisterStreamingServices(appOpts, keys); err != nil {
@@ -391,7 +345,6 @@ func New(
 		keys:              keys,
 		tkeys:             tkeys,
 		txConfig:          txConfig,
-		//memKeys:           memKeys,
 	}
 
 	// set the BaseApp's parameter store
@@ -865,8 +818,6 @@ func New(
 	app.mm.SetOrderInitGenesis(genesisModuleOrder...)
 	app.mm.SetOrderExportGenesis(exportModuleOrder...)
 
-	//app.mm.RegisterInvariants(&app.CrisisKeeper)
-	//app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
 	cfg := module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
 	err = app.mm.RegisterServices(cfg)
 	if err != nil {
@@ -899,8 +850,7 @@ func New(
 
 	// initialize stores
 	app.MountKVStores(keys)
-	//app.MountTransientStores(tkeys)
-	//app.MountMemoryStores(memKeys)
+	app.MountTransientStores(tkeys)
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
@@ -946,11 +896,6 @@ func New(
 			panic(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
 	}
-
-	//app.ScopedIBCKeeper = scopedIBCKeeper
-	//app.ScopedICAHostKeeper = scopedICAHostKeeper
-	//app.ScopedTransferKeeper = scopedTransferKeeper
-	//app.ScopedWasmKeeper = scopedWasmKeeper
 
 	return app
 }
