@@ -921,7 +921,7 @@ func ensureMintParamsSafe(appState map[string]json.RawMessage, fallbackDenom str
 		}
 		if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
 			if fallbackDenom == "" {
-				fallbackDenom = "stake"
+				fallbackDenom = "afet"
 			}
 			p["mint_denom"] = fallbackDenom
 		}
