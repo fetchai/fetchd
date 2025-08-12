@@ -88,6 +88,9 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 			if err := sanitizeMint(appState); err != nil {
 				return err
 			}
+			if err := ensureMintParamsSafe(appState, "afet"); err != nil {
+				return err
+			}
 
 			gt, err := readGenesisTime(inFile) // inFile is your source genesis path
 			if err != nil {
@@ -874,5 +877,108 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 		}
 		appState["wasm"] = bz
 	}
+	return nil
+}
+
+// ensureMintParamsSafe fills/repairs mint.params for SDK v0.53 to avoid div-by-zero in NextInflationRate.
+// - sets goal_bonded to a sane default if missing/zero
+// - ensures inflation_rate_change, inflation_min, inflation_max, blocks_per_year, mint_denom exist
+// - ensures minter.inflation/annual_provisions are strings
+func ensureMintParamsSafe(appState map[string]json.RawMessage, fallbackDenom string) error {
+	raw, ok := appState["mint"]
+	if !ok || len(raw) == 0 {
+		return nil
+	}
+	var st map[string]any
+	if err := json.Unmarshal(raw, &st); err != nil {
+		return fmt.Errorf("unmarshal mint: %w", err)
+	}
+
+	// Ensure params map exists
+	p, _ := st["params"].(map[string]any)
+	if p == nil {
+		p = map[string]any{}
+	}
+
+	// Helper to read decimal strings and detect zero/missing
+	isZeroDec := func(v any) bool {
+		s, _ := v.(string)
+		return s == "" || s == "0" || s == "0.0" || s == "0.000000000000000000"
+	}
+
+	// mint_denom
+	if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
+		// try staking.params.bond_denom
+		if rawSt, ok := appState["staking"]; ok {
+			var stak map[string]any
+			if json.Unmarshal(rawSt, &stak) == nil {
+				if sp, ok := stak["params"].(map[string]any); ok {
+					if den, _ := sp["bond_denom"].(string); den != "" {
+						p["mint_denom"] = den
+					}
+				}
+			}
+		}
+		if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
+			if fallbackDenom == "" {
+				fallbackDenom = "stake"
+			}
+			p["mint_denom"] = fallbackDenom
+		}
+	}
+
+	// goal_bonded MUST be > 0
+	if _, ok := p["goal_bonded"]; !ok || isZeroDec(p["goal_bonded"]) {
+		p["goal_bonded"] = "0.670000000000000000"
+	}
+
+	// inflation_rate_change
+	if _, ok := p["inflation_rate_change"]; !ok || isZeroDec(p["inflation_rate_change"]) {
+		p["inflation_rate_change"] = "0.130000000000000000"
+	}
+	// inflation_min
+	if _, ok := p["inflation_min"]; !ok || isZeroDec(p["inflation_min"]) {
+		p["inflation_min"] = "0.070000000000000000"
+	}
+	// inflation_max
+	if _, ok := p["inflation_max"]; !ok || isZeroDec(p["inflation_max"]) {
+		p["inflation_max"] = "0.200000000000000000"
+	}
+	// blocks_per_year (must be >0)
+	switch bpv := p["blocks_per_year"].(type) {
+	case string:
+		if bpv == "" || bpv == "0" {
+			p["blocks_per_year"] = "6311520" // ~5s blocks
+		}
+	case float64:
+		if bpv <= 0 {
+			p["blocks_per_year"] = "6311520"
+		}
+	default:
+		p["blocks_per_year"] = "6311520"
+	}
+
+	st["params"] = p
+
+	// Ensure minter exists with string fields
+	m, _ := st["minter"].(map[string]any)
+	if m == nil {
+		m = map[string]any{}
+	}
+	if _, ok := m["inflation"]; !ok || m["inflation"] == "" {
+		// safe starting inflation within [min, max]
+		m["inflation"] = "0.100000000000000000"
+	}
+	// annual_provisions can be "0"
+	if _, ok := m["annual_provisions"]; !ok || m["annual_provisions"] == "" {
+		m["annual_provisions"] = "0.000000000000000000"
+	}
+	st["minter"] = m
+
+	out, err := json.Marshal(st)
+	if err != nil {
+		return fmt.Errorf("marshal mint: %w", err)
+	}
+	appState["mint"] = out
 	return nil
 }
