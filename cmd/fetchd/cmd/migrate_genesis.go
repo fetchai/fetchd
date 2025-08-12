@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"math/big"
 	"os"
 	"sort"
@@ -18,11 +15,15 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	genutil "github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
-// migrate-genesis now supports initializing missing modules from ModuleBasics.
+// MigrateGenesisCmd migrates a legacy (e.g., v0.47) genesis.json so it loads under SDK v0.53.
+// It can also initialize missing modules using ModuleBasics.DefaultGenesis.
 func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 	var (
 		stripModsCSV string
@@ -32,19 +33,19 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "migrate-genesis [old_genesis.json] [new_genesis.json]",
-		Short: "Migrate a legacy (e.g., v0.47) genesis.json to be loadable by Cosmos SDK v0.53; can also init missing modules",
+		Short: "Migrate a legacy genesis.json for Cosmos SDK v0.53; can also init missing modules",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inFile := args[0]
 			outFile := args[1]
 
-			// Load old genesis
+			// Load source genesis
 			appState, appGen, err := genutiltypes.GenesisStateFromGenFile(inFile)
 			if err != nil {
 				return fmt.Errorf("read genesis %q: %w", inFile, err)
 			}
 
-			// 1) Optionally strip legacy/removed modules
+			// Strip legacy/removed modules (if requested)
 			for _, m := range parseCSV(stripModsCSV) {
 				if _, ok := appState[m]; ok {
 					delete(appState, m)
@@ -52,24 +53,21 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 				}
 			}
 
-			// 2) OPTIONAL: initialize missing modules with defaults from ModuleBasics
+			// Initialize missing modules with defaults (optional)
 			if initMissing {
-				// Build a JSON codec and get defaults for all modules declared by your app.
 				ir := codectypes.NewInterfaceRegistry()
 				basicManager.RegisterInterfaces(ir)
 				cdc := codec.NewProtoCodec(ir)
 
 				defaults := basicManager.DefaultGenesis(cdc)
+				only := set(parseCSV(initOnlyCSV))
 
-				var initOnly = set(parseCSV(initOnlyCSV)) // optional whitelist
-				// For each default, if missing in app_state, add it.
 				for mod, def := range defaults {
 					if _, exists := appState[mod]; exists {
 						continue
 					}
-					// If a whitelist is provided, only init those listed.
-					if len(initOnly) > 0 {
-						if _, ok := initOnly[mod]; !ok {
+					if len(only) > 0 {
+						if _, ok := only[mod]; !ok {
 							continue
 						}
 					}
@@ -78,58 +76,46 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 				}
 			}
 
-			// 3) (Optional) targeted edits (e.g., Gov v1) — add your chain-specific conversion here.
-			// if raw, ok := appState["gov"]; ok { /* adapt legacy fields if needed */ }
+			// Core sanitizers / migrations (chain-agnostic + your custom bits)
 			if err := resetGovPreserveParamsAndFixBank(appState); err != nil {
 				return err
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "stripped gov votes and deposits")
 
 			if err := sanitizeMint(appState); err != nil {
 				return err
 			}
+
+			genTime, initHeight, err := readGenesisHeader(inFile)
+			if err != nil {
+				return err
+			}
+
 			if err := ensureMintParamsSafe(appState, "afet"); err != nil {
 				return err
 			}
-
-			gt, err := readGenesisTime(inFile) // inFile is your source genesis path
-			if err != nil {
+			if err := sanitizeFeegrant(appState, genTime); err != nil {
 				return err
 			}
-
-			ih, err := readInitialHeight(inFile)
-			if err != nil {
-				return err
-			}
-
-			if err := sanitizeFeegrant(appState, gt); err != nil {
-				return err
-			}
-
 			if err := sanitizeIBCTransfer(appState); err != nil {
 				return err
 			}
-
 			if err := sanitizeWasmAccessConfigs(appState); err != nil {
 				return err
 			}
-
 			if err := dropWasmGenesisMsgs(appState); err != nil {
 				return err
 			}
-
-			if err := addGenesisHistoryToWasmContracts(appState, ih); err != nil {
+			if err := addGenesisHistoryToWasmContracts(appState, initHeight); err != nil {
 				return err
 			}
 
-			// Write new app_state
-			appStateJSON, err := json.Marshal(appState)
+			// Write back
+			newAppState, err := json.Marshal(appState)
 			if err != nil {
 				return fmt.Errorf("marshal new app_state: %w", err)
 			}
-			appGen.AppState = appStateJSON
+			appGen.AppState = newAppState
 
-			// Persist
 			if err := ensureDir(outFile); err != nil {
 				return err
 			}
@@ -143,27 +129,17 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 	}
 
 	// Flags
-	cmd.Flags().StringVar(
-		&stripModsCSV,
-		"strip-modules",
-		"capability,crisis",
-		"Comma-separated module names to remove from app_state (legacy/unused)",
-	)
-	cmd.Flags().BoolVar(
-		&initMissing,
-		"init-missing-modules",
-		true,
-		"If true, initialize any missing modules using ModuleBasics.DefaultGenesis",
-	)
-	cmd.Flags().StringVar(
-		&initOnlyCSV,
-		"init-only",
-		"",
-		"Optional comma-separated allowlist of module names to initialize (implies --init-missing-modules)",
-	)
+	cmd.Flags().StringVar(&stripModsCSV, "strip-modules", "capability,crisis",
+		"Comma-separated module names to remove from app_state (legacy/unused)")
+	cmd.Flags().BoolVar(&initMissing, "init-missing-modules", true,
+		"If true, initialize any missing modules using ModuleBasics.DefaultGenesis")
+	cmd.Flags().StringVar(&initOnlyCSV, "init-only", "",
+		"Optional comma-separated allowlist of module names to initialize (implies --init-missing-modules)")
 
 	return cmd
 }
+
+// ---------------------------- helpers ----------------------------
 
 func parseCSV(s string) []string {
 	if strings.TrimSpace(s) == "" {
@@ -209,33 +185,69 @@ func ensureDir(path string) error {
 	return nil
 }
 
-// Reset Gov to a minimal v1 skeleton, but preserve basic params from the original genesis.
-// Also zero the gov module account balance in bank and subtract it from total supply.
+// readGenesisHeader reads genesis_time and initial_height from a genesis JSON file.
+func readGenesisHeader(path string) (time.Time, uint64, error) {
+	var hdr struct {
+		GenesisTime   string `json:"genesis_time"`
+		InitialHeight string `json:"initial_height"`
+	}
+	bz, err := os.ReadFile(path)
+	if err != nil {
+		return time.Time{}, 0, fmt.Errorf("read genesis: %w", err)
+	}
+	if err := json.Unmarshal(bz, &hdr); err != nil {
+		return time.Time{}, 0, fmt.Errorf("unmarshal header: %w", err)
+	}
+
+	// Parse time
+	var t time.Time
+	if hdr.GenesisTime == "" {
+		t = time.Unix(0, 0).UTC()
+	} else if tt, err := time.Parse(time.RFC3339Nano, hdr.GenesisTime); err == nil {
+		t = tt.UTC()
+	} else if tt, err := time.Parse(time.RFC3339, hdr.GenesisTime); err == nil {
+		t = tt.UTC()
+	} else {
+		return time.Time{}, 0, fmt.Errorf("parse genesis_time: %w", err)
+	}
+
+	// Parse height
+	var h uint64
+	if hdr.InitialHeight != "" {
+		u, err := strconv.ParseUint(hdr.InitialHeight, 10, 64)
+		if err != nil {
+			return time.Time{}, 0, fmt.Errorf("parse initial_height: %w", err)
+		}
+		h = u
+	}
+	return t, h, nil
+}
+
+// Reset gov to a minimal v1 skeleton, preserve params, and reconcile bank:
+// - preserve gov.params (or legacy split params) + starting_proposal_id
+// - clear proposals/deposits/votes
+// - zero gov module account balance and subtract from bank supply
 func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error {
-	// --- 1) Extract params from the original gov (v1 or legacy v1beta1) ---
 	type coin struct{ Denom, Amount string }
 
+	// Extract params from old gov (v1 or v1beta1)
 	var (
 		startingID = "1"
 		paramsOut  = map[string]any{}
 	)
-
 	if rawGov, ok := appState["gov"]; ok && len(rawGov) > 0 {
 		var old map[string]any
 		if err := json.Unmarshal(rawGov, &old); err == nil {
-			// keep starting_proposal_id if present
 			if v, ok := old["starting_proposal_id"].(string); ok && v != "" {
 				startingID = v
 			}
-
-			// v1-style params block?
+			// v1 params
 			if p, ok := old["params"].(map[string]any); ok {
 				for k, v := range p {
-					paramsOut[k] = v // copy as-is
+					paramsOut[k] = v
 				}
 			}
-
-			// legacy split params?
+			// legacy split params
 			if dp, ok := old["deposit_params"].(map[string]any); ok {
 				if v, ok := dp["min_deposit"]; ok {
 					paramsOut["min_deposit"] = v
@@ -263,12 +275,11 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 		}
 	}
 
-	// If min_deposit missing, try to derive from staking bond denom or bank supply.
+	// Ensure min_deposit exists (derive from staking bond_denom or bank supply)
 	ensureMinDeposit := func() {
 		if _, ok := paramsOut["min_deposit"]; ok {
 			return
 		}
-		// Try staking.params.bond_denom
 		if rawStaking, ok := appState["staking"]; ok && len(rawStaking) > 0 {
 			var st map[string]any
 			if json.Unmarshal(rawStaking, &st) == nil {
@@ -280,7 +291,6 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 				}
 			}
 		}
-		// Fallback: take first denom from bank.supply
 		if rawBank, ok := appState["bank"]; ok && len(rawBank) > 0 {
 			var bk map[string]any
 			if json.Unmarshal(rawBank, &bk) == nil {
@@ -294,12 +304,11 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 				}
 			}
 		}
-		// Last resort: empty list (valid, but usually you’ll have a denom)
 		paramsOut["min_deposit"] = []any{}
 	}
 	ensureMinDeposit()
 
-	// Ensure some optional v1 params exist if not copied
+	// Fill optional v1 params if absent
 	if _, ok := paramsOut["min_initial_deposit_ratio"]; !ok {
 		paramsOut["min_initial_deposit_ratio"] = "0.000000000000000000"
 	}
@@ -313,7 +322,7 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 		paramsOut["burn_vote_veto"] = true
 	}
 
-	// Write minimal gov v1 state with preserved params
+	// Minimal gov v1 state
 	minGov := map[string]any{
 		"starting_proposal_id": startingID,
 		"deposits":             []any{},
@@ -327,7 +336,7 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 		return fmt.Errorf("marshal new gov: %w", err)
 	}
 
-	// --- 2) Reconcile bank: zero gov module account and reduce supply accordingly ---
+	// Reconcile bank: zero gov module account and subtract from supply
 	govModAddr := authtypes.NewModuleAddress(govtypes.ModuleName).String()
 
 	var bank map[string]any
@@ -336,27 +345,27 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 			return fmt.Errorf("unmarshal bank: %w", err)
 		}
 	} else {
-		return nil // nothing to fix
+		return nil
 	}
 
-	parseCoins := func(v any) ([]coin, bool) {
+	parseCoins := func(v any) ([]struct{ Denom, Amount string }, bool) {
 		arr, ok := v.([]any)
 		if !ok {
 			return nil, false
 		}
-		out := make([]coin, 0, len(arr))
+		out := make([]struct{ Denom, Amount string }, 0, len(arr))
 		for _, it := range arr {
 			if m, ok := it.(map[string]any); ok {
 				den, _ := m["denom"].(string)
 				amt, _ := m["amount"].(string)
 				if den != "" && amt != "" {
-					out = append(out, coin{Denom: den, Amount: amt})
+					out = append(out, struct{ Denom, Amount string }{Denom: den, Amount: amt})
 				}
 			}
 		}
 		return out, true
 	}
-	toAnyCoins := func(cs []coin) []any {
+	toAnyCoins := func(cs []struct{ Denom, Amount string }) []any {
 		out := make([]any, len(cs))
 		for i, c := range cs {
 			out[i] = map[string]any{"denom": c.Denom, "amount": c.Amount}
@@ -364,14 +373,14 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 		return out
 	}
 
-	// balances: zero gov module account coins
+	// Zero gov balance
 	var balances []any
 	if v, ok := bank["balances"]; ok {
 		if arr, ok := v.([]any); ok {
 			balances = arr
 		}
 	}
-	removed := []coin{}
+	removed := []struct{ Denom, Amount string }{}
 	newBalances := make([]any, 0, len(balances))
 	for _, b := range balances {
 		m, ok := b.(map[string]any)
@@ -387,14 +396,13 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 		if cs, ok := parseCoins(m["coins"]); ok && len(cs) > 0 {
 			removed = cs
 		}
-		// Keep entry but zero coins (safer for indexers)
-		m["coins"] = []any{}
+		m["coins"] = []any{} // keep entry, but zero coins
 		newBalances = append(newBalances, m)
 	}
 	bank["balances"] = newBalances
 
-	// supply: subtract removed amounts (so supply stays consistent)
-	var supply []coin
+	// Subtract from supply
+	var supply []struct{ Denom, Amount string }
 	if v, ok := bank["supply"]; ok {
 		if cs, ok := parseCoins(v); ok {
 			supply = cs
@@ -420,9 +428,9 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 				}
 			}
 		}
-		newSupply := make([]coin, 0, len(cur))
+		newSupply := make([]struct{ Denom, Amount string }, 0, len(cur))
 		for den, v := range cur {
-			newSupply = append(newSupply, coin{Denom: den, Amount: v.String()})
+			newSupply = append(newSupply, struct{ Denom, Amount string }{Denom: den, Amount: v.String()})
 		}
 		sort.Slice(newSupply, func(i, j int) bool { return newSupply[i].Denom < newSupply[j].Denom })
 		bank["supply"] = toAnyCoins(newSupply)
@@ -436,60 +444,47 @@ func resetGovPreserveParamsAndFixBank(appState map[string]json.RawMessage) error
 	return nil
 }
 
-// sanitizeMint removes custom/unknown fields from mint.minter and mint.params
-// so the state decodes under SDK v0.53. Specifically drops "municipal_inflation"
-// from minter and "inflation_rate" (and other non-whitelisted keys) from params.
+// sanitizeMint drops unknown custom fields so mint genesis decodes under SDK v0.53.
 func sanitizeMint(appState map[string]json.RawMessage) error {
 	raw, ok := appState["mint"]
 	if !ok || len(raw) == 0 {
 		return nil
 	}
-
 	var mint map[string]any
 	if err := json.Unmarshal(raw, &mint); err != nil {
 		return fmt.Errorf("unmarshal mint state: %w", err)
 	}
 
-	// --- sanitize minter (runtime values) ---
+	// minter: allow only inflation / annual_provisions
 	if mraw, ok := mint["minter"]; ok && mraw != nil {
 		if m, ok := mraw.(map[string]any); ok {
-			// v0.53 Minter expects only these fields
-			allowedMinter := map[string]struct{}{
-				"inflation":         {},
-				"annual_provisions": {},
-			}
+			allowed := map[string]struct{}{"inflation": {}, "annual_provisions": {}}
 			for k := range m {
-				if _, ok := allowedMinter[k]; !ok {
-					// drop customs like "municipal_inflation"
-					delete(m, k)
+				if _, ok := allowed[k]; !ok {
+					delete(m, k) // e.g. municipal_inflation
 				}
 			}
 			mint["minter"] = m
 		}
 	}
 
-	// --- sanitize params (configuration) ---
+	// params: keep a conservative whitelist
 	if praw, ok := mint["params"]; ok && praw != nil {
 		if p, ok := praw.(map[string]any); ok {
-			// Keep a conservative whitelist. Adjust if your chain uses more fields.
-			// Common SDK 0.5x params include these (depending on fork):
-			allowedParams := map[string]struct{}{
+			allowed := map[string]struct{}{
 				"mint_denom":            {},
-				"inflation_rate_change": {}, // keep if present on your fork; remove if it still errors
+				"inflation_rate_change": {},
 				"inflation_min":         {},
 				"inflation_max":         {},
 				"goal_bonded":           {},
 				"blocks_per_year":       {},
 			}
-
 			for k := range p {
-				// explicitly drop known custom legacy keys
 				if k == "inflation_rate" || k == "municipal_inflation" {
 					delete(p, k)
 					continue
 				}
-				// if you want to be strict, uncomment this block to drop anything non-whitelisted:
-				if _, ok := allowedParams[k]; !ok {
+				if _, ok := allowed[k]; !ok {
 					delete(p, k)
 				}
 			}
@@ -505,51 +500,96 @@ func sanitizeMint(appState map[string]json.RawMessage) error {
 	return nil
 }
 
-func readGenesisTime(path string) (time.Time, error) {
-	var hdr struct {
-		GenesisTime string `json:"genesis_time"`
+// ensureMintParamsSafe fills/repairs mint.params for SDK v0.53 to avoid div-by-zero in NextInflationRate.
+func ensureMintParamsSafe(appState map[string]json.RawMessage, fallbackDenom string) error {
+	raw, ok := appState["mint"]
+	if !ok || len(raw) == 0 {
+		return nil
 	}
-	bz, err := os.ReadFile(path)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("read genesis: %w", err)
+	var st map[string]any
+	if err := json.Unmarshal(raw, &st); err != nil {
+		return fmt.Errorf("unmarshal mint: %w", err)
 	}
-	if err := json.Unmarshal(bz, &hdr); err != nil {
-		return time.Time{}, fmt.Errorf("unmarshal header: %w", err)
-	}
-	if hdr.GenesisTime == "" {
-		// fallback to Unix epoch if missing (shouldn’t be)
-		return time.Unix(0, 0).UTC(), nil
-	}
-	t, err := time.Parse(time.RFC3339Nano, hdr.GenesisTime)
-	if err != nil {
-		// try looser RFC3339
-		if t2, e2 := time.Parse(time.RFC3339, hdr.GenesisTime); e2 == nil {
-			return t2.UTC(), nil
-		}
-		return time.Time{}, fmt.Errorf("parse genesis_time: %w", err)
-	}
-	return t.UTC(), nil
-}
 
-func readInitialHeight(path string) (uint64, error) {
-	var hdr struct {
-		InitialHeight string `json:"initial_height"`
+	p, _ := st["params"].(map[string]any)
+	if p == nil {
+		p = map[string]any{}
 	}
-	bz, err := os.ReadFile(path)
+
+	isZeroDec := func(v any) bool {
+		s, _ := v.(string)
+		return s == "" || s == "0" || s == "0.0" || s == "0.000000000000000000"
+	}
+
+	// mint_denom
+	if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
+		if rawSt, ok := appState["staking"]; ok {
+			var stak map[string]any
+			if json.Unmarshal(rawSt, &stak) == nil {
+				if sp, ok := stak["params"].(map[string]any); ok {
+					if den, _ := sp["bond_denom"].(string); den != "" {
+						p["mint_denom"] = den
+					}
+				}
+			}
+		}
+		if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
+			if fallbackDenom == "" {
+				fallbackDenom = "afet"
+			}
+			p["mint_denom"] = fallbackDenom
+		}
+	}
+
+	// goal_bonded > 0
+	if _, ok := p["goal_bonded"]; !ok || isZeroDec(p["goal_bonded"]) {
+		p["goal_bonded"] = "0.670000000000000000"
+	}
+	// inflation params
+	if _, ok := p["inflation_rate_change"]; !ok || isZeroDec(p["inflation_rate_change"]) {
+		p["inflation_rate_change"] = "0.130000000000000000"
+	}
+	if _, ok := p["inflation_min"]; !ok || isZeroDec(p["inflation_min"]) {
+		p["inflation_min"] = "0.070000000000000000"
+	}
+	if _, ok := p["inflation_max"]; !ok || isZeroDec(p["inflation_max"]) {
+		p["inflation_max"] = "0.200000000000000000"
+	}
+	// blocks_per_year
+	switch bpv := p["blocks_per_year"].(type) {
+	case string:
+		if bpv == "" || bpv == "0" {
+			p["blocks_per_year"] = "6311520" // ~5s blocks
+		}
+	case float64:
+		if bpv <= 0 {
+			p["blocks_per_year"] = "6311520"
+		}
+	default:
+		p["blocks_per_year"] = "6311520"
+	}
+
+	st["params"] = p
+
+	// Ensure minter exists with string fields
+	m, _ := st["minter"].(map[string]any)
+	if m == nil {
+		m = map[string]any{}
+	}
+	if _, ok := m["inflation"]; !ok || m["inflation"] == "" {
+		m["inflation"] = "0.100000000000000000"
+	}
+	if _, ok := m["annual_provisions"]; !ok || m["annual_provisions"] == "" {
+		m["annual_provisions"] = "0.000000000000000000"
+	}
+	st["minter"] = m
+
+	out, err := json.Marshal(st)
 	if err != nil {
-		return 0, fmt.Errorf("read genesis: %w", err)
+		return fmt.Errorf("marshal mint: %w", err)
 	}
-	if err := json.Unmarshal(bz, &hdr); err != nil {
-		return 0, fmt.Errorf("unmarshal header: %w", err)
-	}
-	if hdr.InitialHeight == "" {
-		return 0, nil
-	}
-	u, err := strconv.ParseUint(hdr.InitialHeight, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parse initial_height: %w", err)
-	}
-	return u, nil
+	appState["mint"] = out
+	return nil
 }
 
 // sanitizeFeegrant removes any grant whose (nested) expiration ≤ genesisTime.
@@ -568,14 +608,12 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 		return nil
 	}
 
-	// Recursively check for expiration inside an allowance Any-JSON blob.
-	var hasExpired func(v any) (bool, bool)
-	hasExpired = func(v any) (expired bool, found bool) {
+	var hasExpired func(v any) (expired bool, found bool)
+	hasExpired = func(v any) (bool, bool) {
 		m, ok := v.(map[string]any)
 		if !ok {
 			return false, false
 		}
-		// direct expiration?
 		if expRaw, ok := m["expiration"]; ok {
 			if s, ok := expRaw.(string); ok && s != "" {
 				if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
@@ -584,11 +622,9 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 				if t, err := time.Parse(time.RFC3339, s); err == nil {
 					return !t.After(genesisTime), true
 				}
-				// malformed -> treat as expired to be safe
-				return true, true
+				return true, true // malformed → drop
 			}
 		}
-		// nested: AllowedMsgAllowance{allowance}, PeriodicAllowance{basic}, etc.
 		if v2, ok := m["allowance"]; ok {
 			if e, f := hasExpired(v2); f {
 				return e, true
@@ -599,7 +635,6 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 				return e, true
 			}
 		}
-		// Some forks nest under "grant": { "allowance": {...} }
 		if v2, ok := m["grant"]; ok {
 			if e, f := hasExpired(v2); f {
 				return e, true
@@ -609,21 +644,16 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 	}
 
 	filtered := make([]any, 0, len(arrAny))
-	dropped := 0
 	for _, it := range arrAny {
-		// structure: { "granter": "...", "grantee": "...", "allowance": { ...Any JSON... } }
 		m, ok := it.(map[string]any)
 		if !ok {
 			continue
 		}
 		allow, ok := m["allowance"]
 		if !ok {
-			// no allowance -> drop
-			dropped++
 			continue
 		}
 		if exp, found := hasExpired(allow); found && exp {
-			dropped++
 			continue
 		}
 		filtered = append(filtered, m)
@@ -635,15 +665,10 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 		return fmt.Errorf("marshal feegrant: %w", err)
 	}
 	appState["feegrant"] = nbz
-	if dropped > 0 {
-		// optional: log via stdout/stderr in your command
-		// fmt.Fprintf(os.Stderr, "feegrant: dropped %d expired grant(s)\n", dropped)
-	}
 	return nil
 }
 
-// sanitizeIBCTransfer removes legacy fields (e.g. "denom_traces") from IBC transfer genesis
-// and ensures minimal required fields exist for ibc-go v10.
+// sanitizeIBCTransfer removes legacy fields and ensures minimal required fields for ibc-go v10.
 func sanitizeIBCTransfer(appState map[string]json.RawMessage) error {
 	raw, ok := appState["transfer"]
 	if !ok || len(raw) == 0 {
@@ -654,13 +679,8 @@ func sanitizeIBCTransfer(appState map[string]json.RawMessage) error {
 		return fmt.Errorf("unmarshal transfer genesis: %w", err)
 	}
 
-	// legacy key to drop
 	delete(gs, "denom_traces")
 
-	// ibc-go v10 expects at least these:
-	// - port_id (string, usually "transfer")
-	// - params { send_enabled, receive_enabled }
-	// - total_escrowed: []coin (can be empty)
 	if _, ok := gs["port_id"]; !ok {
 		gs["port_id"] = "transfer"
 	}
@@ -690,8 +710,7 @@ func sanitizeIBCTransfer(appState map[string]json.RawMessage) error {
 	return nil
 }
 
-// sanitizeWasmAccessConfigs fixes legacy AccessConfig objects that used "address"
-// by converting them to "addresses":[address]. Safe to run multiple times.
+// sanitizeWasmAccessConfigs converts legacy AccessConfig {address:"..."} to {addresses:["..."]}.
 func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 	raw, ok := appState["wasm"]
 	if !ok || len(raw) == 0 {
@@ -707,7 +726,6 @@ func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 		if !ok || m == nil {
 			return v
 		}
-		// if legacy singular "address" exists and "addresses" not set, convert
 		if _, hasList := m["addresses"]; !hasList {
 			if addr, has := m["address"]; has {
 				if s, ok := addr.(string); ok && s != "" {
@@ -719,7 +737,7 @@ func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 		return m
 	}
 
-	// params: code_upload_access, instantiate_default_permission
+	// params
 	if pRaw, ok := wasm["params"]; ok && pRaw != nil {
 		if p, ok := pRaw.(map[string]any); ok {
 			if cua, ok := p["code_upload_access"]; ok {
@@ -731,7 +749,6 @@ func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 			wasm["params"] = p
 		}
 	}
-
 	// codes[].code_info.instantiate_config
 	if codesRaw, ok := wasm["codes"]; ok && codesRaw != nil {
 		if arr, ok := codesRaw.([]any); ok {
@@ -762,7 +779,7 @@ func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 	return nil
 }
 
-// dropWasmGenesisMsgs removes legacy "gen_msgs" (and misspelt variants) from wasm genesis.
+// dropWasmGenesisMsgs removes legacy wasm "gen_msgs" variants.
 func dropWasmGenesisMsgs(appState map[string]json.RawMessage) error {
 	raw, ok := appState["wasm"]
 	if !ok || len(raw) == 0 {
@@ -773,12 +790,10 @@ func dropWasmGenesisMsgs(appState map[string]json.RawMessage) error {
 		return fmt.Errorf("unmarshal wasm state: %w", err)
 	}
 
-	// Known legacy keys to remove
 	delete(st, "gen_msgs")
-	delete(st, "gen_mgs")      // some older chains used this typo
-	delete(st, "genesis_msgs") // belt-and-suspenders
+	delete(st, "gen_mgs")
+	delete(st, "genesis_msgs")
 
-	// write back
 	bz, err := json.Marshal(st)
 	if err != nil {
 		return fmt.Errorf("marshal wasm state: %w", err)
@@ -787,9 +802,8 @@ func dropWasmGenesisMsgs(appState map[string]json.RawMessage) error {
 	return nil
 }
 
-// addGenesisHistoryToWasmContracts renames `contract_history` -> `contract_code_history`
-// and ensures each contract has at least one history entry. If missing, it appends a
-// minimal GENESIS record using the provided initialHeight.
+// addGenesisHistoryToWasmContracts renames contract_history -> contract_code_history
+// and ensures each contract has at least one GENESIS history entry.
 func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initialHeight uint64) error {
 	raw, ok := appState["wasm"]
 	if !ok || len(raw) == 0 {
@@ -805,14 +819,12 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 		return nil
 	}
 
-	// helper: normalize code_id to a JSON string (wasmd accepts stringified numbers)
 	toCodeID := func(v any) any {
 		switch x := v.(type) {
 		case string:
 			return x
 		case float64:
-			// JSON numbers come as float64; stringify without decimals
-			return fmt.Sprintf("%.0f", x)
+			return fmt.Sprintf("%.0f", x) // stringify JSON number
 		case json.Number:
 			return x.String()
 		default:
@@ -837,8 +849,7 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 		if !ok {
 			continue
 		}
-
-		// 1) If old key exists, move it to the new key and drop the old.
+		// rename if old key
 		if oldHistRaw, hasOld := c["contract_history"]; hasOld {
 			if oldArr, ok := oldHistRaw.([]any); ok {
 				c["contract_code_history"] = oldArr
@@ -846,13 +857,10 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 			delete(c, "contract_history")
 			changed = true
 		}
-
-		// 2) Ensure contract_code_history exists and is non-empty.
+		// ensure non-empty
 		hRaw, hasNew := c["contract_code_history"]
 		hArr, ok := hRaw.([]any)
-
 		if !hasNew || !ok || len(hArr) == 0 {
-			// find code_id (top-level or inside contract_info)
 			var codeID any
 			if v, ok := c["code_id"]; ok {
 				codeID = v
@@ -865,7 +873,6 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 			c["contract_code_history"] = []any{genesisHist(codeID)}
 			changed = true
 		}
-
 		contractsAny[i] = c
 	}
 
@@ -877,108 +884,5 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 		}
 		appState["wasm"] = bz
 	}
-	return nil
-}
-
-// ensureMintParamsSafe fills/repairs mint.params for SDK v0.53 to avoid div-by-zero in NextInflationRate.
-// - sets goal_bonded to a sane default if missing/zero
-// - ensures inflation_rate_change, inflation_min, inflation_max, blocks_per_year, mint_denom exist
-// - ensures minter.inflation/annual_provisions are strings
-func ensureMintParamsSafe(appState map[string]json.RawMessage, fallbackDenom string) error {
-	raw, ok := appState["mint"]
-	if !ok || len(raw) == 0 {
-		return nil
-	}
-	var st map[string]any
-	if err := json.Unmarshal(raw, &st); err != nil {
-		return fmt.Errorf("unmarshal mint: %w", err)
-	}
-
-	// Ensure params map exists
-	p, _ := st["params"].(map[string]any)
-	if p == nil {
-		p = map[string]any{}
-	}
-
-	// Helper to read decimal strings and detect zero/missing
-	isZeroDec := func(v any) bool {
-		s, _ := v.(string)
-		return s == "" || s == "0" || s == "0.0" || s == "0.000000000000000000"
-	}
-
-	// mint_denom
-	if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
-		// try staking.params.bond_denom
-		if rawSt, ok := appState["staking"]; ok {
-			var stak map[string]any
-			if json.Unmarshal(rawSt, &stak) == nil {
-				if sp, ok := stak["params"].(map[string]any); ok {
-					if den, _ := sp["bond_denom"].(string); den != "" {
-						p["mint_denom"] = den
-					}
-				}
-			}
-		}
-		if _, ok := p["mint_denom"]; !ok || p["mint_denom"] == "" {
-			if fallbackDenom == "" {
-				fallbackDenom = "afet"
-			}
-			p["mint_denom"] = fallbackDenom
-		}
-	}
-
-	// goal_bonded MUST be > 0
-	if _, ok := p["goal_bonded"]; !ok || isZeroDec(p["goal_bonded"]) {
-		p["goal_bonded"] = "0.670000000000000000"
-	}
-
-	// inflation_rate_change
-	if _, ok := p["inflation_rate_change"]; !ok || isZeroDec(p["inflation_rate_change"]) {
-		p["inflation_rate_change"] = "0.130000000000000000"
-	}
-	// inflation_min
-	if _, ok := p["inflation_min"]; !ok || isZeroDec(p["inflation_min"]) {
-		p["inflation_min"] = "0.070000000000000000"
-	}
-	// inflation_max
-	if _, ok := p["inflation_max"]; !ok || isZeroDec(p["inflation_max"]) {
-		p["inflation_max"] = "0.200000000000000000"
-	}
-	// blocks_per_year (must be >0)
-	switch bpv := p["blocks_per_year"].(type) {
-	case string:
-		if bpv == "" || bpv == "0" {
-			p["blocks_per_year"] = "6311520" // ~5s blocks
-		}
-	case float64:
-		if bpv <= 0 {
-			p["blocks_per_year"] = "6311520"
-		}
-	default:
-		p["blocks_per_year"] = "6311520"
-	}
-
-	st["params"] = p
-
-	// Ensure minter exists with string fields
-	m, _ := st["minter"].(map[string]any)
-	if m == nil {
-		m = map[string]any{}
-	}
-	if _, ok := m["inflation"]; !ok || m["inflation"] == "" {
-		// safe starting inflation within [min, max]
-		m["inflation"] = "0.100000000000000000"
-	}
-	// annual_provisions can be "0"
-	if _, ok := m["annual_provisions"]; !ok || m["annual_provisions"] == "" {
-		m["annual_provisions"] = "0.000000000000000000"
-	}
-	st["minter"] = m
-
-	out, err := json.Marshal(st)
-	if err != nil {
-		return fmt.Errorf("marshal mint: %w", err)
-	}
-	appState["mint"] = out
 	return nil
 }
