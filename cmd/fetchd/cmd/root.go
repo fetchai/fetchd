@@ -191,6 +191,7 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxConfig, encodingConfi
 		debug.Cmd(),
 		confixcmd.ConfigCommand(),
 		utilCommand(),
+		MigrateGenesisCmd(basicManager),
 	)
 
 	a := appCreator{encodingConfig}
