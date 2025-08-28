@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -11,15 +10,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	genutil "github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 )
 
 // MigrateGenesisCmd migrates a legacy (e.g., v0.47) genesis.json so it loads under SDK v0.53.
@@ -60,7 +60,7 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 				cdc := codec.NewProtoCodec(ir)
 
 				defaults := basicManager.DefaultGenesis(cdc)
-				only := set(parseCSV(initOnlyCSV))
+				only := toStringSet(parseCSV(initOnlyCSV))
 
 				for mod, def := range defaults {
 					if _, exists := appState[mod]; exists {
@@ -96,16 +96,10 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 			if err := sanitizeFeegrant(appState, genTime); err != nil {
 				return err
 			}
-			if err := sanitizeIBCTransfer(appState); err != nil {
+			if err := migrateIBCTransfer(appState); err != nil {
 				return err
 			}
-			if err := sanitizeWasmAccessConfigs(appState); err != nil {
-				return err
-			}
-			if err := dropWasmGenesisMsgs(appState); err != nil {
-				return err
-			}
-			if err := addGenesisHistoryToWasmContracts(appState, initHeight); err != nil {
+			if err := migrateWasm(appState, initHeight); err != nil {
 				return err
 			}
 
@@ -137,52 +131,6 @@ func MigrateGenesisCmd(basicManager module.BasicManager) *cobra.Command {
 		"Optional comma-separated allowlist of module names to initialize (implies --init-missing-modules)")
 
 	return cmd
-}
-
-// ---------------------------- helpers ----------------------------
-
-func parseCSV(s string) []string {
-	if strings.TrimSpace(s) == "" {
-		return nil
-	}
-	parts := strings.Split(s, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	sort.Strings(out)
-	return out
-}
-
-func set(list []string) map[string]struct{} {
-	if len(list) == 0 {
-		return nil
-	}
-	m := make(map[string]struct{}, len(list))
-	for _, v := range list {
-		m[v] = struct{}{}
-	}
-	return m
-}
-
-func ensureDir(path string) error {
-	dir := ""
-	if i := strings.LastIndex(path, "/"); i >= 0 {
-		dir = path[:i]
-	}
-	if dir == "" {
-		return nil
-	}
-	if st, err := os.Stat(dir); err == nil && st.IsDir() {
-		return nil
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
-		return fmt.Errorf("create dir %q: %w", dir, err)
-	}
-	return nil
 }
 
 // readGenesisHeader reads genesis_time and initial_height from a genesis JSON file.
@@ -592,60 +540,55 @@ func ensureMintParamsSafe(appState map[string]json.RawMessage, fallbackDenom str
 	return nil
 }
 
-// sanitizeFeegrant removes any grant whose (nested) expiration ≤ genesisTime.
-func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time) error {
-	raw, ok := appState["feegrant"]
-	if !ok || len(raw) == 0 {
-		return nil
-	}
-	var st map[string]any
-	if err := json.Unmarshal(raw, &st); err != nil {
-		return fmt.Errorf("unmarshal feegrant: %w", err)
-	}
-
-	arrAny, _ := st["allowances"].([]any)
-	if len(arrAny) == 0 {
-		return nil
-	}
-
-	var hasExpired func(v any) (expired bool, found bool)
-	hasExpired = func(v any) (bool, bool) {
-		m, ok := v.(map[string]any)
-		if !ok {
-			return false, false
-		}
-		if expRaw, ok := m["expiration"]; ok {
-			if s, ok := expRaw.(string); ok && s != "" {
-				if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
-					return !t.After(genesisTime), true
-				}
-				if t, err := time.Parse(time.RFC3339, s); err == nil {
-					return !t.After(genesisTime), true
-				}
-				return true, true // malformed → drop
-			}
-		}
-		if v2, ok := m["allowance"]; ok {
-			if e, f := hasExpired(v2); f {
-				return e, true
-			}
-		}
-		if v2, ok := m["basic"]; ok {
-			if e, f := hasExpired(v2); f {
-				return e, true
-			}
-		}
-		if v2, ok := m["grant"]; ok {
-			if e, f := hasExpired(v2); f {
-				return e, true
-			}
-		}
+// hasExpiredAllowance walks an allowance (possibly nested) and returns whether it has expired
+// compared to genesisTime. If no expiration field is found, it returns (false, false).
+func hasExpiredAllowance(v any, genesisTime time.Time) (expired bool, found bool) {
+	m, ok := v.(map[string]any)
+	if !ok {
 		return false, false
 	}
 
-	filtered := make([]any, 0, len(arrAny))
-	for _, it := range arrAny {
-		m, ok := it.(map[string]any)
+	// direct expiration
+	if expRaw, ok := m["expiration"]; ok {
+		if s, ok := expRaw.(string); ok && s != "" {
+			if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+				return !t.After(genesisTime), true
+			}
+			if t, err := time.Parse(time.RFC3339, s); err == nil {
+				return !t.After(genesisTime), true
+			}
+			// malformed → treat as expired to be safe
+			return true, true
+		}
+	}
+
+	// nested allowances (different wrapper types)
+	for _, key := range []string{"allowance", "basic", "grant"} {
+		if v2, ok := m[key]; ok {
+			if e, f := hasExpiredAllowance(v2, genesisTime); f {
+				return e, true
+			}
+		}
+	}
+
+	return false, false
+}
+
+// sanitizeFeegrant removes any feegrant whose expiration ≤ genesisTime.
+func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time) error {
+	state, err := unmarshalState(appState, "feegrant")
+	if err != nil {
+		return fmt.Errorf("feegrant: %w", err)
+	}
+
+	allowances, _ := state["allowances"].([]any)
+	if len(allowances) == 0 {
+		return nil
+	}
+
+	filtered := make([]any, 0, len(allowances))
+	for _, item := range allowances {
+		m, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -653,105 +596,244 @@ func sanitizeFeegrant(appState map[string]json.RawMessage, genesisTime time.Time
 		if !ok {
 			continue
 		}
-		if exp, found := hasExpired(allow); found && exp {
-			continue
+		if expired, found := hasExpiredAllowance(allow, genesisTime); found && expired {
+			continue // drop expired
 		}
 		filtered = append(filtered, m)
 	}
-	st["allowances"] = filtered
+	state["allowances"] = filtered
 
-	nbz, err := json.Marshal(st)
-	if err != nil {
-		return fmt.Errorf("marshal feegrant: %w", err)
+	if err := marshalState(appState, "feegrant", state); err != nil {
+		return fmt.Errorf("feegrant marshal: %w", err)
 	}
-	appState["feegrant"] = nbz
 	return nil
 }
 
-// sanitizeIBCTransfer removes legacy fields and ensures minimal required fields for ibc-go v10.
-func sanitizeIBCTransfer(appState map[string]json.RawMessage) error {
-	raw, ok := appState["transfer"]
-	if !ok || len(raw) == 0 {
-		return nil
-	}
-	var gs map[string]any
-	if err := json.Unmarshal(raw, &gs); err != nil {
-		return fmt.Errorf("unmarshal transfer genesis: %w", err)
-	}
+// migrateIBCTransfer converts old transfer genesis:
+// - denom_traces[{path, base_denom}]  -> denoms[{base, trace:[{port_id,channel_id}, ...]}]
+// - adds params, port_id, total_escrowed (computed from escrow accounts)
+// - removes denom_traces
+func migrateIBCTransfer(appState map[string]json.RawMessage) error {
+	const port = "transfer"
 
-	delete(gs, "denom_traces")
-
-	if _, ok := gs["port_id"]; !ok {
-		gs["port_id"] = "transfer"
-	}
-	if p, ok := gs["params"].(map[string]any); ok {
-		if _, ok := p["send_enabled"]; !ok {
-			p["send_enabled"] = true
-		}
-		if _, ok := p["receive_enabled"]; !ok {
-			p["receive_enabled"] = true
-		}
-		gs["params"] = p
-	} else {
-		gs["params"] = map[string]any{
-			"send_enabled":    true,
-			"receive_enabled": true,
-		}
-	}
-	if _, ok := gs["total_escrowed"]; !ok {
-		gs["total_escrowed"] = []any{}
-	}
-
-	bz, err := json.Marshal(gs)
+	transferState, err := unmarshalState(appState, "transfer")
 	if err != nil {
-		return fmt.Errorf("marshal transfer genesis: %w", err)
+		return fmt.Errorf("transfer: %w", err)
 	}
-	appState["transfer"] = bz
-	return nil
+	ibcState, _ := unmarshalState(appState, "ibc")
+	bankState, _ := unmarshalState(appState, "bank")
+
+	// 1) Build denoms from legacy denom_traces
+	legacy, _ := transferState["denom_traces"].([]any)
+	denoms := make([]any, 0, len(legacy))
+	for _, it := range legacy {
+		if m, ok := it.(map[string]any); ok {
+			base, _ := m["base_denom"].(string)
+			path, _ := m["path"].(string)
+			denoms = append(denoms, map[string]any{
+				"base":  base,
+				"trace": pathToHops(path),
+			})
+		}
+	}
+	transferState["denoms"] = denoms
+	delete(transferState, "denom_traces")
+
+	// 2) Ensure required fields for v10
+	transferState["port_id"] = port
+	transferState["params"] = map[string]any{
+		"send_enabled":    true,
+		"receive_enabled": true,
+	}
+
+	// 3) Compute total_escrowed by summing balances of escrow accounts
+	escrows := escrowAddresses(ibcState, port)
+	totals := sumEscrow(bankState, escrows)
+	transferState["total_escrowed"] = coinsJSON(totals)
+
+	// 4) Write back
+	return marshalState(appState, "transfer", transferState)
 }
 
-// sanitizeWasmAccessConfigs converts legacy AccessConfig {address:"..."} to {addresses:["..."]}.
-func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
-	raw, ok := appState["wasm"]
-	if !ok || len(raw) == 0 {
-		return nil
+// "transfer/channel-0/transfer/channel-2" -> [{port_id:"transfer",channel_id:"channel-0"}, {port_id:"transfer",channel_id:"channel-2"}]
+func pathToHops(path string) []any {
+	if path == "" {
+		return []any{}
 	}
-	var wasm map[string]any
-	if err := json.Unmarshal(raw, &wasm); err != nil {
-		return fmt.Errorf("unmarshal wasm state: %w", err)
-	}
-
-	fixAC := func(v any) any {
-		m, ok := v.(map[string]any)
-		if !ok || m == nil {
-			return v
+	parts := strings.Split(path, "/")
+	hops := make([]any, 0, len(parts)/2)
+	for i := 0; i+1 < len(parts); i += 2 {
+		portID, chID := parts[i], parts[i+1]
+		if portID == "" || chID == "" {
+			continue
 		}
-		if _, hasList := m["addresses"]; !hasList {
-			if addr, has := m["address"]; has {
-				if s, ok := addr.(string); ok && s != "" {
-					m["addresses"] = []any{s}
-				}
-				delete(m, "address")
+		hops = append(hops, map[string]any{
+			"port_id":    portID,
+			"channel_id": chID,
+		})
+	}
+	return hops
+}
+
+func escrowAddresses(ibcState map[string]any, port string) map[string]struct{} {
+	out := make(map[string]struct{})
+	chgen, _ := ibcState["channel_genesis"].(map[string]any)
+	chans, _ := chgen["channels"].([]any)
+	for _, it := range chans {
+		ch, _ := it.(map[string]any)
+		if ch == nil {
+			continue
+		}
+		if ch["port_id"] != port {
+			continue
+		}
+		chID, _ := ch["channel_id"].(string)
+		if chID == "" {
+			continue
+		}
+		addr := ibctransfertypes.GetEscrowAddress(port, chID) // AccAddress → String()
+		out[addr.String()] = struct{}{}
+	}
+	return out
+}
+
+func sumEscrow(bankState map[string]any, escrows map[string]struct{}) map[string]*big.Int {
+	out := map[string]*big.Int{}
+	bals, _ := bankState["balances"].([]any)
+	for _, it := range bals {
+		b, _ := it.(map[string]any)
+		if b == nil {
+			continue
+		}
+		addr, _ := b["address"].(string)
+		if _, ok := escrows[addr]; !ok {
+			continue
+		}
+		coins, _ := b["coins"].([]any)
+		for _, c := range coins {
+			m, _ := c.(map[string]any)
+			if m == nil {
+				continue
+			}
+			denom, _ := m["denom"].(string)
+			amt, _ := m["amount"].(string)
+			if denom == "" || amt == "" {
+				continue
+			}
+			if _, ok := out[denom]; !ok {
+				out[denom] = new(big.Int)
+			}
+			if v, ok := new(big.Int).SetString(amt, 10); ok {
+				out[denom].Add(out[denom], v)
 			}
 		}
-		return m
+	}
+	return out
+}
+
+// migrateWasm updates wasm genesis for SDK/wasmd v0.53+/v0.61+:
+//  1. Converts legacy AccessConfig {address:"..."} → {addresses:["..."]} in params and codes.*.
+//  2. Removes legacy genesis message fields: gen_msgs / gen_mgs / genesis_msgs.
+//  3. Renames contract_history → contract_code_history and ensures each contract
+//     has at least one GENESIS entry using the provided initialHeight.
+func migrateWasm(appState map[string]json.RawMessage, initialHeight uint64) error {
+	// no-op if wasm not present
+	if raw, ok := appState["wasm"]; !ok || len(raw) == 0 {
+		return nil
 	}
 
-	// params
-	if pRaw, ok := wasm["params"]; ok && pRaw != nil {
+	state, err := unmarshalState(appState, "wasm")
+	if err != nil {
+		return fmt.Errorf("wasm: %w", err)
+	}
+
+	changed := false
+
+	// 1) Fix AccessConfig shapes in params and codes
+	if fixAccessConfigsInState(state) {
+		changed = true
+	}
+
+	// 2) Drop legacy genesis message keys
+	if deleteLegacyWasmGenesisMsgs(state) {
+		changed = true
+	}
+
+	// 3) Normalize contract histories
+	if normalizeContractHistories(state, initialHeight) {
+		changed = true
+	}
+
+	if !changed {
+		return nil
+	}
+	if err := marshalState(appState, "wasm", state); err != nil {
+		return fmt.Errorf("wasm marshal: %w", err)
+	}
+	return nil
+}
+
+// --- helpers ---------------------------------------------------------------
+
+// Convert {address:"..."} → {addresses:["..."]} (idempotent).
+// Returns (newValue, changed).
+func fixAccessConfigNode(v any) (any, bool) {
+	m, ok := v.(map[string]any)
+	if !ok || m == nil {
+		return v, false
+	}
+
+	changed := false
+
+	// If "addresses" present, just remove legacy "address" if it exists.
+	if _, hasList := m["addresses"]; hasList {
+		if _, had := m["address"]; had {
+			delete(m, "address")
+			changed = true
+		}
+		return m, changed
+	}
+
+	// If legacy single "address" present, convert to "addresses".
+	if addr, has := m["address"]; has {
+		if s, ok := addr.(string); ok && s != "" {
+			m["addresses"] = []any{s}
+			changed = true
+		}
+		delete(m, "address")
+		changed = true
+	}
+
+	return m, changed
+}
+
+// Fix AccessConfig wherever it appears in wasm genesis.
+func fixAccessConfigsInState(state map[string]any) bool {
+	changed := false
+
+	// params: code_upload_access, instantiate_default_permission
+	if pRaw, ok := state["params"]; ok && pRaw != nil {
 		if p, ok := pRaw.(map[string]any); ok {
-			if cua, ok := p["code_upload_access"]; ok {
-				p["code_upload_access"] = fixAC(cua)
+			if v, ok := p["code_upload_access"]; ok {
+				if n, ch := fixAccessConfigNode(v); ch {
+					p["code_upload_access"] = n
+					changed = true
+				}
 			}
-			if idp, ok := p["instantiate_default_permission"]; ok {
-				p["instantiate_default_permission"] = fixAC(idp)
+			if v, ok := p["instantiate_default_permission"]; ok {
+				if n, ch := fixAccessConfigNode(v); ch {
+					p["instantiate_default_permission"] = n
+					changed = true
+				}
 			}
-			wasm["params"] = p
+			state["params"] = p
 		}
 	}
+
 	// codes[].code_info.instantiate_config
-	if codesRaw, ok := wasm["codes"]; ok && codesRaw != nil {
+	if codesRaw, ok := state["codes"]; ok && codesRaw != nil {
 		if arr, ok := codesRaw.([]any); ok {
+			arrChanged := false
 			for i, it := range arr {
 				rec, ok := it.(map[string]any)
 				if !ok {
@@ -760,87 +842,43 @@ func sanitizeWasmAccessConfigs(appState map[string]json.RawMessage) error {
 				if ciRaw, ok := rec["code_info"]; ok {
 					if ci, ok := ciRaw.(map[string]any); ok {
 						if ic, ok := ci["instantiate_config"]; ok {
-							ci["instantiate_config"] = fixAC(ic)
-							rec["code_info"] = ci
-							arr[i] = rec
+							if n, ch := fixAccessConfigNode(ic); ch {
+								ci["instantiate_config"] = n
+								rec["code_info"] = ci
+								arr[i] = rec
+								arrChanged = true
+							}
 						}
 					}
 				}
 			}
-			wasm["codes"] = arr
+			if arrChanged {
+				state["codes"] = arr
+				changed = true
+			}
 		}
 	}
 
-	bz, err := json.Marshal(wasm)
-	if err != nil {
-		return fmt.Errorf("marshal wasm state: %w", err)
-	}
-	appState["wasm"] = bz
-	return nil
+	return changed
 }
 
-// dropWasmGenesisMsgs removes legacy wasm "gen_msgs" variants.
-func dropWasmGenesisMsgs(appState map[string]json.RawMessage) error {
-	raw, ok := appState["wasm"]
-	if !ok || len(raw) == 0 {
-		return nil
+// Remove legacy wasm genesis message keys.
+func deleteLegacyWasmGenesisMsgs(state map[string]any) bool {
+	deleted := false
+	for _, k := range []string{"gen_msgs", "gen_mgs", "genesis_msgs"} {
+		if _, had := state[k]; had {
+			delete(state, k)
+			deleted = true
+		}
 	}
-	var st map[string]any
-	if err := json.Unmarshal(raw, &st); err != nil {
-		return fmt.Errorf("unmarshal wasm state: %w", err)
-	}
-
-	delete(st, "gen_msgs")
-	delete(st, "gen_mgs")
-	delete(st, "genesis_msgs")
-
-	bz, err := json.Marshal(st)
-	if err != nil {
-		return fmt.Errorf("marshal wasm state: %w", err)
-	}
-	appState["wasm"] = bz
-	return nil
+	return deleted
 }
 
-// addGenesisHistoryToWasmContracts renames contract_history -> contract_code_history
-// and ensures each contract has at least one GENESIS history entry.
-func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initialHeight uint64) error {
-	raw, ok := appState["wasm"]
-	if !ok || len(raw) == 0 {
-		return nil
-	}
-	var st map[string]any
-	if err := json.Unmarshal(raw, &st); err != nil {
-		return fmt.Errorf("unmarshal wasm state: %w", err)
-	}
-
-	contractsAny, ok := st["contracts"].([]any)
+// Ensure each contract has non-empty contract_code_history, optionally rename legacy key.
+func normalizeContractHistories(state map[string]any, initialHeight uint64) bool {
+	contractsAny, ok := state["contracts"].([]any)
 	if !ok || len(contractsAny) == 0 {
-		return nil
-	}
-
-	toCodeID := func(v any) any {
-		switch x := v.(type) {
-		case string:
-			return x
-		case float64:
-			return fmt.Sprintf("%.0f", x) // stringify JSON number
-		case json.Number:
-			return x.String()
-		default:
-			return "0"
-		}
-	}
-
-	genesisHist := func(codeID any) map[string]any {
-		return map[string]any{
-			"operation": "CONTRACT_CODE_HISTORY_OPERATION_TYPE_GENESIS",
-			"code_id":   toCodeID(codeID),
-			"updated": map[string]any{
-				"block_height": fmt.Sprintf("%d", initialHeight),
-				"tx_index":     "0",
-			},
-		}
+		return false
 	}
 
 	changed := false
@@ -849,40 +887,58 @@ func addGenesisHistoryToWasmContracts(appState map[string]json.RawMessage, initi
 		if !ok {
 			continue
 		}
-		// rename if old key
-		if oldHistRaw, hasOld := c["contract_history"]; hasOld {
-			if oldArr, ok := oldHistRaw.([]any); ok {
+
+		// Rename legacy key if present
+		if oldHist, hasOld := c["contract_history"]; hasOld {
+			if oldArr, ok := oldHist.([]any); ok {
 				c["contract_code_history"] = oldArr
+				changed = true
 			}
 			delete(c, "contract_history")
+		}
+
+		// Ensure non-empty contract_code_history
+		histRaw, has := c["contract_code_history"]
+		arr, ok := histRaw.([]any)
+		if !has || !ok || len(arr) == 0 {
+			c["contract_code_history"] = []any{makeGenesisHistoryEntry(c, initialHeight)}
 			changed = true
 		}
-		// ensure non-empty
-		hRaw, hasNew := c["contract_code_history"]
-		hArr, ok := hRaw.([]any)
-		if !hasNew || !ok || len(hArr) == 0 {
-			var codeID any
-			if v, ok := c["code_id"]; ok {
-				codeID = v
-			} else if ci, ok := c["contract_info"].(map[string]any); ok {
-				codeID = ci["code_id"]
-			}
-			if codeID == nil {
-				codeID = "0"
-			}
-			c["contract_code_history"] = []any{genesisHist(codeID)}
-			changed = true
-		}
+
 		contractsAny[i] = c
 	}
 
 	if changed {
-		st["contracts"] = contractsAny
-		bz, err := json.Marshal(st)
-		if err != nil {
-			return fmt.Errorf("marshal wasm state: %w", err)
-		}
-		appState["wasm"] = bz
+		state["contracts"] = contractsAny
 	}
-	return nil
+	return changed
+}
+
+// Build a single GENESIS history record using contract code_id and initial height.
+func makeGenesisHistoryEntry(contract map[string]any, initialHeight uint64) map[string]any {
+	return map[string]any{
+		"operation": "CONTRACT_CODE_HISTORY_OPERATION_TYPE_GENESIS",
+		"code_id":   extractCodeID(contract),
+		"updated": map[string]any{
+			"block_height": fmt.Sprintf("%d", initialHeight),
+			"tx_index":     "0",
+		},
+	}
+}
+
+// Try common places for code_id and stringify it.
+func extractCodeID(contract map[string]any) string {
+	// top-level code_id
+	if v, ok := contract["code_id"]; ok {
+		return stringifyJSONNumber(v)
+	}
+	// nested in contract_info
+	if ciRaw, ok := contract["contract_info"]; ok {
+		if ci, ok := ciRaw.(map[string]any); ok {
+			if v, ok := ci["code_id"]; ok {
+				return stringifyJSONNumber(v)
+			}
+		}
+	}
+	return "0"
 }
