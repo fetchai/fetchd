@@ -3,14 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
-	"github.com/cosmos/cosmos-sdk/x/group"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	"time"
 
 	storetypes "cosmossdk.io/store/types"
 	circuittypes "cosmossdk.io/x/circuit/types"
@@ -19,9 +12,18 @@ import (
 	"github.com/CosmWasm/wasmd/app/upgrades"
 	"github.com/CosmWasm/wasmd/app/upgrades/noop"
 	v060 "github.com/CosmWasm/wasmd/app/upgrades/v060"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
+	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
+	"github.com/cosmos/cosmos-sdk/x/group"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
+	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	"github.com/fetchai/fetchd/app/traces"
 )
 
 // ---- Match this to the plan name that is already stored on disk and halted the chain.
@@ -86,23 +88,55 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			// TODO: Write custom migration for transfer
-			err = cfg.RegisterMigration(ibctransfertypes.ModuleName, 1, func(ctx sdk.Context) error {
-				// Logic here
-				return nil
-			})
+			// Migrate transfer traces
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			m := traces.NewDenomTracesMigrator(sdkCtx.KVStore(app.GetKey(ibctransfertypes.StoreKey)))
+			err = cfg.RegisterMigration(ibctransfertypes.ModuleName, 1, m.MigrateTraces)
 			if err != nil {
 				return nil, err
 			}
 
 			// Pre-seed legacy x/params for mint
-			sdkCtx := sdk.UnwrapSDKContext(ctx)
 			if ss, ok := app.ParamsKeeper.GetSubspace(minttypes.ModuleName); ok {
 				if !ss.Has(sdkCtx, minttypes.KeyInflationRateChange) {
 					p := minttypes.DefaultParams()
 					p.MintDenom = "afet"
 					// TODO: if your chain had custom values, set them here:
 					ss.SetParamSet(sdkCtx, &p)
+				}
+			}
+
+			cparams := app.BaseApp.GetConsensusParams(sdkCtx)
+			if err := app.BaseApp.StoreConsensusParams(sdkCtx, cparams); err != nil {
+				return nil, err
+			}
+
+			// Bootstrap consensus params if empty
+			if _, err := app.ConsensusParamsKeeper.ParamsStore.Get(sdkCtx); err != nil {
+				// Use sane defaults (adjust if your chain needs different limits)
+				cp := tmproto.ConsensusParams{
+					Block: &tmproto.BlockParams{
+						MaxBytes: 22020096, // ~21MB like most Cosmos chains
+						MaxGas:   -1,       // unlimited; set your real value if needed
+					},
+					Evidence: &tmproto.EvidenceParams{
+						MaxAgeNumBlocks: 302400,          // ~3 weeks at 6s blocks
+						MaxAgeDuration:  504 * time.Hour, // 3 weeks
+						MaxBytes:        1048576,         // 1MB evidence
+					},
+					Validator: &tmproto.ValidatorParams{
+						PubKeyTypes: []string{"ed25519"},
+					},
+					Version: &tmproto.VersionParams{
+						App: 0,
+					},
+					// Abci left nil (CometBFT will use defaults)
+				}
+				if err := app.ConsensusParamsKeeper.ParamsStore.Set(sdkCtx, cp); err != nil {
+					panic(err)
+				}
+				if err := app.BaseApp.StoreConsensusParams(sdkCtx, cp); err != nil {
+					return nil, err
 				}
 			}
 
