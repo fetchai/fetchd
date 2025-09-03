@@ -142,6 +142,11 @@ import (
 
 const Name = "fetchd"
 
+// MemStoreKey defines the in-memory store key
+const CapabilityMemStoreKey = "mem_capability"
+const CapabilityStoreKey = "capability"
+const IBCHostStoreKey = "ibc_host"
+
 var (
 	// ProposalsEnabled controls x/wasm Proposals
 	// If EnabledSpecificProposals is "", and this is "true", then enable all x/wasm proposals.
@@ -338,8 +343,10 @@ func New(
 		wasmtypes.StoreKey, icahosttypes.StoreKey,
 		icacontrollertypes.StoreKey,
 		paramstypes.StoreKey,
+		CapabilityStoreKey,
 	)
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
+	memkeys := storetypes.NewMemoryStoreKeys(CapabilityMemStoreKey)
 
 	// register streaming services
 	if err := bApp.RegisterStreamingServices(appOpts, keys); err != nil {
@@ -354,6 +361,7 @@ func New(
 		invCheckPeriod:    invCheckPeriod,
 		keys:              keys,
 		tkeys:             tkeys,
+		memKeys:           memkeys,
 		txConfig:          txConfig,
 	}
 
@@ -558,7 +566,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -588,7 +596,7 @@ func New(
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(
-			// insert epoch hooks receivers here
+		// insert epoch hooks receivers here
 		),
 	)
 
@@ -896,6 +904,7 @@ func New(
 	// initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tkeys)
+	app.MountMemoryStores(memkeys)
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)

@@ -10,12 +10,12 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 )
 
-func NewDenomTracesMigrator(ibcStore storetypes.KVStore) DenomTracesMigrator {
-	return DenomTracesMigrator{ibcStore: ibcStore}
+func NewDenomTracesMigrator(ibcStore storetypes.KVStore) Migrator {
+	return Migrator{ibcStore: ibcStore}
 }
 
 // DenomTraces is a struct for handling in-place store migrations.
-type DenomTracesMigrator struct {
+type Migrator struct {
 	ibcStore storetypes.KVStore
 }
 
@@ -25,7 +25,7 @@ func equalTraces(dtA, dtB DenomTrace) bool {
 
 // IterateDenomTraces iterates over the denomination traces in the store
 // and performs a callback function.
-func (m DenomTracesMigrator) IterateDenomTraces(ctx sdk.Context, cdc codec.Codec, cb func(denomTrace DenomTrace) bool) {
+func (m Migrator) IterateDenomTraces(ctx sdk.Context, cdc codec.Codec, cb func(denomTrace DenomTrace) bool) {
 
 	iterator := storetypes.KVStorePrefixIterator(m.ibcStore, ibctransfertypes.DenomTraceKey)
 
@@ -54,13 +54,13 @@ func MustMarshalDenomTrace(denomTrace DenomTrace, cdc codec.Codec) []byte {
 }
 
 // SetDenomTrace sets a new {trace hash -> denom trace} pair to the store.
-func (m DenomTracesMigrator) SetDenomTrace(ctx sdk.Context, cdc codec.Codec, denomTrace DenomTrace) {
+func (m Migrator) SetDenomTrace(ctx sdk.Context, cdc codec.Codec, denomTrace DenomTrace) {
 	bz := MustMarshalDenomTrace(denomTrace, cdc)
 	m.ibcStore.Set(denomTrace.Hash(), bz)
 }
 
 // MigrateTraces migrates the DenomTraces to the correct format, accounting for slashes in the BaseDenom.
-func (m DenomTracesMigrator) MigrateTraces(ctx sdk.Context) error {
+func (m Migrator) MigrateTraces(ctx sdk.Context) error {
 	ir := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(ir)
 

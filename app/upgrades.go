@@ -23,6 +23,8 @@ import (
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
+	"github.com/fetchai/fetchd/app/ica_migration"
 	"github.com/fetchai/fetchd/app/traces"
 )
 
@@ -78,18 +80,16 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler(
 		UpgradeNameV053,
 		func(ctx context.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-			// TODO: Write custom migration for ICA
-			err := cfg.RegisterMigration(icatypes.ModuleName, 1, func(ctx sdk.Context) error {
-				// Logic here
-				return nil
-			})
+			// Migrate ICA controller
+			ICAmigrator := ica_migration.NewICAMigrator(sdkCtx, sdkCtx.KVStore(app.GetKey(icacontrollertypes.StoreKey)), sdkCtx.KVStore(app.GetKey(ibcexported.StoreKey)), sdkCtx.KVStore(app.GetMemKey(CapabilityMemStoreKey)), app.GetKey(CapabilityStoreKey))
+			err := cfg.RegisterMigration(icatypes.ModuleName, 1, ICAmigrator.AssertChannelCapabilityMigrations)
 			if err != nil {
 				return nil, err
 			}
 
 			// Migrate transfer traces
-			sdkCtx := sdk.UnwrapSDKContext(ctx)
 			m := traces.NewDenomTracesMigrator(sdkCtx.KVStore(app.GetKey(ibctransfertypes.StoreKey)))
 			err = cfg.RegisterMigration(ibctransfertypes.ModuleName, 1, m.MigrateTraces)
 			if err != nil {
