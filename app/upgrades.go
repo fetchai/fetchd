@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	storetypes "cosmossdk.io/store/types"
@@ -19,6 +22,7 @@ import (
 	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
@@ -106,38 +110,9 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				}
 			}
 
-			cparams := app.BaseApp.GetConsensusParams(sdkCtx)
-			if err := app.BaseApp.StoreConsensusParams(sdkCtx, cparams); err != nil {
+			err = migrateConsensusParamsFromParamsStore(app, sdkCtx)
+			if err != nil {
 				return nil, err
-			}
-
-			// Bootstrap consensus params if empty
-			if _, err := app.ConsensusParamsKeeper.ParamsStore.Get(sdkCtx); err != nil {
-				// Use sane defaults (adjust if your chain needs different limits)
-				cp := tmproto.ConsensusParams{
-					Block: &tmproto.BlockParams{
-						MaxBytes: 22020096, // ~21MB like most Cosmos chains
-						MaxGas:   -1,       // unlimited; set your real value if needed
-					},
-					Evidence: &tmproto.EvidenceParams{
-						MaxAgeNumBlocks: 302400,          // ~3 weeks at 6s blocks
-						MaxAgeDuration:  504 * time.Hour, // 3 weeks
-						MaxBytes:        1048576,         // 1MB evidence
-					},
-					Validator: &tmproto.ValidatorParams{
-						PubKeyTypes: []string{"ed25519"},
-					},
-					Version: &tmproto.VersionParams{
-						App: 0,
-					},
-					// Abci left nil (CometBFT will use defaults)
-				}
-				if err := app.ConsensusParamsKeeper.ParamsStore.Set(sdkCtx, cp); err != nil {
-					panic(err)
-				}
-				if err := app.BaseApp.StoreConsensusParams(sdkCtx, cp); err != nil {
-					return nil, err
-				}
 			}
 
 			// If you must pin any module "from" versions, adjust fromVM here.
@@ -166,4 +141,73 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 	if upgradeInfo.Name == UpgradeNameV053 {
 		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &v053StoreUpgrades))
 	}
+}
+
+func migrateConsensusParamsFromParamsStore(app *App, ctx sdk.Context) error {
+	paramsStore := ctx.KVStore(app.GetKey(paramstypes.StoreKey))
+
+	// BlockParams
+	var blockParams tmproto.BlockParams
+	if bz := paramsStore.Get([]byte("baseapp/BlockParams")); len(bz) > 0 {
+		// these are plain numbers; codec JSON is fine
+		if err := app.AppCodec().UnmarshalJSON(bz, &blockParams); err != nil {
+			return err
+		}
+	}
+
+	// --- EvidenceParams (strings; duration in ns) ---
+	var epRaw struct {
+		MaxAgeNumBlocks string `json:"max_age_num_blocks"`
+		MaxAgeDuration  string `json:"max_age_duration"` // ns as string
+		MaxBytes        string `json:"max_bytes"`
+	}
+	if err := json.Unmarshal(paramsStore.Get([]byte("baseapp/EvidenceParams")), &epRaw); err != nil {
+		return err
+	}
+	blocks, err := parseI64(epRaw.MaxAgeNumBlocks)
+	if err != nil {
+		return err
+	}
+	durNs, err := parseI64(epRaw.MaxAgeDuration)
+	if err != nil {
+		return err
+	}
+	evMaxBytes, err := parseI64(epRaw.MaxBytes)
+	if err != nil {
+		return err
+	}
+	evidenceParams := tmproto.EvidenceParams{
+		MaxAgeNumBlocks: blocks,
+		MaxAgeDuration:  time.Duration(durNs), // ns → time.Duration
+		MaxBytes:        evMaxBytes,
+	}
+
+	// ValidatorParams
+	var validatorParams tmproto.ValidatorParams
+	if bz := paramsStore.Get([]byte("baseapp/ValidatorParams")); len(bz) > 0 {
+		if err := app.AppCodec().UnmarshalJSON(bz, &validatorParams); err != nil {
+			return err
+		}
+	}
+
+	cp := tmproto.ConsensusParams{
+		Block:     &blockParams,
+		Evidence:  &evidenceParams,
+		Validator: &validatorParams,
+		Version:   &tmproto.VersionParams{App: 0},
+	}
+
+	// Write to x/consensus so it’s persisted in app state
+	if err := app.ConsensusParamsKeeper.ParamsStore.Set(ctx, cp); err != nil {
+		return err
+	}
+	// Also write to BaseApp so CometBFT uses it immediately
+	if err := app.BaseApp.StoreConsensusParams(ctx, cp); err != nil {
+		return err
+	}
+	return nil
+}
+
+func parseI64(s string) (int64, error) {
+	return strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 }
