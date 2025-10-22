@@ -483,7 +483,7 @@ func New(
 
 	app.LiquidKeeper = liquidkeeper.NewKeeper(
 		appCodec,
-		runtime.NewKVStoreService(app.keys[liquidtypes.StoreKey]),
+		runtime.NewKVStoreService(keys[liquidtypes.StoreKey]),
 		app.AccountKeeper,
 		app.BankKeeper,
 		app.StakingKeeper,
@@ -583,7 +583,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -613,7 +613,7 @@ func New(
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(
-			// insert epoch hooks receivers here
+		// insert epoch hooks receivers here
 		),
 	)
 
