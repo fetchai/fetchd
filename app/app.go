@@ -349,6 +349,7 @@ func New(
 		icacontrollertypes.StoreKey,
 		paramstypes.StoreKey,
 		CapabilityStoreKey,
+		liquidtypes.StoreKey,
 	)
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memkeys := storetypes.NewMemoryStoreKeys(CapabilityMemStoreKey)
