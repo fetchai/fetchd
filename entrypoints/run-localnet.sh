@@ -15,8 +15,8 @@ echo -e "${MNEMONIC}\n${PASSPHRASE}\n${PASSPHRASE}\n" > mnemonic-setup.txt
 echo -e "${PASSPHRASE}\n" > passphrase.txt
 echo -e "${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n${PASSPHRASE}\n" > passphrase4.txt
 
-fetchd config chain-id "${CHAINID}"
-fetchd config keyring-backend test
+fetchd config set client chain-id "$CHAINID"
+fetchd config set client keyring-backend test
 
 # setup the node with a default genesis
 if [ ! -f "/root/.fetchd/config/genesis.json" ]; then
@@ -56,7 +56,7 @@ if [ ! -f /setup/genesis.json ]; then
 
 	# generate the tx
 	if [ ! -f "/setup/gentx-${node_address}.json" ]; then
-		fetchd gentx ${MONIKER} 1000000000000000000atestfet --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
+		fetchd genesis gentx ${MONIKER} 1000000000000000000atestfet --chain-id "${CHAINID}" --output-document /setup/gentx-${node_address}.json < passphrase4.txt
 	fi
 	
 	# wait for the genesis file to be created
@@ -87,4 +87,4 @@ echo "Node Address: ${node_address}"
 echo "Args........: ${args}"
 
 # run the node
-exec fetchd start ${args} $@
+exec fetchd start --minimum-gas-prices 0atestfet ${args} $@

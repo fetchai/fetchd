@@ -8,7 +8,6 @@ require (
 	github.com/CosmWasm/wasmd v0.61.2
 	github.com/CosmWasm/wasmvm/v3 v3.0.0 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5 // indirect
-	github.com/cosmos/cosmos-sdk v0.53.4
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/gogoproto v1.7.0
 	github.com/cosmos/iavl v1.2.4 // indirect
@@ -53,6 +52,7 @@ require (
 	cosmossdk.io/x/upgrade v0.2.0
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-db v1.1.3
+	github.com/cosmos/cosmos-sdk v0.53.4
 	github.com/cosmos/ibc-go/v10 v10.3.0
 )
 
@@ -263,3 +263,6 @@ retract (
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.5-0.20251111151452-2ca7ea55677d
+replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20251111151452-2ca7ea55677d

@@ -83,7 +83,7 @@ def main():
         validators = get_validators()
 
     for validator in validators:
-        cmd = ['fetchd', 'add-genesis-account',
+        cmd = ['fetchd', 'genesis' ,'add-genesis-account',
                validator, '200000000000000000000atestfet']
         subprocess.check_call(cmd)
 
@@ -94,7 +94,7 @@ def main():
             token_list.append(f'{10**18}{infl["denom"]}')
         tokens = ','.join(token_list)
 
-        cmd = ['fetchd', 'add-genesis-account',
+        cmd = ['fetchd', 'genesis',  'add-genesis-account',
                municipal_infl_target_address, tokens]
 
         subprocess.check_call(cmd)
@@ -115,7 +115,7 @@ def main():
         shutil.copy(path, os.path.join(GENTX_PATH, item))
 
     # collect up the txs
-    cmd = ['fetchd', 'collect-gentxs']
+    cmd = ['fetchd', 'genesis', 'collect-gentxs']
     subprocess.check_call(cmd)
 
     # generate the final genesis configuration
