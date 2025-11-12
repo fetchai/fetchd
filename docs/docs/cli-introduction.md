@@ -20,7 +20,7 @@ fetchd config set client node https://rpc-fetchhub.fetch.ai:443
 To connect to the dorado network run the following configuration steps:
 
 ```bash
-fetchd config chain-id dorado-1
+fetchd config set client chain-id dorado-1
 fetchd config set client node https://rpc-dorado.fetch.ai:443
 ```
 
