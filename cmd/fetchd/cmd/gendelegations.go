@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"cosmossdk.io/math"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"cosmossdk.io/math"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -205,50 +205,35 @@ and the full amount is stored on the account balance.`,
 	return cmd
 }
 
-func mustGetStakingGenesis(cdc codec.JSONCodec, appState map[string]json.RawMessage) (stakingtypes.GenesisState, error) {
-	var gs stakingtypes.GenesisState
-	if bz := appState[stakingtypes.ModuleName]; len(bz) > 0 {
-		if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-			return stakingtypes.GenesisState{}, fmt.Errorf("unmarshal staking genesis: %w", err)
+func addDelegation(cdc codec.JSONCodec, appState map[string]json.RawMessage, userAddr sdk.AccAddress, valAddr sdk.ValAddress, delegatedCoin sdk.Coin, currentHeight uint64) (map[string]json.RawMessage, error) {
+	stakingState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
+	shares := math.LegacyDec(delegatedCoin.Amount.Mul(sdk.DefaultPowerReduction))
+
+	var currentDelegation *stakingtypes.Delegation
+	// check if user already delegated to this validator
+	for i, delegation := range stakingState.Delegations {
+		if delegation.GetDelegatorAddr() == userAddr.String() &&
+			delegation.GetValidatorAddr() == valAddr.String() {
+			currentDelegation = &stakingState.Delegations[i]
+			break
 		}
+	}
+
+	if currentDelegation == nil {
+		// create a new delegation
+		delegation := stakingtypes.NewDelegation(userAddr.String(), valAddr.String(), shares)
+		stakingState.Delegations = append(stakingState.Delegations, delegation)
 	} else {
-		gs = *stakingtypes.DefaultGenesisState()
-	}
-	return gs, nil
-}
-
-func mustGetDistrGenesis(cdc codec.JSONCodec, appState map[string]json.RawMessage) (distributiontypes.GenesisState, error) {
-	var gs distributiontypes.GenesisState
-	if bz := appState[distributiontypes.ModuleName]; len(bz) > 0 {
-		if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-			return distributiontypes.GenesisState{}, fmt.Errorf("unmarshal distribution genesis: %w", err)
-		}
-	} else {
-		gs = *distributiontypes.DefaultGenesisState()
-	}
-	return gs, nil
-}
-
-func addDelegation(
-	cdc codec.JSONCodec,
-	appState map[string]json.RawMessage,
-	userAddr sdk.AccAddress,
-	valAddr sdk.ValAddress,
-	delegatedCoin sdk.Coin,
-	currentHeight uint64,
-) (map[string]json.RawMessage, error) {
-
-	// --- STAKING: load & mutate genesis ---
-	stakingState, err := mustGetStakingGenesis(cdc, appState)
-	if err != nil {
-		return nil, err
+		// increment existing delegation shares
+		currentDelegation.Shares = currentDelegation.Shares.Add(shares)
 	}
 
-	// find validator
+	// increment validator delegator_shares and token amount
 	var currentValidator *stakingtypes.Validator
-	for i := range stakingState.Validators {
-		if stakingState.Validators[i].OperatorAddress == valAddr.String() {
+	for i, v := range stakingState.Validators {
+		if v.OperatorAddress == valAddr.String() {
 			currentValidator = &stakingState.Validators[i]
+
 			break
 		}
 	}
@@ -256,122 +241,90 @@ func addDelegation(
 		return nil, fmt.Errorf("failed to update validator: could not find validator %q", valAddr.String())
 	}
 
-	// compute shares: if validator has existing tokens+shares, use exchange rate S/T; otherwise 1:1
-	var shares math.LegacyDec
-	amountDec := math.LegacyNewDecFromInt(delegatedCoin.Amount)
-	if currentValidator.Tokens.IsZero() || currentValidator.DelegatorShares.IsZero() {
-		shares = amountDec
-	} else {
-		// shares = amount * totalShares / totalTokens
-		shares = amountDec.Mul(currentValidator.DelegatorShares).QuoInt(currentValidator.Tokens)
-	}
-
-	// check existing delegation
-	var currentDelegation *stakingtypes.Delegation
-	for i := range stakingState.Delegations {
-		d := &stakingState.Delegations[i]
-		if d.DelegatorAddress == userAddr.String() && d.ValidatorAddress == valAddr.String() {
-			currentDelegation = d
-			break
-		}
-	}
-
-	if currentDelegation == nil {
-		// NOTE: NewDelegation takes bech32 strings + LegacyDec shares in new SDK.
-		delegation := stakingtypes.NewDelegation(userAddr.String(), valAddr.String(), shares)
-		stakingState.Delegations = append(stakingState.Delegations, delegation)
-	} else {
-		currentDelegation.Shares = currentDelegation.Shares.Add(shares)
-	}
-
-	// bump validator totals
 	currentValidator.DelegatorShares = currentValidator.DelegatorShares.Add(shares)
 	currentValidator.Tokens = currentValidator.Tokens.Add(delegatedCoin.Amount)
 
-	// write back staking
-	if bz, err := cdc.MarshalJSON(&stakingState); err != nil {
-		return nil, fmt.Errorf("failed to marshal staking genesis state: %w", err)
-	} else {
-		appState[stakingtypes.ModuleName] = bz
-	}
-
-	// --- DISTRIBUTION: load & mutate genesis ---
-	distributionState, err := mustGetDistrGenesis(cdc, appState)
+	stakingStateBz, err := cdc.MarshalJSON(stakingState)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal staking genesis state: %w", err)
 	}
+	appState[stakingtypes.ModuleName] = stakingStateBz
 
-	// find validator current rewards
+	// update distribution
+
+	distributionState := distributiontypes.GetGenesisStateFromAppState(cdc, appState)
+
 	var currentValidatorRewards *distributiontypes.ValidatorCurrentRewardsRecord
-	for i := range distributionState.ValidatorCurrentRewards {
-		if distributionState.ValidatorCurrentRewards[i].ValidatorAddress == valAddr.String() {
+	for i, cur := range distributionState.ValidatorCurrentRewards {
+		if cur.ValidatorAddress == valAddr.String() {
 			currentValidatorRewards = &distributionState.ValidatorCurrentRewards[i]
 			break
 		}
 	}
 	if currentValidatorRewards == nil {
-		return nil, fmt.Errorf("failed to retrieve validator current reward for %q", valAddr.String())
+		return nil, fmt.Errorf("failed to retrieve validator current reward: cannt find current reward for %q", valAddr.String())
 	}
 
 	currentPeriod := currentValidatorRewards.Rewards.Period
 
-	// ensure/adjust DelegatorStartingInfo
-	var (
-		startingInfosExists     = false
-		startingInfosPrevPeriod uint64
-	)
-	for i := range distributionState.DelegatorStartingInfos {
-		r := &distributionState.DelegatorStartingInfos[i]
+	startingInfosExists := false
+	var startingInfosPrevPeriod uint64
+	// retrieve existing distribution info for the delegator / validator couple if any
+	// otherwise just append a new one
+	for i, r := range distributionState.DelegatorStartingInfos {
 		if r.DelegatorAddress == userAddr.String() && r.ValidatorAddress == valAddr.String() {
-			startingInfosPrevPeriod = r.StartingInfo.PreviousPeriod
-			r.StartingInfo.PreviousPeriod = currentPeriod
-			r.StartingInfo.Stake = r.StartingInfo.Stake.Add(shares)
-			r.StartingInfo.Height = currentHeight
+			// keep the previous period to decrement the historical record reference_count
+			startingInfosPrevPeriod = distributionState.DelegatorStartingInfos[i].StartingInfo.PreviousPeriod
+			distributionState.DelegatorStartingInfos[i].StartingInfo.PreviousPeriod = currentPeriod
+			distributionState.DelegatorStartingInfos[i].StartingInfo.Stake = r.StartingInfo.Stake.Add(shares)
+			distributionState.DelegatorStartingInfos[i].StartingInfo.Height = currentHeight
 			startingInfosExists = true
 			break
 		}
 	}
 	if !startingInfosExists {
-		distributionState.DelegatorStartingInfos = append(
-			distributionState.DelegatorStartingInfos,
-			distributiontypes.DelegatorStartingInfoRecord{
-				DelegatorAddress: userAddr.String(),
-				ValidatorAddress: valAddr.String(),
-				StartingInfo: distributiontypes.DelegatorStartingInfo{
-					PreviousPeriod: currentPeriod,
-					Stake:          shares,
-					Height:         currentHeight,
-				},
+		distributionState.DelegatorStartingInfos = append(distributionState.DelegatorStartingInfos, distributiontypes.DelegatorStartingInfoRecord{
+			DelegatorAddress: userAddr.String(),
+			ValidatorAddress: valAddr.String(),
+			StartingInfo: distributiontypes.DelegatorStartingInfo{
+				PreviousPeriod: currentPeriod,
+				Stake:          shares,
+				Height:         currentHeight,
 			},
-		)
+		})
 	}
 
 	// update validator historical rewards
+	// same logic as in the keeper: https://github.com/fetchai/cosmos-sdk/blob/83a838df248ec012904c5ede1ff6381045f689ea/x/distribution/keeper/validator.go#L28
 	var lastHistoricalRecord *distributiontypes.ValidatorHistoricalRewardsRecord
 	deleteHistoricalRecordIndex := -1
-	for i := range distributionState.ValidatorHistoricalRewards {
-		rec := &distributionState.ValidatorHistoricalRewards[i]
+	for i, rec := range distributionState.ValidatorHistoricalRewards {
 		if rec.ValidatorAddress != valAddr.String() {
-			continue
+			continue // ignore records of other than current validator
 		}
+
 		if lastHistoricalRecord == nil || lastHistoricalRecord.Period < rec.Period {
-			lastHistoricalRecord = rec
+			lastHistoricalRecord = &distributionState.ValidatorHistoricalRewards[i]
 		}
+
+		// when startingInfo already existed, this means its previous period was updated to the current period
+		// so we must decrement the number of references held by the historical records
+		// on this period.
 		if startingInfosExists && rec.Period == startingInfosPrevPeriod {
-			rec.Rewards.ReferenceCount--
-			if rec.Rewards.ReferenceCount == 0 {
+			distributionState.ValidatorHistoricalRewards[i].Rewards.ReferenceCount--
+			if distributionState.ValidatorHistoricalRewards[i].Rewards.ReferenceCount == 0 {
+				// mark the historical record when we have no more reference to it for deletion
 				deleteHistoricalRecordIndex = i
 			}
 		}
 	}
 	if lastHistoricalRecord == nil {
-		return nil, fmt.Errorf("failed to retrieve validator historical reward records for %q", valAddr.String())
+		return nil, fmt.Errorf("failed to retrieve validator historical reward records: cannot find historical reward records for %q", valAddr.String())
 	}
 
-	// remove the "validator" reference on the last historical record (will be added to the new one)
-	if lastHistoricalRecord.Rewards.ReferenceCount > 0 {
-		lastHistoricalRecord.Rewards.ReferenceCount--
-	}
+	// removes the "validator" reference on the last historical record
+	// it will get added back to the new record we'll insert
+	lastHistoricalRecord.Rewards.ReferenceCount--
 
 	if deleteHistoricalRecordIndex >= 0 {
 		distributionState.ValidatorHistoricalRewards = append(
@@ -380,34 +333,22 @@ func addDelegation(
 		)
 	}
 
-	denom := currentValidator.Tokens.Sub(delegatedCoin.Amount) // tokens BEFORE this delegation
-	if denom.IsZero() {
-		denom = math.OneInt() // avoid div-by-zero; ratio will be "all to new period"
-	}
-	currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(
-		math.LegacyNewDecFromInt(denom),
-	)
+	currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(currentValidator.Tokens.Sub(delegatedCoin.Amount).ToLegacyDec())
 	newRatio := lastHistoricalRecord.Rewards.CumulativeRewardRatio.Add(currentRatio...)
 
-	// add new historical record; 2 refs => 1 delegator + 1 validator
-	distributionState.ValidatorHistoricalRewards = append(
-		distributionState.ValidatorHistoricalRewards,
-		distributiontypes.ValidatorHistoricalRewardsRecord{
-			ValidatorAddress: valAddr.String(),
-			Period:           currentPeriod,
-			Rewards:          distributiontypes.NewValidatorHistoricalRewards(newRatio, 2),
-		},
-	)
+	distributionState.ValidatorHistoricalRewards = append(distributionState.ValidatorHistoricalRewards, distributiontypes.ValidatorHistoricalRewardsRecord{
+		ValidatorAddress: valAddr.String(),
+		Period:           currentPeriod,
+		Rewards:          distributiontypes.NewValidatorHistoricalRewards(newRatio, 2), // 2 referenceCount => 1 delegator + 1 validator
+	})
 
-	// bump current rewards period
 	currentValidatorRewards.Rewards = distributiontypes.NewValidatorCurrentRewards(sdk.DecCoins{}, currentPeriod+1)
 
-	// write back distribution
-	if bz, err := cdc.MarshalJSON(&distributionState); err != nil {
+	distributionStateBz, err := cdc.MarshalJSON(distributionState)
+	if err != nil {
 		return nil, fmt.Errorf("failed to marshal distribution genesis state: %w", err)
-	} else {
-		appState[distributiontypes.ModuleName] = bz
 	}
+	appState[distributiontypes.ModuleName] = distributionStateBz
 
 	return appState, nil
 }
