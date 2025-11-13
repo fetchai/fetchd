@@ -1321,9 +1321,11 @@ github.com/ferranbt/fastssz v0.1.2 h1:Dky6dXlngF6Qjc+EfDipAkE83N5I5DE68bY6O0VLNP
 github.com/ferranbt/fastssz v0.1.2/go.mod h1:X5UPrE2u1UJjxHA8X54u04SBwdAQjG2sFtWs39YxyWs=
 github.com/fetchai/cosmos-sdk v0.19.5-0.20251111151452-2ca7ea55677d h1:LSqP/iCrIq8wZWzMoUP++/QZ3FjpXnCWYgjkLoP40CM=
 github.com/fetchai/cosmos-sdk v0.19.5-0.20251111151452-2ca7ea55677d/go.mod h1:gLeessz57kqvzDrTOEXwXqsVNnEVNY0UBiJZEYv7Fw4=
+github.com/fetchai/cosmos-sdk v0.19.5-0.20251113102526-6eacd7bebe23 h1:V+vzUYpXcUZrF6DGcjxShgDprIq+vwESNpnLN3GDAjs=
 github.com/fetchai/cosmos-sdk v0.19.5-0.20251113102526-6eacd7bebe23/go.mod h1:gLeessz57kqvzDrTOEXwXqsVNnEVNY0UBiJZEYv7Fw4=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251111151452-2ca7ea55677d h1:9O64bIuMmeXpS0akYtn1l9BIY+498bQRn/FYAJAA6+E=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251111151452-2ca7ea55677d/go.mod h1:VIH3FLXQ2KWCkzkqXSThA9npvg0LgSBxBRzVSRoJWeg=
+github.com/fetchai/cosmos-sdk/api v0.0.0-20251113102526-6eacd7bebe23 h1:maqFbzv5tdoAxilXV7ngeZ+ou0vOjBX+UdkIzQYFSJo=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251113102526-6eacd7bebe23/go.mod h1:VIH3FLXQ2KWCkzkqXSThA9npvg0LgSBxBRzVSRoJWeg=
 github.com/fjl/gencodec v0.1.0 h1:B3K0xPfc52cw52BBgUbSPxYo+HlLfAgWMVKRWXUXBcs=
 github.com/fjl/gencodec v0.1.0/go.mod h1:Um1dFHPONZGTHog1qD1NaWjXJW/SPB38wPv0O8uZ2fI=
