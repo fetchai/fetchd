@@ -5,5 +5,5 @@ WORKDIR /src
 COPY . .
 
 RUN make go-mod-cache && \
-    go mod download all \
+    go mod download all && \
     make build
