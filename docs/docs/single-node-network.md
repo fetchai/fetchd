@@ -45,7 +45,7 @@ For more information checkout the complete [documentation on keys](../cli-keys/)
 To set the initial state for the network use the following command. This allocates `100000000000000000000` `stake` tokens
 to the validator which can be bonded. 
 
-   `fetchd add-genesis-account validator 100000000000000000000stake`
+   `fetchd genesis add-genesis-account validator 100000000000000000000stake`
 
 `stake` is the default test token denomination in the cosmos ecosystem, but you could use `afet`, `BTC` etc.
 
@@ -54,7 +54,7 @@ to the validator which can be bonded.
 To get your validator to sign the genesis block (and to agree that this is the correct genesis starting point) use the
 following command.
 
-   `fetchd gentx validator 100000000000000000000stake --chain-id localnet-1`
+   `fetchd genesis gentx validator 100000000000000000000stake --chain-id localnet-1`
 
 * `validator` here is the name that you have given to the key
 

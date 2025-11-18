@@ -1,4 +1,4 @@
-FROM golang:1.18-buster as builder
+FROM golang:1.24.3-bookworm as builder
 
 # Set up dependencies
 ENV PACKAGES jq curl wget jq file make git
@@ -12,11 +12,13 @@ COPY . .
 
 RUN make install
 
-RUN ARCH=`uname -m` && ln -s /go/pkg/mod/github.com/\!cosm\!wasm/wasmvm@v*/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so
+
+RUN GOPATH="$(go env GOPATH)"
+RUN ARCH=`uname -m` && ln -s $GOPATH/pkg/mod/github.com/\!cosm\!wasm/wasmvm/v*/internal/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so
 
 # ##################################
 
-FROM debian:buster as hub
+FROM debian:bookworm-slim AS hub
 
 # Set up dependencies
 ENV PACKAGES jq curl
