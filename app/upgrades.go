@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	circuittypes "cosmossdk.io/x/circuit/types"
 	"cosmossdk.io/x/nft"
@@ -24,6 +25,8 @@ import (
 	//minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	liquidtypes "github.com/cosmos/gaia/v25/x/liquid/types"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
@@ -45,6 +48,7 @@ var v053StoreUpgrades = storetypes.StoreUpgrades{
 		group.StoreKey,
 		icacontrollertypes.StoreKey,
 		nft.StoreKey,
+		liquidtypes.StoreKey,
 	},
 	Renamed: []storetypes.StoreRename{
 		// {OldKey: "oldkey", NewKey: "newkey"},
@@ -113,6 +117,22 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			*/
 
 			err = migrateConsensusParamsFromParamsStore(app, sdkCtx)
+			if err != nil {
+				return nil, err
+			}
+
+			// Bootstrap liquid staking
+			err = app.StakingKeeper.IterateValidators(ctx, func(_ int64, v stakingtypes.ValidatorI) (stop bool) {
+				lv := liquidtypes.LiquidValidator{
+					OperatorAddress: v.GetOperator(),
+					LiquidShares:    math.LegacyZeroDec(),
+				}
+				err := app.LiquidKeeper.SetLiquidValidator(ctx, lv)
+				if err != nil {
+					return false
+				}
+				return false
+			})
 			if err != nil {
 				return nil, err
 			}

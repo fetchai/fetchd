@@ -28,6 +28,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/group"
 	groupmodule "github.com/cosmos/cosmos-sdk/x/group/module"
 	"github.com/cosmos/cosmos-sdk/x/protocolpool"
+	"github.com/cosmos/gaia/v25/x/liquid"
 	"github.com/cosmos/gogoproto/proto"
 	icacontroller "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller"
 	ibccallbacks "github.com/cosmos/ibc-go/v10/modules/apps/callbacks"
@@ -121,6 +122,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	liquidkeeper "github.com/cosmos/gaia/v25/x/liquid/keeper"
+	liquidtypes "github.com/cosmos/gaia/v25/x/liquid/types"
 	ica "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts"
 	icacontrollerkeeper "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/keeper"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
@@ -198,12 +201,13 @@ var (
 
 	// module account permissions
 	maccPerms = map[string][]string{
-		authtypes.FeeCollectorName:                  nil,
-		distrtypes.ModuleName:                       nil,
-		minttypes.ModuleName:                        {authtypes.Minter},
-		stakingtypes.BondedPoolName:                 {authtypes.Burner, authtypes.Staking},
-		stakingtypes.NotBondedPoolName:              {authtypes.Burner, authtypes.Staking},
-		govtypes.ModuleName:                         {authtypes.Burner},
+		authtypes.FeeCollectorName:     nil,
+		distrtypes.ModuleName:          nil,
+		minttypes.ModuleName:           {authtypes.Minter},
+		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
+		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
+		govtypes.ModuleName:            {authtypes.Burner},
+		// liquiditytypes.ModuleName:         {authtypes.Minter, authtypes.Burner},
 		nft.ModuleName:                              nil,
 		protocolpooltypes.ModuleName:                nil,
 		protocolpooltypes.ProtocolPoolEscrowAccount: nil,
@@ -253,6 +257,7 @@ type App struct {
 	SlashingKeeper        slashingkeeper.Keeper
 	MintKeeper            mintkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
+	LiquidKeeper          *liquidkeeper.Keeper
 	GovKeeper             govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	EvidenceKeeper        evidencekeeper.Keeper
@@ -344,6 +349,7 @@ func New(
 		icacontrollertypes.StoreKey,
 		paramstypes.StoreKey,
 		CapabilityStoreKey,
+		liquidtypes.StoreKey,
 	)
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memkeys := storetypes.NewMemoryStoreKeys(CapabilityMemStoreKey)
@@ -475,6 +481,16 @@ func New(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
+	app.LiquidKeeper = liquidkeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[liquidtypes.StoreKey]),
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.StakingKeeper,
+		app.DistrKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	app.FeeGrantKeeper = feegrantkeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[feegrant.StoreKey]),
@@ -487,6 +503,7 @@ func New(
 		stakingtypes.NewMultiStakingHooks(
 			app.DistrKeeper.Hooks(),
 			app.SlashingKeeper.Hooks(),
+			app.LiquidKeeper.Hooks(),
 		),
 	)
 
@@ -746,6 +763,7 @@ func New(
 		transfer.NewAppModule(app.TransferKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
 		ibctm.NewAppModule(tmLightClientModule),
+		liquid.NewAppModule(appCodec, app.LiquidKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 	)
 
 	// BasicModuleManager defines the module BasicManager is in charge of setting up basic,
@@ -786,6 +804,7 @@ func New(
 		ibctransfertypes.ModuleName,
 		ibcexported.ModuleName,
 		icatypes.ModuleName,
+		liquidtypes.ModuleName,
 		wasmtypes.ModuleName,
 	)
 
@@ -838,6 +857,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		liquidtypes.ModuleName,
 	}
 
 	exportModuleOrder := []string{
@@ -866,6 +886,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		liquidtypes.ModuleName,
 	}
 
 	app.mm.SetOrderInitGenesis(genesisModuleOrder...)
