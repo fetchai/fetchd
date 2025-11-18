@@ -50,7 +50,7 @@ require (
 	cosmossdk.io/x/nft v0.1.1
 	cosmossdk.io/x/tx v0.14.0
 	cosmossdk.io/x/upgrade v0.2.0
-	github.com/cometbft/cometbft v0.38.17
+	github.com/cometbft/cometbft v0.38.19
 	github.com/cosmos/cosmos-db v1.1.3
 	github.com/cosmos/cosmos-sdk v0.53.4
 	github.com/cosmos/ibc-go/v10 v10.3.0
@@ -123,7 +123,7 @@ require (
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -265,6 +265,6 @@ retract (
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.19.5-0.20251113102526-6eacd7bebe23
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.20.0-rc0
 
-replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20251113102526-6eacd7bebe23
+replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20251118181802-f981127546bf
