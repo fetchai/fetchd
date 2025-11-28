@@ -11,7 +11,7 @@ DENOM = 'atestfet'
 FETCHD_CONFIG_ROOT = '/root/.fetchd/config'
 GENESIS_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'genesis.json')
 GENTX_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'gentx')
-APP_TOML_PATH = os.path.join(FETCHD_CONFIG_ROOT, "app.toml")
+APP_TOML_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'app.toml')
 
 def create_genesis(chain_id: str):
     cmd = ['fetchd', 'init', 'setup-node', '--chain-id', chain_id]

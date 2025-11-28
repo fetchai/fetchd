@@ -67,6 +67,11 @@ if [ ! -f /setup/genesis.json ]; then
 	done
 fi
 
+# ensure gRPC listens on 0.0.0.0, not localhost
+if [ -f "/root/.fetchd/config/app.toml" ]; then
+  sed -i 's/localhost/0.0.0.0/g' /root/.fetchd/config/app.toml
+fi
+
 # copy the generated genesis file
 cp /setup/genesis.json /root/.fetchd/config/genesis.json
 
