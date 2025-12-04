@@ -36,7 +36,12 @@ services:
     volumes:
       - "setup-data:/setup"
       - "node0-data:/root/.fetchd"
-
+    ports:
+      - "26657:26657"
+      - "26656:26656"
+      - "1317:1317"
+      - "9090:9090"
+      
     # networks:
     #   localnet:
     #     ipv4_address: 192.168.10.2
@@ -57,7 +62,6 @@ services:
     volumes:
       - "setup-data:/setup"
       - "node1-data:/root/.fetchd"
-
     # networks:
     #   localnet:
     #     ipv4_address: 192.168.10.3
