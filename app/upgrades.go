@@ -30,6 +30,7 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	"github.com/fetchai/fetchd/app/ica_migration"
 	"github.com/fetchai/fetchd/app/traces"
+	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 )
 
 // ---- Match this to the plan name that is already stored on disk and halted the chain.
@@ -45,6 +46,7 @@ var v053StoreUpgrades = storetypes.StoreUpgrades{
 		group.StoreKey,
 		icacontrollertypes.StoreKey,
 		nft.StoreKey,
+		tokenfactorytypes.StoreKey,
 	},
 	Renamed: []storetypes.StoreRename{
 		// {OldKey: "oldkey", NewKey: "newkey"},

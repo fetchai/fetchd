@@ -50,6 +50,10 @@ import (
 	transferv2 "github.com/cosmos/ibc-go/v10/modules/apps/transfer/v2"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
+	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory"
+	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory/bindings"
+	tokenfactorykeeper "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
+	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 
 	autocliv1 "cosmossdk.io/api/cosmos/autocli/v1"
 	reflectionv1 "cosmossdk.io/api/cosmos/reflection/v1"
@@ -157,6 +161,14 @@ var (
 	// of "EnableAllProposals" (takes precedence over ProposalsEnabled)
 	// https://github.com/CosmWasm/wasmd/blob/02a54d33ff2c064f3539ae12d75d027d9c665f05/x/wasm/internal/types/proposal.go#L28-L34
 	EnableSpecificProposals = ""
+
+	tokenFactoryCapabilities = []string{
+		tokenfactorytypes.EnableBurnFrom,
+		tokenfactorytypes.EnableForceTransfer,
+		tokenfactorytypes.EnableSetMetadata,
+		tokenfactorytypes.EnableSudoMint,
+		tokenfactorytypes.EnableCommunityPoolFeeFunding,
+	}
 )
 
 func ConvertToProposals(keys []string) ([]wasmtypes.ProposalType, error) {
@@ -274,6 +286,7 @@ type App struct {
 	ICAHostKeeper       icahostkeeper.Keeper
 	TransferKeeper      ibctransferkeeper.Keeper
 	WasmKeeper          wasmkeeper.Keeper
+	TokenFactoryKeeper  tokenfactorykeeper.Keeper
 
 	// the module manager
 	mm                 *module.Manager
@@ -343,6 +356,7 @@ func New(
 		ibcexported.StoreKey, ibctransfertypes.StoreKey,
 		wasmtypes.StoreKey, icahosttypes.StoreKey,
 		icacontrollertypes.StoreKey,
+		tokenfactorytypes.StoreKey,
 		paramstypes.StoreKey,
 		CapabilityStoreKey,
 	)
@@ -402,6 +416,7 @@ func New(
 	slashingSS := app.ParamsKeeper.Subspace(slashingtypes.ModuleName).WithKeyTable(slashingtypes.ParamKeyTable())
 
 	govSS := app.ParamsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govv1.ParamKeyTable())
+	tokenFactorySS := app.ParamsKeeper.Subspace(tokenfactorytypes.ModuleName)
 
 	// Combine legacy IBC ParamSets so all migrators (client, connection, channel)
 	// can read their old params from x/params during the upgrade.
@@ -590,6 +605,20 @@ func New(
 	// If evidence needs to be handled for the app, set routes in router here and seal
 	app.EvidenceKeeper = *evidenceKeeper
 
+	// Create the TokenFactory Keeper
+	app.TokenFactoryKeeper = tokenfactorykeeper.NewKeeper(
+		appCodec,
+		app.keys[tokenfactorytypes.StoreKey],
+		maccPerms,
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.DistrKeeper,
+		tokenFactoryCapabilities,
+		tokenfactorykeeper.DefaultIsSudoAdminFunc,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+	wasmOpts = append(wasmOpts, bindings.RegisterCustomPlugins(app.BankKeeper, &app.TokenFactoryKeeper)...)
+
 	app.EpochsKeeper = epochskeeper.NewKeeper(
 		runtime.NewKVStoreService(keys[epochstypes.StoreKey]),
 		appCodec,
@@ -747,6 +776,7 @@ func New(
 		transfer.NewAppModule(app.TransferKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
 		ibctm.NewAppModule(tmLightClientModule),
+		tokenfactory.NewAppModule(app.TokenFactoryKeeper, app.AccountKeeper, app.BankKeeper, tokenFactorySS),
 	)
 
 	// BasicModuleManager defines the module BasicManager is in charge of setting up basic,
@@ -788,6 +818,7 @@ func New(
 		ibcexported.ModuleName,
 		icatypes.ModuleName,
 		wasmtypes.ModuleName,
+		tokenfactorytypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -802,6 +833,7 @@ func New(
 		ibcexported.ModuleName,
 		icatypes.ModuleName,
 		wasmtypes.ModuleName,
+		tokenfactorytypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -839,6 +871,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		tokenfactorytypes.ModuleName,
 	}
 
 	exportModuleOrder := []string{
@@ -867,6 +900,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		tokenfactorytypes.ModuleName,
 	}
 
 	app.mm.SetOrderInitGenesis(genesisModuleOrder...)
