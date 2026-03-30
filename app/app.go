@@ -28,6 +28,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/group"
 	groupmodule "github.com/cosmos/cosmos-sdk/x/group/module"
 	"github.com/cosmos/cosmos-sdk/x/protocolpool"
+	"github.com/cosmos/gaia/v25/x/liquid"
 	"github.com/cosmos/gogoproto/proto"
 	icacontroller "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller"
 	ibccallbacks "github.com/cosmos/ibc-go/v10/modules/apps/callbacks"
@@ -121,6 +122,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	liquidkeeper "github.com/cosmos/gaia/v25/x/liquid/keeper"
+	liquidtypes "github.com/cosmos/gaia/v25/x/liquid/types"
 	ica "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts"
 	icacontrollerkeeper "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/keeper"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
@@ -254,6 +257,7 @@ type App struct {
 	SlashingKeeper        slashingkeeper.Keeper
 	MintKeeper            mintkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
+	LiquidKeeper          *liquidkeeper.Keeper
 	GovKeeper             govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	EvidenceKeeper        evidencekeeper.Keeper
@@ -283,7 +287,7 @@ type App struct {
 	sm *module.SimulationManager
 }
 
-// New returns a reference to an initialized App.
+// New returns a reference to an initialized Gaia.
 // NewSimApp returns a reference to an initialized SimApp.
 func New(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
@@ -345,6 +349,7 @@ func New(
 		icacontrollertypes.StoreKey,
 		paramstypes.StoreKey,
 		CapabilityStoreKey,
+		liquidtypes.StoreKey,
 	)
 	tkeys := storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memkeys := storetypes.NewMemoryStoreKeys(CapabilityMemStoreKey)
@@ -476,6 +481,16 @@ func New(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
+	app.LiquidKeeper = liquidkeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[liquidtypes.StoreKey]),
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.StakingKeeper,
+		app.DistrKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	app.FeeGrantKeeper = feegrantkeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[feegrant.StoreKey]),
@@ -488,6 +503,7 @@ func New(
 		stakingtypes.NewMultiStakingHooks(
 			app.DistrKeeper.Hooks(),
 			app.SlashingKeeper.Hooks(),
+			app.LiquidKeeper.Hooks(),
 		),
 	)
 
@@ -567,7 +583,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -597,7 +613,7 @@ func New(
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(
-			// insert epoch hooks receivers here
+		// insert epoch hooks receivers here
 		),
 	)
 
@@ -747,6 +763,7 @@ func New(
 		transfer.NewAppModule(app.TransferKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
 		ibctm.NewAppModule(tmLightClientModule),
+		liquid.NewAppModule(appCodec, app.LiquidKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 	)
 
 	// BasicModuleManager defines the module BasicManager is in charge of setting up basic,
@@ -787,6 +804,7 @@ func New(
 		ibctransfertypes.ModuleName,
 		ibcexported.ModuleName,
 		icatypes.ModuleName,
+		liquidtypes.ModuleName,
 		wasmtypes.ModuleName,
 	)
 
@@ -839,6 +857,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		liquidtypes.ModuleName,
 	}
 
 	exportModuleOrder := []string{
@@ -867,6 +886,7 @@ func New(
 		icatypes.ModuleName,
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
+		liquidtypes.ModuleName,
 	}
 
 	app.mm.SetOrderInitGenesis(genesisModuleOrder...)
@@ -1046,7 +1066,7 @@ func (app *App) LegacyAmino() *codec.LegacyAmino {
 	return app.legacyAmino
 }
 
-// AppCodec returns app codec.
+// AppCodec returns Gaia's app codec.
 //
 // NOTE: This is solely to be used for testing purposes as it may be desirable
 // for modules to register their own custom testing types.
@@ -1054,7 +1074,7 @@ func (app *App) AppCodec() codec.Codec {
 	return app.appCodec
 }
 
-// InterfaceRegistry returns InterfaceRegistry
+// InterfaceRegistry returns Gaia's InterfaceRegistry
 func (app *App) InterfaceRegistry() types.InterfaceRegistry {
 	return app.interfaceRegistry
 }
