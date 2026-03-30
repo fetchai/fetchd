@@ -221,9 +221,10 @@ var (
 		protocolpooltypes.ModuleName:                nil,
 		protocolpooltypes.ProtocolPoolEscrowAccount: nil,
 		// non sdk modules
-		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
-		icatypes.ModuleName:         nil,
-		wasmtypes.ModuleName:        {authtypes.Burner},
+		ibctransfertypes.ModuleName:  {authtypes.Minter, authtypes.Burner},
+		icatypes.ModuleName:          nil,
+		wasmtypes.ModuleName:         {authtypes.Burner},
+		tokenfactorytypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 	}
 )
 
@@ -582,7 +583,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-			// register the governance hooks
+		// register the governance hooks
 		),
 	)
 
@@ -626,7 +627,7 @@ func New(
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(
-			// insert epoch hooks receivers here
+		// insert epoch hooks receivers here
 		),
 	)
 
