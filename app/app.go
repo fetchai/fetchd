@@ -631,7 +631,7 @@ func New(
 		app.BankKeeper,
 		app.DistrKeeper,
 		tokenFactoryCapabilities,
-		tokenfactorykeeper.DefaultIsSudoAdminFunc,
+		nil,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	wasmOpts = append(wasmOpts, bindings.RegisterCustomPlugins(app.BankKeeper, &app.TokenFactoryKeeper)...)

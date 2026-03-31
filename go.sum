@@ -678,8 +678,6 @@ github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c/go.mod h1:X0
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/MissingNO57/tokenfactory v0.0.0-20260129131150-25ce74c23622 h1:bJi6D9uJX34DVjfQfanUys+25a/jBKKWV5f5OhQyclM=
-github.com/MissingNO57/tokenfactory v0.0.0-20260129131150-25ce74c23622/go.mod h1:JBgvb7XVWD8CIDVa/oBZt3JNLoqdpxQR1P31e7MpCME=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEVMRuU21PR1EtLVZJmdB18Gu3Rw=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
@@ -940,6 +938,8 @@ github.com/fetchai/cosmos-sdk v0.20.0-rc0 h1:fNhjE9g449jaSe2hEaYFuT15i1pfqxKotzt
 github.com/fetchai/cosmos-sdk v0.20.0-rc0/go.mod h1:wX0Lbajrf2E32YYdiaXuEGFlOMTSe+IveuvIBy2lV6o=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251118181802-f981127546bf h1:zzYOPpZgtBrtlft4ctprV6N5YNVVC6IuFSmk8w5xVes=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251118181802-f981127546bf/go.mod h1:VIH3FLXQ2KWCkzkqXSThA9npvg0LgSBxBRzVSRoJWeg=
+github.com/fetchai/tokenfactory v0.0.0-20260225204414-d520ffcad4a6 h1:VUQKT+1PRG7dDfkLSDmoHm17aOi9Fav8YIx/ThAZ+HA=
+github.com/fetchai/tokenfactory v0.0.0-20260225204414-d520ffcad4a6/go.mod h1:8RUp6zNxcUfA1xtO4JtNNRJxqJtKxL4fVi7/+6lSeN0=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
