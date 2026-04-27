@@ -938,8 +938,8 @@ github.com/fetchai/cosmos-sdk v0.20.0-rc0 h1:fNhjE9g449jaSe2hEaYFuT15i1pfqxKotzt
 github.com/fetchai/cosmos-sdk v0.20.0-rc0/go.mod h1:wX0Lbajrf2E32YYdiaXuEGFlOMTSe+IveuvIBy2lV6o=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251118181802-f981127546bf h1:zzYOPpZgtBrtlft4ctprV6N5YNVVC6IuFSmk8w5xVes=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20251118181802-f981127546bf/go.mod h1:VIH3FLXQ2KWCkzkqXSThA9npvg0LgSBxBRzVSRoJWeg=
-github.com/fetchai/tokenfactory v0.0.0-20260225204414-d520ffcad4a6 h1:VUQKT+1PRG7dDfkLSDmoHm17aOi9Fav8YIx/ThAZ+HA=
-github.com/fetchai/tokenfactory v0.0.0-20260225204414-d520ffcad4a6/go.mod h1:8RUp6zNxcUfA1xtO4JtNNRJxqJtKxL4fVi7/+6lSeN0=
+github.com/fetchai/tokenfactory v0.50.7-wasmvm2.0.20260407131840-eae04a7b3e3f h1:Bu2LA7mvJnVUV6+iL5V9jbcQahAKZEb8RX3pFH+uxQs=
+github.com/fetchai/tokenfactory v0.50.7-wasmvm2.0.20260407131840-eae04a7b3e3f/go.mod h1:8RUp6zNxcUfA1xtO4JtNNRJxqJtKxL4fVi7/+6lSeN0=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=

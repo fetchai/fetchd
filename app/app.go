@@ -634,6 +634,7 @@ func New(
 		nil,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
+	app.TokenFactoryKeeper.IsSudoAdminFunc = tokenfactorykeeper.DefaultSudoAdminsImpl{Keeper: app.TokenFactoryKeeper}.IsSudoAdmin
 	wasmOpts = append(wasmOpts, bindings.RegisterCustomPlugins(app.BankKeeper, &app.TokenFactoryKeeper)...)
 
 	app.EpochsKeeper = epochskeeper.NewKeeper(
