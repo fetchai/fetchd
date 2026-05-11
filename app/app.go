@@ -171,6 +171,7 @@ var (
 		tokenfactorytypes.EnableSetMetadata,
 		tokenfactorytypes.EnableSudoMint,
 		tokenfactorytypes.EnableCommunityPoolFeeFunding,
+		tokenfactorytypes.EnableSudoMint,
 	}
 )
 

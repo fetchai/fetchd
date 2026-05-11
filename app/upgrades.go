@@ -22,6 +22,8 @@ import (
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
+	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
+
 	//minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
@@ -106,21 +108,14 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			/*
-				// Pre-seed legacy x/params for mint
-				if ss, ok := app.ParamsKeeper.GetSubspace(minttypes.ModuleName); ok {
-					if !ss.Has(sdkCtx, minttypes.KeyInflationRateChange) {
-						p := minttypes.DefaultParams()
-						p.MintDenom = "afet"
-						// TODO: if your chain had custom values, set them here:
-						ss.SetParamSet(sdkCtx, &p)
-					}
-				}
-			*/
-
 			err = migrateConsensusParamsFromParamsStore(app, sdkCtx)
 			if err != nil {
 				return nil, err
+			}
+
+			res, err := app.mm.RunMigrations(ctx, cfg, fromVM)
+			if err != nil {
+				return res, err
 			}
 
 			// Bootstrap liquid staking
@@ -139,8 +134,24 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			// If you must pin any module "from" versions, adjust fromVM here.
-			return app.mm.RunMigrations(ctx, cfg, fromVM)
+			// Bootstrap tokenfactory
+			bondDenomMinterAddress := "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut"
+
+			bondDenom, err := app.StakingKeeper.BondDenom(sdkCtx)
+			if err != nil {
+				return nil, err
+			}
+
+			denomCreationFee := tokenfactorytypes.Params{DenomCreationGasConsume: 100000}
+
+			app.TokenFactoryKeeper.SetParams(sdkCtx, denomCreationFee)
+			udc := keeper.NewUnboundDenomCreator(app.TokenFactoryKeeper)
+			err = udc.CreateDenom(sdkCtx, bondDenomMinterAddress, bondDenom)
+			if err != nil {
+				return nil, err
+			}
+
+			return res, err
 		},
 	)
 
