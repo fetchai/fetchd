@@ -166,12 +166,12 @@ var (
 	EnableSpecificProposals = ""
 
 	tokenFactoryCapabilities = []string{
-		tokenfactorytypes.EnableBurnFrom,
-		tokenfactorytypes.EnableForceTransfer,
+		tokenfactorytypes.EnableSudoMint,
+		tokenfactorytypes.EnableBurnOwn,
+		//tokenfactorytypes.EnableBurnFrom,
+		//tokenfactorytypes.EnableForceTransfer,
 		tokenfactorytypes.EnableSetMetadata,
-		tokenfactorytypes.EnableSudoMint,
 		tokenfactorytypes.EnableCommunityPoolFeeFunding,
-		tokenfactorytypes.EnableSudoMint,
 	}
 )
 
@@ -600,7 +600,7 @@ func New(
 
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
-		// register the governance hooks
+			// register the governance hooks
 		),
 	)
 
@@ -643,7 +643,7 @@ func New(
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(
-		// insert epoch hooks receivers here
+			// insert epoch hooks receivers here
 		),
 	)
 

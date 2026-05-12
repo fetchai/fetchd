@@ -134,21 +134,93 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			// Bootstrap tokenfactory
-			bondDenomMinterAddress := "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut"
-
 			bondDenom, err := app.StakingKeeper.BondDenom(sdkCtx)
 			if err != nil {
 				return nil, err
 			}
 
-			denomCreationFee := tokenfactorytypes.Params{DenomCreationGasConsume: 100000}
+			type ChainConfig struct {
+				DenomAdmins map[string]string
+				Params      tokenfactorytypes.Params
+			}
 
-			app.TokenFactoryKeeper.SetParams(sdkCtx, denomCreationFee)
+			defaultDenomCreationGasConsume := uint64(2000000)
+			defaultDenomCreationFee := sdk.NewCoins(sdk.NewCoin(bondDenom, math.NewIntWithDecimal(1, 18)))
+
+			defaultParams := tokenfactorytypes.Params{
+				DenomCreationFee:        defaultDenomCreationFee,
+				DenomCreationGasConsume: defaultDenomCreationGasConsume,
+			}
+
+			var chainConfig ChainConfig
+
+			switch sdkCtx.ChainID() {
+			case "fetchhub-4":
+				chainConfig = ChainConfig{
+					DenomAdmins: map[string]string{
+						bondDenom: "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut",
+					},
+					Params: defaultParams,
+				}
+			case "dorado-1":
+				chainConfig = ChainConfig{
+					DenomAdmins: map[string]string{
+						// TODO(pb): Deploy bridge (or dummy) contract on `dorado-1` chain and PROVIDE here the address.
+						//           Make sure that following points are ensured:
+						//           * contract super-admin is set to Fetch Foundation Multi-Sig account,
+						//           * contract bitecode is either *real* bridge contract or it is dummy contract with
+						//             *NO* API (= contract is not callable)
+						//           * is the contract is real bridge contract, make sure that the Fetch Foundation
+						//             Multi-Sig account is the only set in admin role.
+						bondDenom: "...",
+					},
+					Params: defaultParams,
+				}
+
+				// TODO(pb): Ensure that new bridge contract has set the 'label' to the "token-bridge-contract".
+			default:
+				feeAmount := math.NewIntWithDecimal(1, 9)
+
+				if metadata, ok := app.BankKeeper.GetDenomMetaData(ctx, bondDenom); ok {
+					var maxExp uint32
+					var found bool
+
+					for _, du := range metadata.DenomUnits {
+						if !found || du.Exponent > maxExp {
+							maxExp = du.Exponent
+							found = true
+						}
+					}
+
+					if found {
+						feeAmount = math.NewIntWithDecimal(1, int(maxExp))
+					}
+				}
+
+				blockMaxGas := sdkCtx.ConsensusParams().Block.MaxGas
+
+				denomCreationGasConsume := uint64(0)
+				// sanity check
+				if blockMaxGas > 0 {
+					denomCreationGasConsume = uint64(blockMaxGas) / 3
+				}
+
+				chainConfig = ChainConfig{
+					Params: tokenfactorytypes.Params{
+						DenomCreationFee:        sdk.NewCoins(sdk.NewCoin(bondDenom, feeAmount)),
+						DenomCreationGasConsume: denomCreationGasConsume,
+					},
+				}
+			}
+
+			app.TokenFactoryKeeper.SetParams(sdkCtx, chainConfig.Params)
+
 			udc := keeper.NewUnboundDenomCreator(app.TokenFactoryKeeper)
-			err = udc.CreateDenom(sdkCtx, bondDenomMinterAddress, bondDenom)
-			if err != nil {
-				return nil, err
+			for denom, adminAddr := range chainConfig.DenomAdmins {
+				err = udc.CreateDenom(sdkCtx, adminAddr, denom)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			return res, err
