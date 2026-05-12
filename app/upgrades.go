@@ -158,7 +158,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			case "fetchhub-4":
 				chainConfig = ChainConfig{
 					DenomAdmins: map[string]string{
-						bondDenom: "fetch1x77wq7m9pxyd0y3w8uk47rh8ex7q8qhdps4jut",
+						// Mainnet bridge contract
+						bondDenom: "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
 					},
 					Params: defaultParams,
 				}
@@ -172,7 +173,7 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 						//             *NO* API (= contract is not callable)
 						//           * is the contract is real bridge contract, make sure that the Fetch Foundation
 						//             Multi-Sig account is the only set in admin role.
-						bondDenom: "...",
+						bondDenom: "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0",
 					},
 					Params: defaultParams,
 				}
