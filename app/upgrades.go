@@ -30,7 +30,7 @@ import (
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	liquidtypes "github.com/cosmos/gaia/v25/x/liquid/types"
+	liquidtypes "github.com/cosmos/gaia/v27/x/liquid/types"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"

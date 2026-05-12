@@ -1,7 +1,7 @@
-FROM golang:1.24.3-bookworm as builder
+FROM golang:1.25.7-bookworm AS builder
 
 # Set up dependencies
-ENV PACKAGES jq curl wget jq file make git
+ENV PACKAGES="jq curl wget jq file make git"
 
 RUN apt-get update && \
     apt-get install -y $PACKAGES
@@ -21,7 +21,7 @@ RUN ARCH=`uname -m` && ln -s $GOPATH/pkg/mod/github.com/\!cosm\!wasm/wasmvm/v*/i
 FROM debian:bookworm-slim AS hub
 
 # Set up dependencies
-ENV PACKAGES jq curl
+ENV PACKAGES="jq curl"
 
 RUN apt-get update && \
     apt-get install -y $PACKAGES
@@ -43,14 +43,14 @@ STOPSIGNAL SIGTERM
 
 # ##################################
 
-FROM hub as gcr
+FROM hub AS gcr
 
 COPY ./entrypoints/run-node.sh /usr/bin/run-node.sh
 COPY ./entrypoints/run-tx-server.sh /usr/bin/run-tx-server.sh
 
 # ##################################
 
-FROM hub as localnet
+FROM hub AS localnet
 
 COPY ./entrypoints/run-localnet.sh /usr/bin/run-localnet.sh
 
@@ -58,7 +58,7 @@ ENTRYPOINT [ "/usr/bin/run-localnet.sh" ]
 
 # ##################################
 
-FROM hub as localnet-setup
+FROM hub AS localnet-setup
 
 RUN apt-get update && apt-get install -y python3
 
