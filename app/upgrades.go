@@ -16,6 +16,8 @@ import (
 	"github.com/CosmWasm/wasmd/app/upgrades"
 	"github.com/CosmWasm/wasmd/app/upgrades/noop"
 	v060 "github.com/CosmWasm/wasmd/app/upgrades/v060"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -139,9 +141,14 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
+			type DenomAdmin struct {
+				Denom   string
+				Address string
+			}
+
 			type ChainConfig struct {
-				DenomAdmins map[string]string
-				Params      tokenfactorytypes.Params
+				Admins []DenomAdmin
+				Params tokenfactorytypes.Params
 			}
 
 			defaultDenomCreationGasConsume := uint64(2000000)
@@ -157,28 +164,34 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			switch sdkCtx.ChainID() {
 			case "fetchhub-4":
 				chainConfig = ChainConfig{
-					DenomAdmins: map[string]string{
+					Admins: []DenomAdmin{
 						// Mainnet bridge contract
-						bondDenom: "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n",
+						{Denom: bondDenom, Address: "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"},
 					},
 					Params: defaultParams,
 				}
 			case "dorado-1":
+				// Dorado testnet bridge contract
+				doradoBridgeContractAddress := "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0"
+
 				chainConfig = ChainConfig{
-					DenomAdmins: map[string]string{
-						// TODO(pb): Deploy bridge (or dummy) contract on `dorado-1` chain and PROVIDE here the address.
-						//           Make sure that following points are ensured:
-						//           * contract super-admin is set to Fetch Foundation Multi-Sig account,
-						//           * contract bitecode is either *real* bridge contract or it is dummy contract with
-						//             *NO* API (= contract is not callable)
-						//           * is the contract is real bridge contract, make sure that the Fetch Foundation
-						//             Multi-Sig account is the only set in admin role.
-						bondDenom: "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0",
+					Admins: []DenomAdmin{
+						{Denom: bondDenom, Address: doradoBridgeContractAddress},
 					},
 					Params: defaultParams,
 				}
 
-				// TODO(pb): Ensure that new bridge contract has set the 'label' to the "token-bridge-contract".
+				msgServer := wasmkeeper.NewMsgServerImpl(&app.WasmKeeper)
+
+				_, err := msgServer.UpdateContractLabel(ctx, &wasmtypes.MsgUpdateContractLabel{
+					Sender:   tokenfactorytypes.ModuleAddress(),
+					Contract: doradoBridgeContractAddress,
+					NewLabel: "token-bridge-contract",
+				})
+				if err != nil {
+					return nil, err
+				}
+
 			default:
 				feeAmount := math.NewIntWithDecimal(1, 9)
 
@@ -217,8 +230,8 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			app.TokenFactoryKeeper.SetParams(sdkCtx, chainConfig.Params)
 
 			udc := keeper.NewUnboundDenomCreator(app.TokenFactoryKeeper)
-			for denom, adminAddr := range chainConfig.DenomAdmins {
-				err = udc.CreateDenom(sdkCtx, adminAddr, denom)
+			for _, denomAdmin := range chainConfig.Admins {
+				err = udc.CreateDenom(sdkCtx, denomAdmin.Address, denomAdmin.Denom)
 				if err != nil {
 					return nil, err
 				}
