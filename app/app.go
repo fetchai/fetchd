@@ -168,6 +168,7 @@ var (
 	tokenFactoryCapabilities = []string{
 		tokenfactorytypes.EnableSudoMint,
 		tokenfactorytypes.EnableBurnOwn,
+		//tokenfactorytypes.EnableBurnOwnUnregistered,
 		//tokenfactorytypes.EnableBurnFrom,
 		//tokenfactorytypes.EnableForceTransfer,
 		tokenfactorytypes.EnableSetMetadata,
