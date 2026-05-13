@@ -16,27 +16,32 @@ import (
 	"github.com/CosmWasm/wasmd/app/upgrades"
 	"github.com/CosmWasm/wasmd/app/upgrades/noop"
 	v060 "github.com/CosmWasm/wasmd/app/upgrades/v060"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
+	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
+
 	//minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	protocolpooltypes "github.com/cosmos/cosmos-sdk/x/protocolpool/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	liquidtypes "github.com/cosmos/gaia/v25/x/liquid/types"
+	liquidtypes "github.com/cosmos/gaia/v27/x/liquid/types"
 	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	"github.com/fetchai/fetchd/app/ica_migration"
 	"github.com/fetchai/fetchd/app/traces"
+	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 )
 
 // ---- Match this to the plan name that is already stored on disk and halted the chain.
-const UpgradeNameV053 = "v0.15.0-rc1-gemini"
+const UpgradeNameV053 = "v0.15.0-rc3"
 
 // List ALL new/renamed/deleted KV stores at this upgrade height.
 var v053StoreUpgrades = storetypes.StoreUpgrades{
@@ -48,6 +53,7 @@ var v053StoreUpgrades = storetypes.StoreUpgrades{
 		group.StoreKey,
 		icacontrollertypes.StoreKey,
 		nft.StoreKey,
+		tokenfactorytypes.StoreKey,
 		liquidtypes.StoreKey,
 	},
 	Renamed: []storetypes.StoreRename{
@@ -104,21 +110,14 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			/*
-				// Pre-seed legacy x/params for mint
-				if ss, ok := app.ParamsKeeper.GetSubspace(minttypes.ModuleName); ok {
-					if !ss.Has(sdkCtx, minttypes.KeyInflationRateChange) {
-						p := minttypes.DefaultParams()
-						p.MintDenom = "afet"
-						// TODO: if your chain had custom values, set them here:
-						ss.SetParamSet(sdkCtx, &p)
-					}
-				}
-			*/
-
 			err = migrateConsensusParamsFromParamsStore(app, sdkCtx)
 			if err != nil {
 				return nil, err
+			}
+
+			res, err := app.mm.RunMigrations(ctx, cfg, fromVM)
+			if err != nil {
+				return res, err
 			}
 
 			// Bootstrap liquid staking
@@ -137,8 +136,108 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 				return nil, err
 			}
 
-			// If you must pin any module "from" versions, adjust fromVM here.
-			return app.mm.RunMigrations(ctx, cfg, fromVM)
+			bondDenom, err := app.StakingKeeper.BondDenom(sdkCtx)
+			if err != nil {
+				return nil, err
+			}
+
+			type DenomAdmin struct {
+				Denom   string
+				Address string
+			}
+
+			type ChainConfig struct {
+				Admins []DenomAdmin
+				Params tokenfactorytypes.Params
+			}
+
+			defaultDenomCreationGasConsume := uint64(2000000)
+			defaultDenomCreationFee := sdk.NewCoins(sdk.NewCoin(bondDenom, math.NewIntWithDecimal(1, 18)))
+
+			defaultParams := tokenfactorytypes.Params{
+				DenomCreationFee:        defaultDenomCreationFee,
+				DenomCreationGasConsume: defaultDenomCreationGasConsume,
+			}
+
+			var chainConfig ChainConfig
+
+			switch sdkCtx.ChainID() {
+			case "fetchhub-4":
+				chainConfig = ChainConfig{
+					Admins: []DenomAdmin{
+						// Mainnet bridge contract
+						{Denom: bondDenom, Address: "fetch1qxxlalvsdjd07p07y3rc5fu6ll8k4tmetpha8n"},
+					},
+					Params: defaultParams,
+				}
+			case "dorado-1":
+				// Dorado testnet bridge contract
+				doradoBridgeContractAddress := "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0"
+
+				chainConfig = ChainConfig{
+					Admins: []DenomAdmin{
+						{Denom: bondDenom, Address: doradoBridgeContractAddress},
+					},
+					Params: defaultParams,
+				}
+
+				msgServer := wasmkeeper.NewMsgServerImpl(&app.WasmKeeper)
+
+				_, err := msgServer.UpdateContractLabel(ctx, &wasmtypes.MsgUpdateContractLabel{
+					Sender:   tokenfactorytypes.ModuleAddress(),
+					Contract: doradoBridgeContractAddress,
+					NewLabel: "token-bridge-contract",
+				})
+				if err != nil {
+					return nil, err
+				}
+
+			default:
+				feeAmount := math.NewIntWithDecimal(1, 9)
+
+				if metadata, ok := app.BankKeeper.GetDenomMetaData(ctx, bondDenom); ok {
+					var maxExp uint32
+					var found bool
+
+					for _, du := range metadata.DenomUnits {
+						if !found || du.Exponent > maxExp {
+							maxExp = du.Exponent
+							found = true
+						}
+					}
+
+					if found {
+						feeAmount = math.NewIntWithDecimal(1, int(maxExp))
+					}
+				}
+
+				blockMaxGas := sdkCtx.ConsensusParams().Block.MaxGas
+
+				denomCreationGasConsume := uint64(0)
+				// sanity check
+				if blockMaxGas > 0 {
+					denomCreationGasConsume = uint64(blockMaxGas) / 3
+				}
+
+				chainConfig = ChainConfig{
+					Params: tokenfactorytypes.Params{
+						DenomCreationFee:        sdk.NewCoins(sdk.NewCoin(bondDenom, feeAmount)),
+						DenomCreationGasConsume: denomCreationGasConsume,
+					},
+				}
+			}
+
+			app.TokenFactoryKeeper.SetParams(sdkCtx, chainConfig.Params)
+
+			udc := keeper.NewUnboundDenomCreator(app.TokenFactoryKeeper)
+			for _, denomAdmin := range chainConfig.Admins {
+				err = udc.CreateDenom(sdkCtx, denomAdmin.Address, denomAdmin.Denom)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			return res, err
 		},
 	)
 
