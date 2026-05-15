@@ -16,8 +16,6 @@ import (
 	"github.com/CosmWasm/wasmd/app/upgrades"
 	"github.com/CosmWasm/wasmd/app/upgrades/noop"
 	v060 "github.com/CosmWasm/wasmd/app/upgrades/v060"
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -171,27 +169,13 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 					Params: defaultParams,
 				}
 			case "dorado-1":
-				// Dorado testnet bridge contract
-				doradoBridgeContractAddress := "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0"
-
 				chainConfig = ChainConfig{
 					Admins: []DenomAdmin{
-						{Denom: bondDenom, Address: doradoBridgeContractAddress},
+						// Dorado testnet bridge contract
+						{Denom: bondDenom, Address: "fetch182q50y030ctp39dkjhv4pn95h9vxg29s67djtr0560fuwprtks0sfrtyz0"},
 					},
 					Params: defaultParams,
 				}
-
-				msgServer := wasmkeeper.NewMsgServerImpl(&app.WasmKeeper)
-
-				_, err := msgServer.UpdateContractLabel(ctx, &wasmtypes.MsgUpdateContractLabel{
-					Sender:   tokenfactorytypes.ModuleAddress(),
-					Contract: doradoBridgeContractAddress,
-					NewLabel: "token-bridge-contract",
-				})
-				if err != nil {
-					return nil, err
-				}
-
 			default:
 				feeAmount := math.NewIntWithDecimal(1, 9)
 
