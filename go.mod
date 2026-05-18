@@ -252,7 +252,7 @@ replace (
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// See: https://github.com/cosmos/cosmos-sdk/issues/10409
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.8.1
-	github.com/strangelove-ventures/tokenfactory => github.com/fetchai/tokenfactory v0.1.0-rc3
+	github.com/strangelove-ventures/tokenfactory => github.com/fetchai/tokenfactory v0.1.0
 	// pin version! 126854af5e6d has issues with the store so that queries fail
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )
@@ -268,6 +268,6 @@ retract (
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.20.0-rc2
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.20.0
 
 replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83
