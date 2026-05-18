@@ -18,6 +18,8 @@ def create_genesis(chain_id: str):
     subprocess.check_call(cmd)
     replace_denom_cmd = ['sed', '-i', 's/stake/'+DENOM+'/g', GENESIS_PATH]
     subprocess.check_call(replace_denom_cmd)
+    replace_denom_cmd_fix = ['sed', '-i', 's/'+DENOM+'d/staked/g', GENESIS_PATH]
+    subprocess.check_call(replace_denom_cmd_fix)
     grpc_fix_cmd = ['sed','-i','s/localhost/0.0.0.0/', APP_TOML_PATH]
     subprocess.check_call(grpc_fix_cmd)
 

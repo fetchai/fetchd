@@ -9,6 +9,8 @@ wasmd init --chain-id=testing testing
 
 # staking/governance token is hardcoded in config, change this
 sed -i "s/\"stake\"/\"$STAKE\"/" "$HOME"/.wasmd/config/genesis.json
+sed -i "s/${STAKE}d/staked/" "$HOME"/.wasmd/config/genesis.json
+
 if ! wasmcli keys show validator; then
   (echo "$PASSWORD"; echo "$PASSWORD") | wasmcli keys add validator
 fi
