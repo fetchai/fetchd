@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"cosmossdk.io/math"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -102,7 +103,7 @@ and the full amount is stored on the account balance.`,
 				delegatedCoin = totalAmount.Sub(accountReservedCoin)
 				accountCoin = accountReservedCoin
 			} else {
-				delegatedCoin = sdk.NewCoin(totalAmount.Denom, sdk.NewInt(0))
+				delegatedCoin = sdk.NewCoin(totalAmount.Denom, math.NewInt(0))
 				accountCoin = totalAmount
 			}
 
@@ -206,13 +207,13 @@ and the full amount is stored on the account balance.`,
 
 func addDelegation(cdc codec.JSONCodec, appState map[string]json.RawMessage, userAddr sdk.AccAddress, valAddr sdk.ValAddress, delegatedCoin sdk.Coin, currentHeight uint64) (map[string]json.RawMessage, error) {
 	stakingState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
-	shares := sdk.Dec(delegatedCoin.Amount.Mul(sdk.DefaultPowerReduction))
+	shares := math.LegacyDec(delegatedCoin.Amount.Mul(sdk.DefaultPowerReduction))
 
 	var currentDelegation *stakingtypes.Delegation
 	// check if user already delegated to this validator
 	for i, delegation := range stakingState.Delegations {
-		if delegation.GetDelegatorAddr().Equals(userAddr) &&
-			delegation.GetValidatorAddr().Equals(valAddr) {
+		if delegation.GetDelegatorAddr() == userAddr.String() &&
+			delegation.GetValidatorAddr() == valAddr.String() {
 			currentDelegation = &stakingState.Delegations[i]
 			break
 		}
@@ -220,7 +221,7 @@ func addDelegation(cdc codec.JSONCodec, appState map[string]json.RawMessage, use
 
 	if currentDelegation == nil {
 		// create a new delegation
-		delegation := stakingtypes.NewDelegation(userAddr, valAddr, shares)
+		delegation := stakingtypes.NewDelegation(userAddr.String(), valAddr.String(), shares)
 		stakingState.Delegations = append(stakingState.Delegations, delegation)
 	} else {
 		// increment existing delegation shares
@@ -332,7 +333,7 @@ func addDelegation(cdc codec.JSONCodec, appState map[string]json.RawMessage, use
 		)
 	}
 
-	currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(currentValidator.Tokens.Sub(delegatedCoin.Amount).ToDec())
+	currentRatio := currentValidatorRewards.Rewards.Rewards.QuoDecTruncate(currentValidator.Tokens.Sub(delegatedCoin.Amount).ToLegacyDec())
 	newRatio := lastHistoricalRecord.Rewards.CumulativeRewardRatio.Add(currentRatio...)
 
 	distributionState.ValidatorHistoricalRewards = append(distributionState.ValidatorHistoricalRewards, distributiontypes.ValidatorHistoricalRewardsRecord{

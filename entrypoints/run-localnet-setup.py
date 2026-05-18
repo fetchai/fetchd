@@ -11,13 +11,15 @@ DENOM = 'atestfet'
 FETCHD_CONFIG_ROOT = '/root/.fetchd/config'
 GENESIS_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'genesis.json')
 GENTX_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'gentx')
-
+APP_TOML_PATH = os.path.join(FETCHD_CONFIG_ROOT, 'app.toml')
 
 def create_genesis(chain_id: str):
     cmd = ['fetchd', 'init', 'setup-node', '--chain-id', chain_id]
     subprocess.check_call(cmd)
     replace_denom_cmd = ['sed', '-i', 's/stake/'+DENOM+'/g', GENESIS_PATH]
     subprocess.check_call(replace_denom_cmd)
+    grpc_fix_cmd = ['sed','-i','s/localhost/0.0.0.0/', APP_TOML_PATH]
+    subprocess.check_call(grpc_fix_cmd)
 
 def get_validators():
     validators = set()
@@ -83,7 +85,7 @@ def main():
         validators = get_validators()
 
     for validator in validators:
-        cmd = ['fetchd', 'add-genesis-account',
+        cmd = ['fetchd', 'genesis' ,'add-genesis-account',
                validator, '200000000000000000000atestfet']
         subprocess.check_call(cmd)
 
@@ -94,7 +96,7 @@ def main():
             token_list.append(f'{10**18}{infl["denom"]}')
         tokens = ','.join(token_list)
 
-        cmd = ['fetchd', 'add-genesis-account',
+        cmd = ['fetchd', 'genesis',  'add-genesis-account',
                municipal_infl_target_address, tokens]
 
         subprocess.check_call(cmd)
@@ -115,7 +117,7 @@ def main():
         shutil.copy(path, os.path.join(GENTX_PATH, item))
 
     # collect up the txs
-    cmd = ['fetchd', 'collect-gentxs']
+    cmd = ['fetchd', 'genesis', 'collect-gentxs']
     subprocess.check_call(cmd)
 
     # generate the final genesis configuration

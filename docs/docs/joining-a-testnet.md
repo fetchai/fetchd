@@ -17,8 +17,8 @@ This should print a version number that must be compatible with the network you'
 In general to configure the CLI to point at a given network it needs as a minimum the following configuration values
 
 ```bash
-fetchd config chain-id <chain-id>
-fetchd config node <rpc url>
+fetchd config set client chain-id <chain-id>
+fetchd config set client node <rpc url>
 ```
 
 ### Dorado example
@@ -26,8 +26,8 @@ fetchd config node <rpc url>
 In the case of the Dorado network this would be as follows:
 
 ```bash
-fetchd config chain-id dorado-1
-fetchd config node https://rpc-dorado.fetch.ai:443
+fetchd config set client chain-id dorado-1
+fetchd config set client node https://rpc-dorado.fetch.ai:443
 ```
 
 ### Configuring the server `fetchd`

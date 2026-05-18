@@ -7,16 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcutil/bech32"
+	"github.com/cometbft/cometbft/types"
 	bech32btc "github.com/cosmos/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/client"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"sort"
 	"strings"
-
-	"github.com/cosmos/cosmos-sdk/types/errors"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	"github.com/tendermint/tendermint/types"
 )
 
 func loadAppStateFromGenesis(genesisPath string) (genDoc *types.GenesisDoc, appState genutiltypes.AppMap, err error) {
@@ -25,7 +23,7 @@ func loadAppStateFromGenesis(genesisPath string) (genDoc *types.GenesisDoc, appS
 		return nil, genutiltypes.AppMap{}, fmt.Errorf("failed to load genesis file at %q: %w", genesisPath, err)
 	}
 	if err := json.Unmarshal(genDoc.AppState, &appState); err != nil {
-		return nil, genutiltypes.AppMap{}, errors.Wrap(err, "failed to JSON unmarshal initial genesis state")
+		return nil, genutiltypes.AppMap{}, fmt.Errorf("failed to JSON unmarshal initial genesis state: %w", err)
 	}
 	return genDoc, appState, nil
 }
@@ -43,7 +41,6 @@ func utilCommand() *cobra.Command {
 	cmd.AddCommand(
 		utilJsonCommand(),
 		utilAddressCommand(),
-		utilNetworkMergeCommand(),
 	)
 
 	return cmd
