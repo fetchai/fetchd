@@ -39,7 +39,7 @@ import (
 )
 
 // ---- Match this to the plan name that is already stored on disk and halted the chain.
-const UpgradeNameV053 = "v0.15.0-rc3"
+const UpgradeNameV053 = "v0.15.0"
 
 // List ALL new/renamed/deleted KV stores at this upgrade height.
 var v053StoreUpgrades = storetypes.StoreUpgrades{
