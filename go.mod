@@ -272,4 +272,4 @@ replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.20.0
 
 replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83
 
-replace github.com/CosmWasm/wasmd => github.com/MissingNO57/wasmd v0.0.0-20260521103820-240712cd4628
+replace github.com/CosmWasm/wasmd => github.com/MissingNO57/wasmd v0.0.0-20260527123056-1199dc6a78e7
