@@ -1,6 +1,6 @@
 # Governance
 
-In order to be able to take part in the governance you either need to be running a full validator node or you need to have have delegated stake to an existing validator
+In order to be able to take part in the governance you either need to be running a full validator node or you need to have delegated stake to an existing validator
 
 ## Stake Delegation
 
