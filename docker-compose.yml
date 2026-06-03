@@ -56,7 +56,7 @@ services:
     environment:
       MONIKER: node1
       CHAINID: localnet
-      MNEMONIC: "question ski cancel busy census brush slush scissors ridge usual size fetch tortoise drum relax unlock chapter chapter electric surge arm priority vibrant blue"
+      MNEMONIC: "question ski cancel busy census brush slush scissors ridge usual size fetch tortoise drum relax unlock chapter electric surge arm priority vibrant blue"
       PASSPHRASE: change-me-please
 
     volumes:
