@@ -5,6 +5,7 @@ PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
 VERSION := $(shell echo $(shell git describe --tags))
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
+STATIC_PIE ?= true
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 APP_DIR = ./app
@@ -14,6 +15,10 @@ DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuil
 PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 
 export GO111MODULE = on
+
+# Resolve the target OS used by Go.
+# This works both for native builds and explicit cross-compilation.
+BUILD_GOOS := $(shell go env GOOS)
 
 # process build tags
 
@@ -64,16 +69,30 @@ ifeq ($(WITH_CLEVELDB),yes)
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
 endif
 
-ifeq ($(LINK_STATICALLY),true)
-  extldflags += -Wl,-z,muldefs -static-pie -z noexecstack
-  ldflags += -linkmode=external -extldflags "$(extldflags)"
+# PIE is enabled for all builds.
+#
+# PIE and static linking are independent properties:
+#   -buildmode=pie     -> position-independent executable
+#   -static-pie        -> Linux static linking of the PIE executable
+buildmode_flags += -buildmode=pie
+
+# Static PIE is supported here only for Linux.
+#
+# STATIC_PIE=true requests a statically linked PIE executable.
+# The Linux-specific external linker flags must not be passed to
+# macOS or Windows builds.
+ifeq ($(STATIC_PIE),true)
+  ifeq ($(BUILD_GOOS),linux)
+    extldflags += -Wl,-z,muldefs -static-pie -z noexecstack
+    ldflags += -linkmode=external -extldflags "$(extldflags)"
+  else
+    $(warning STATIC_PIE=true requested for $(BUILD_GOOS); Linux static-PIE linker flags will not be applied)
+  endif
 endif
 
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-# PIE is enabled by default for all builds
-buildmode_flags += -buildmode=pie
 BUILD_FLAGS := -tags "$(build_tags_comma_sep)" -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
 
 # The below include contains the tools target.
@@ -88,11 +107,14 @@ else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
 endif
 
+# Build for Linux while preserving the target architecture supplied by
+# the environment (or Go's native GOARCH default).
 build-linux: go.sum
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+	GOOS=linux $(MAKE) build
 
+# Build a Linux static PIE while preserving the target architecture.
 build-linux-static: go.sum
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 LINK_STATICALLY=true $(MAKE) build
+	GOOS=linux STATIC_PIE=true $(MAKE) build
 
 build-contract-tests-hooks:
 ifeq ($(OS),Windows_NT)
@@ -206,7 +228,7 @@ localnet-start: build-linux localnet-stop
 localnet-stop:
 	docker-compose down
 
-.PHONY: all build-linux build-linux-static-pie install install-debug \
+.PHONY: all build-linux build-linux-static install install-debug \
 	go-mod-cache draw-deps clean build \
 	test test-all test-cover test-unit test-race
 
@@ -222,7 +244,7 @@ containerProtoFmt=${PROJECT_NAME}-proto-fmt-$(containerProtoVer)
 containerProtoGenSwagger=${PROJECT_NAME}-proto-gen-swagger-$(containerProtoVer)
 
 proto-all: proto-gen proto-lint proto-check-breaking proto-format
-.PHONY: proto-all proto-gen proto-gen-docker proto-lint proto-check-breaking proto-format
+.PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-format
 
 proto-gen:
 	@echo "Generating Protobuf files"
@@ -246,7 +268,7 @@ proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=master
 
 proto-check-breaking-direct:
-	@buf breaking --against '.git#branch=master'
+	@$(DOCKER_BUF) breaking --against '.git#branch=master'
 
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 REGEN_COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
