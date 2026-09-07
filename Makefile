@@ -276,11 +276,11 @@ COSMOS_PROTO_URL   = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master/
 
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
 REGEN_COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
-COSMOS_PROTO_TYPES    = third_party/proto/cosmos_proto
+COSMOS_PROTO_TYPES    = third_party/proto/cosmos
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
-	@curl -sSL $(GOGO_PROTO_URL)/gogoproto/gogoproto.proto > $(GOGO_PROTO_TYPES)/gogoproto.proto
+	@curl -sSL $(GOGO_PROTO_URL)/gogoproto/gogo.proto > $(GOGO_PROTO_TYPES)/gogo.proto
 
 	@mkdir -p $(REGEN_COSMOS_PROTO_TYPES)
 	@curl -sSL $(REGEN_COSMOS_PROTO_URL)/cosmos.proto > $(REGEN_COSMOS_PROTO_TYPES)/cosmos.proto
