@@ -63,10 +63,18 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 ifeq ($(WITH_CLEVELDB),yes)
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
 endif
+
+ifeq ($(LINK_STATICALLY),true)
+  extldflags += -Wl,-z,muldefs -static-pie -z noexecstack
+  ldflags += -linkmode=external -extldflags "$(extldflags)"
+endif
+
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
+# PIE is enabled by default for all builds
+buildmode_flags += -buildmode=pie
+BUILD_FLAGS := -tags "$(build_tags_comma_sep)" -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
 
 # The below include contains the tools target.
 #include contrib/devtools/Makefile
@@ -82,6 +90,9 @@ endif
 
 build-linux: go.sum
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+
+build-linux-static: go.sum
+	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 LINK_STATICALLY=true $(MAKE) build
 
 build-contract-tests-hooks:
 ifeq ($(OS),Windows_NT)
@@ -123,21 +134,21 @@ test: test-unit
 test-all: test-unit test-ledger-mock test-race test-cover
 
 TEST_PACKAGES=./...
-TEST_TARGETS := test-unit test-unit-amino test-unit-proto test-ledger-mock test-race test-ledger test-race
+TEST_TARGETS := test-unit test-unit-amino test-ledger-mock test-race test-ledger test-race
 
-# Test runs-specific rules. To add a new test target, just add
-# a new rule, customise ARGS or TEST_PACKAGES ad libitum, and
-# append the new rule to the TEST_TARGETS list.
+# Test runs-specific rules. To add a new test target, customise ARGS or
+# TEST_PACKAGES ad libitum, and append the new rule to the TEST_TARGETS list.
 UNIT_TEST_ARGS		= cgo ledger test_ledger_mock norace
 AMINO_TEST_ARGS		= ledger test_ledger_mock test_amino norace
 LEDGER_TEST_ARGS	= cgo ledger norace
 LEDGER_MOCK_ARGS	= ledger test_ledger_mock norace
 TEST_RACE_ARGS		= cgo ledger test_ledger_mock
+
 ifeq ($(EXPERIMENTAL),true)
 	UNIT_TEST_ARGS		+= experimental
 	AMINO_TEST_ARGS		+= experimental
-	LEDGER_TEST_ARGS	+= experimental
-	LEDGER_MOCK_ARGS	+= experimental
+	LEDGER_TEST_ARGS		+= experimental
+	LEDGER_MOCK_ARGS		+= experimental
 	TEST_RACE_ARGS		+= experimental
 endif
 
@@ -152,6 +163,7 @@ $(TEST_TARGETS): run-tests
 
 SUB_MODULES = $(shell find . -type f -name 'go.mod' -print0 | xargs -0 -n1 dirname | sort)
 CURRENT_DIR = $(shell pwd)
+
 run-tests:
 ifneq (,$(shell which tparse 2>/dev/null))
 	@echo "Unit tests"; \
@@ -190,11 +202,11 @@ localnet-start: build-linux localnet-stop
 	@if ! [ -f build/node0/fetchd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/fetchd:Z tendermint/fetchdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
 	docker-compose up -d
 
-# Stop testnet
+# Stop local testnet
 localnet-stop:
 	docker-compose down
 
-.PHONY: all build-linux install install-debug \
+.PHONY: all build-linux build-linux-static-pie install install-debug \
 	go-mod-cache draw-deps clean build \
 	test test-all test-cover test-unit test-race
 
@@ -242,15 +254,17 @@ COSMOS_PROTO_URL   = https://raw.githubusercontent.com/cosmos/cosmos-sdk/master/
 
 GOGO_PROTO_TYPES    = third_party/proto/gogoproto
 REGEN_COSMOS_PROTO_TYPES  = third_party/proto/cosmos_proto
-COSMOS_PROTO_TYPES    = third_party/proto/cosmos
+COSMOS_PROTO_TYPES    = third_party/proto/cosmos_proto
 
 proto-update-deps:
 	@mkdir -p $(GOGO_PROTO_TYPES)
-	@curl -sSL $(GOGO_PROTO_URL)/gogoproto/gogo.proto > $(GOGO_PROTO_TYPES)/gogo.proto
+	@curl -sSL $(GOGO_PROTO_URL)/gogoproto/gogoproto.proto > $(GOGO_PROTO_TYPES)/gogoproto.proto
 
 	@mkdir -p $(REGEN_COSMOS_PROTO_TYPES)
 	@curl -sSL $(REGEN_COSMOS_PROTO_URL)/cosmos.proto > $(REGEN_COSMOS_PROTO_TYPES)/cosmos.proto
 
 	@mkdir -p $(COSMOS_PROTO_TYPES)/base/query/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/query/v1beta1/pagination.proto > $(COSMOS_PROTO_TYPES)/base/query/v1beta1/pagination.proto
+
+	@mkdir -p $(COSMOS_PROTO_TYPES)/base/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/v1beta1/coin.proto > $(COSMOS_PROTO_TYPES)/base/v1beta1/coin.proto
