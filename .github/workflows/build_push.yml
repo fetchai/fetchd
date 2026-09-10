@@ -4,34 +4,65 @@ on:
     tags:
       - '*'
 
+env:
+  GCR_IMAGE: gcr.io/fetch-ai-images/fetchd
+  HUB_IMAGE: fetchai/fetchd
+
 jobs:
   build-and-push:
-    runs-on: ubuntu-22.04
-
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: Resolve git metadata
+        id: git
+        run: echo "short_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        run: |
-          docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and Publish Public Images
-        uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
+        uses: docker/login-action@v3
         with:
-          repo: fetchai/fetchd
-          target: hub
-
-      - name: Setup GCloud
-        uses: google-github-actions/setup-gcloud@v0
-        with:
-          service_account_key: ${{ secrets.GCLOUD_KEY_IMAGES }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to GCR Registry
-        run: |
-          gcloud auth configure-docker
-
-      - name: Build and Publish Private Images
-        uses: ejfitzgerald/action-docker-tag@v0.2.0-alpha2
+        uses: docker/login-action@v3
         with:
-          repo: gcr.io/fetch-ai-images/fetchd
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCLOUD_KEY_IMAGES }}
+
+      # gcr target -> GCR only (tag-hash and tag); builder/hub layers are shared
+      # with the hub-target build below via the GitHub Actions build cache
+      - name: Build and push (gcr target -> GCR)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
           target: gcr
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.GCR_IMAGE }}:${{ github.ref_name }}-${{ steps.git.outputs.short_hash }}
+            ${{ env.GCR_IMAGE }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      # hub target -> Docker Hub only (tag); reuses the cached builder and hub
+      # stages from the gcr build above
+      - name: Build and push (hub target -> Docker Hub)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: hub
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.HUB_IMAGE }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
