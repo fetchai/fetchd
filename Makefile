@@ -16,6 +16,7 @@ PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 export GO111MODULE = on
 
 # process build tags
+
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
   ifeq ($(OS),Windows_NT)
@@ -46,6 +47,11 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
+empty :=
+space := $(empty) $(empty)
+comma := ,
+build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
+
 # process linker flags
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
@@ -68,12 +74,7 @@ buildmode_flags += -buildmode=pie
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-empty :=
-space := $(empty) $(empty)
-comma := ,
-build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
-
-BUILD_FLAGS := -tags "$(build_tags_comma_sep)" -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
+BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
 
 # The below include contains the tools target.
 #include contrib/devtools/Makefile
@@ -87,10 +88,8 @@ else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
 endif
 
-# Build for Linux while preserving the target architecture supplied by
-# the environment (or Go's native GOARCH default).
 build-linux: go.sum
-	GOOS=linux $(MAKE) build
+	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
 build-contract-tests-hooks:
 ifeq ($(OS),Windows_NT)
@@ -244,7 +243,7 @@ proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=master
 
 proto-check-breaking-direct:
-	@$(DOCKER_BUF) breaking --against '.git#branch=master'
+	@buf breaking --against '.git#branch=master'
 
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 REGEN_COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
