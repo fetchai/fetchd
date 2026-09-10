@@ -16,7 +16,6 @@ PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 export GO111MODULE = on
 
 # process build tags
-
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
   ifeq ($(OS),Windows_NT)
@@ -47,11 +46,6 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-empty :=
-space := $(empty) $(empty)
-comma := ,
-build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
-
 # process linker flags
 
 ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
@@ -63,10 +57,23 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 ifeq ($(WITH_CLEVELDB),yes)
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
 endif
+
+# PIE is enabled for all builds.
+#
+# PIE and static linking are *independent* properties:
+#   -buildmode=pie     -> position-independent executable (platform *independent*)
+#   -static-pie        -> *Linux* only *static* linking of the PIE executable
+buildmode_flags += -buildmode=pie
+
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
+empty :=
+space := $(empty) $(empty)
+comma := ,
+build_tags_comma_sep := $(subst $(space),$(comma),$(build_tags))
+
+BUILD_FLAGS := -tags "$(build_tags_comma_sep)" -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
 
 # The below include contains the tools target.
 #include contrib/devtools/Makefile
@@ -80,8 +87,10 @@ else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
 endif
 
+# Build for Linux while preserving the target architecture supplied by
+# the environment (or Go's native GOARCH default).
 build-linux: go.sum
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+	GOOS=linux $(MAKE) build
 
 build-contract-tests-hooks:
 ifeq ($(OS),Windows_NT)
@@ -152,6 +161,7 @@ $(TEST_TARGETS): run-tests
 
 SUB_MODULES = $(shell find . -type f -name 'go.mod' -print0 | xargs -0 -n1 dirname | sort)
 CURRENT_DIR = $(shell pwd)
+
 run-tests:
 ifneq (,$(shell which tparse 2>/dev/null))
 	@echo "Unit tests"; \
@@ -190,7 +200,7 @@ localnet-start: build-linux localnet-stop
 	@if ! [ -f build/node0/fetchd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/fetchd:Z tendermint/fetchdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
 	docker-compose up -d
 
-# Stop testnet
+# Stop local testnet
 localnet-stop:
 	docker-compose down
 
@@ -234,7 +244,7 @@ proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=master
 
 proto-check-breaking-direct:
-	@buf breaking --against '.git#branch=master'
+	@$(DOCKER_BUF) breaking --against '.git#branch=master'
 
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 REGEN_COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
@@ -253,4 +263,6 @@ proto-update-deps:
 
 	@mkdir -p $(COSMOS_PROTO_TYPES)/base/query/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/query/v1beta1/pagination.proto > $(COSMOS_PROTO_TYPES)/base/query/v1beta1/pagination.proto
+
+	@mkdir -p $(COSMOS_PROTO_TYPES)/base/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/v1beta1/coin.proto > $(COSMOS_PROTO_TYPES)/base/v1beta1/coin.proto
