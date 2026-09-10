@@ -5,6 +5,7 @@ PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
 VERSION := $(shell echo $(shell git describe --tags))
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
+STATIC_PIE ?= false
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 APP_DIR = ./app
@@ -14,6 +15,10 @@ DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuil
 PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 
 export GO111MODULE = on
+
+# Resolve the target OS used by Go.
+# This works both for native builds and explicit cross-compilation.
+BUILD_GOOS := $(shell go env GOOS)
 
 # process build tags
 
@@ -63,10 +68,32 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fetch \
 ifeq ($(WITH_CLEVELDB),yes)
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
 endif
+
+# PIE is enabled for all builds.
+#
+# PIE and static linking are *independent* properties:
+#   -buildmode=pie     -> position-independent executable (platform *independent*)
+#   -static-pie        -> *Linux* only *static* linking of the PIE executable
+buildmode_flags += -buildmode=pie
+
+# Static PIE is supported here only for Linux.
+#
+# STATIC_PIE=true requests a statically linked PIE executable.
+# The Linux-specific external linker flags must not be passed to
+# macOS or Windows builds.
+ifeq ($(STATIC_PIE),true)
+  ifeq ($(BUILD_GOOS),linux)
+    extldflags += -Wl,-z,muldefs -static-pie -z noexecstack
+    ldflags += -linkmode=external -extldflags "$(extldflags)"
+  else
+    $(warning STATIC_PIE=true requested for $(BUILD_GOOS); Linux static-PIE linker flags will not be applied)
+  endif
+endif
+
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -tags $(build_tags_comma_sep) -ldflags '$(ldflags)' -trimpath
+BUILD_FLAGS := -tags "$(build_tags_comma_sep)" -ldflags '$(ldflags)' -trimpath $(buildmode_flags)
 
 # The below include contains the tools target.
 #include contrib/devtools/Makefile
@@ -80,8 +107,14 @@ else
 	go build -mod=readonly $(BUILD_FLAGS) -o build/fetchd ./cmd/fetchd
 endif
 
+# Build for Linux while preserving the target architecture supplied by
+# the environment (or Go's native GOARCH default).
 build-linux: go.sum
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+	GOOS=linux $(MAKE) build
+
+# Build a Linux static PIE while preserving the target architecture.
+build-linux-static: go.sum
+	GOOS=linux STATIC_PIE=true $(MAKE) build
 
 build-contract-tests-hooks:
 ifeq ($(OS),Windows_NT)
@@ -123,21 +156,21 @@ test: test-unit
 test-all: test-unit test-ledger-mock test-race test-cover
 
 TEST_PACKAGES=./...
-TEST_TARGETS := test-unit test-unit-amino test-unit-proto test-ledger-mock test-race test-ledger test-race
+TEST_TARGETS := test-unit test-unit-amino test-ledger-mock test-race test-ledger test-race
 
-# Test runs-specific rules. To add a new test target, just add
-# a new rule, customise ARGS or TEST_PACKAGES ad libitum, and
-# append the new rule to the TEST_TARGETS list.
+# Test runs-specific rules. To add a new test target, customise ARGS or
+# TEST_PACKAGES ad libitum, and append the new rule to the TEST_TARGETS list.
 UNIT_TEST_ARGS		= cgo ledger test_ledger_mock norace
 AMINO_TEST_ARGS		= ledger test_ledger_mock test_amino norace
 LEDGER_TEST_ARGS	= cgo ledger norace
 LEDGER_MOCK_ARGS	= ledger test_ledger_mock norace
 TEST_RACE_ARGS		= cgo ledger test_ledger_mock
+
 ifeq ($(EXPERIMENTAL),true)
 	UNIT_TEST_ARGS		+= experimental
 	AMINO_TEST_ARGS		+= experimental
-	LEDGER_TEST_ARGS	+= experimental
-	LEDGER_MOCK_ARGS	+= experimental
+	LEDGER_TEST_ARGS		+= experimental
+	LEDGER_MOCK_ARGS		+= experimental
 	TEST_RACE_ARGS		+= experimental
 endif
 
@@ -152,6 +185,7 @@ $(TEST_TARGETS): run-tests
 
 SUB_MODULES = $(shell find . -type f -name 'go.mod' -print0 | xargs -0 -n1 dirname | sort)
 CURRENT_DIR = $(shell pwd)
+
 run-tests:
 ifneq (,$(shell which tparse 2>/dev/null))
 	@echo "Unit tests"; \
@@ -190,11 +224,11 @@ localnet-start: build-linux localnet-stop
 	@if ! [ -f build/node0/fetchd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/fetchd:Z tendermint/fetchdnode testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
 	docker-compose up -d
 
-# Stop testnet
+# Stop local testnet
 localnet-stop:
 	docker-compose down
 
-.PHONY: all build-linux install install-debug \
+.PHONY: all build-linux build-linux-static install install-debug \
 	go-mod-cache draw-deps clean build \
 	test test-all test-cover test-unit test-race
 
@@ -210,7 +244,7 @@ containerProtoFmt=${PROJECT_NAME}-proto-fmt-$(containerProtoVer)
 containerProtoGenSwagger=${PROJECT_NAME}-proto-gen-swagger-$(containerProtoVer)
 
 proto-all: proto-gen proto-lint proto-check-breaking proto-format
-.PHONY: proto-all proto-gen proto-gen-docker proto-lint proto-check-breaking proto-format
+.PHONY: proto-all proto-gen proto-lint proto-check-breaking proto-format
 
 proto-gen:
 	@echo "Generating Protobuf files"
@@ -234,7 +268,7 @@ proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=master
 
 proto-check-breaking-direct:
-	@buf breaking --against '.git#branch=master'
+	@$(DOCKER_BUF) breaking --against '.git#branch=master'
 
 GOGO_PROTO_URL   = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
 REGEN_COSMOS_PROTO_URL = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
@@ -253,4 +287,6 @@ proto-update-deps:
 
 	@mkdir -p $(COSMOS_PROTO_TYPES)/base/query/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/query/v1beta1/pagination.proto > $(COSMOS_PROTO_TYPES)/base/query/v1beta1/pagination.proto
+
+	@mkdir -p $(COSMOS_PROTO_TYPES)/base/v1beta1/
 	@curl -sSL $(COSMOS_PROTO_URL)/base/v1beta1/coin.proto > $(COSMOS_PROTO_TYPES)/base/v1beta1/coin.proto
