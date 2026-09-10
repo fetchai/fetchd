@@ -71,9 +71,9 @@ endif
 
 # PIE is enabled for all builds.
 #
-# PIE and static linking are independent properties:
-#   -buildmode=pie     -> position-independent executable
-#   -static-pie        -> Linux static linking of the PIE executable
+# PIE and static linking are *independent* properties:
+#   -buildmode=pie     -> position-independent executable (platform *independent*)
+#   -static-pie        -> *Linux* only *static* linking of the PIE executable
 buildmode_flags += -buildmode=pie
 
 # Static PIE is supported here only for Linux.
