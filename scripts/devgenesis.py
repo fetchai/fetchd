@@ -11,6 +11,8 @@ from genesis_helpers import (
     ensure_account,
     convert_to_valoper,
     load_json_file,
+    load_genesis,
+    dump_genesis,
     replace_validator_with_info,
     jail_validators,
     remove_max_wasm_code_size,
@@ -135,7 +137,7 @@ def reset_to_single_validator(args: ap.Namespace):
 
     # load the genesis up
     print("reading genesis export...")
-    genesis = load_json_file(args.genesis_file_path)
+    genesis, wasm = load_genesis(args.genesis_file_path)
     print("reading genesis export...complete")
 
     staking_denom = genesis["app_state"]["staking"]["params"]["bond_denom"]
@@ -147,7 +149,7 @@ def reset_to_single_validator(args: ap.Namespace):
         sys.exit(1)
 
     val_tokens = int(target_val_info["tokens"])
-    val_power = int(val_tokens / (10**18))
+    val_power = val_tokens // (10**18)
 
     # Replace selected validator by current node one
     replace_validator_with_info(
@@ -156,6 +158,7 @@ def reset_to_single_validator(args: ap.Namespace):
         validator_pubkey,
         validator_hexaddr,
         local_validator_operator_address,
+        wasm=wasm,
     )
 
     # Set .app_state.slashing.signing_infos to contain only our validator signing infos
@@ -216,8 +219,8 @@ def reset_to_single_validator(args: ap.Namespace):
 
     # Remove all .validators but the one we work with
     print("Removing other validators from initchain...")
-    genesis["validators"] = [
-        val for val in genesis["validators"] if val["address"] == validator_hexaddr
+    genesis["consensus"]["validators"] = [
+        val for val in genesis["consensus"]["validators"] if val["address"] == validator_hexaddr
     ]
 
     # Set .app_state.staking.last_validator_powers to contain only our validator
@@ -240,8 +243,7 @@ def reset_to_single_validator(args: ap.Namespace):
         update_chain_id(genesis, args.chain_id)
 
     print("Writing new genesis file...")
-    with open(f"{args.home}/config/genesis.json", "w") as f:
-        json.dump(genesis, f)
+    dump_genesis(genesis, wasm, f"{args.home}/config/genesis.json")
 
     print(f"Done! Wrote new genesis at {args.home}/config/genesis.json")
     print("You can now start the chain:")
