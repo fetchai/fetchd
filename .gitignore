@@ -1,5 +1,6 @@
 # OS
 .DS_Store
+.modcache/
 *.swp
 *.swo
 *.swl

@@ -2,7 +2,7 @@
 
 PACKAGES_NOSIMULATION=$(shell go list ./... | grep -v '/simulation')
 PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
-VERSION := $(shell echo $(shell git describe --tags))
+VERSION := $(shell git describe --tags --long --always --dirty 2> /dev/null || echo v0.0.0-dev)
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
@@ -14,6 +14,7 @@ DOCKER_BUF := docker run -v $(shell pwd):/workspace --workdir /workspace bufbuil
 PROJECT_NAME = $(shell git remote get-url origin | xargs basename -s .git)
 
 export GO111MODULE = on
+export GOPRIVATE=github.com/fetchai/priv_wasmd_sec,github.com/fetchai/priv_wasmvm_sec
 
 # process build tags
 
@@ -100,6 +101,95 @@ endif
 
 install: go.sum
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fetchd
+
+# Static (musl) builds: link fetchd against the static wasmvm archive
+# (libwasmvm_muslc.<arch>.a) instead of the dynamic libwasmvm.<arch>.so, so the
+# resulting binary is fully static and the .so libraries do not need to be
+# distributed/shipped alongside it.
+#
+# Requirements:
+#   - the build must run on a musl-based system (e.g. Alpine Linux) with
+#     gcc, make and xz available; the static-pie link mode used below is
+#     supported by musl but NOT by glibc
+#   - write access to /lib (the extracted archive must live in a default
+#     linker search path, because the wasmvm cgo bindings link it via
+#     -lwasmvm_muslc.<arch>; in Docker/container builds this is a given)
+
+UNAME_M               := $(shell uname -m)
+STATIC_WASMVM_MODULE  := github.com/CosmWasm/wasmvm/v3
+STATIC_WASMVM_VERSION := $(shell go list -mod=readonly -m -f '{{.Version}}' $(STATIC_WASMVM_MODULE))
+STATIC_WASMVM_LIB     := /lib/libwasmvm_muslc.$(UNAME_M).a
+STATIC_BUILD_TAGS     := muslc
+STATIC_LDFLAGS        := -linkmode=external -extldflags=-static
+
+# Extract the static (musl) wasmvm archive shipped inside the module that
+# satisfies github.com/CosmWasm/wasmvm/v3 (following any `replace` directives
+# in go.mod) into /lib, so that the external linker (gcc) finds it when the
+# `muslc` build tag makes the wasmvm cgo bindings link it
+# (-lwasmvm_muslc.<arch>).
+#
+# The module dir is resolved *inside the recipe shell* (not via a Make
+# $(shell) expansion) so that the resolution provably happens after the
+# `go mod download` that precedes it. GOPRIVATE is cleared for the go
+# commands so the file:// GOPROXY cache is used for the private module
+# instead of an authenticated VCS fetch.
+.PHONY: static-wasmvm-lib
+static-wasmvm-lib: go.sum
+	@echo "--> Extracting static wasmvm library ($(STATIC_WASMVM_VERSION)) to $(STATIC_WASMVM_LIB)"
+	@dir=$$(GOPRIVATE= go list -mod=readonly -m -f '{{.Dir}}' $(STATIC_WASMVM_MODULE)); \
+	  if [ -z "$$dir" ]; then \
+	    GOPRIVATE= go mod download $(STATIC_WASMVM_MODULE); \
+	    dir=$$(GOPRIVATE= go list -mod=readonly -m -f '{{.Dir}}' $(STATIC_WASMVM_MODULE)); \
+	  fi; \
+	  if [ -z "$$dir" ]; then \
+	    echo "ERROR: could not resolve module dir for $(STATIC_WASMVM_MODULE)" >&2; \
+	    exit 1; \
+	  fi; \
+	  unxz -c "$$dir/internal/api/libwasmvm_muslc.$(UNAME_M).a.xz" > "$(STATIC_WASMVM_LIB)"
+	@chmod 644 "$(STATIC_WASMVM_LIB)"
+
+# Generic static build: no wasmvm archive checksum pinning. Use this for
+# non-release builds (e.g. local Alpine builds, CI builds from master). For
+# release builds use the version-pinned target below instead.
+install-static: static-wasmvm-lib
+	$(MAKE) install \
+	  LEDGER_ENABLED=$(LEDGER_ENABLED) \
+	  BUILD_TAGS=$(STATIC_BUILD_TAGS) \
+	  LDFLAGS="$(STATIC_LDFLAGS)"
+
+build-static: static-wasmvm-lib
+	$(MAKE) build \
+	  LEDGER_ENABLED=$(LEDGER_ENABLED) \
+	  BUILD_TAGS=$(STATIC_BUILD_TAGS) \
+	  LDFLAGS="$(STATIC_LDFLAGS)"
+
+# Release-pinned static build for v0.15.1: asserts the exact wasmvm version
+# resolved from go.mod and the SHA256 of the *decompressed* static archive
+# before building. The checksums are for github.com/fetchai/priv_wasmvm_sec/v3
+# v3.0.8-rc.2 (the go.mod replace target of github.com/CosmWasm/wasmvm/v3);
+# update them whenever the wasmvm pin changes.
+verify-static-wasmvm-lib-v0.15.1: WASMVM_VERSION := v3.0.8-rc.2
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_x86_64 := 6863af60cebf04d094bc3bcf22a2777e1e1b4f1295d54e3b9a1082a3b359de8a
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_aarch64 := 46f4d0913331096f2926f28d5d0f4405eb700f571be229cf8774d942619370a4
+verify-static-wasmvm-lib-v0.15.1: static-wasmvm-lib
+	@echo "--> Verifying wasmvm version pin for fetchd v0.15.1"
+	@if [ "$(WASMVM_VERSION)" != "$(STATIC_WASMVM_VERSION)" ]; then \
+	  echo "ERROR: wasmvm module version is '$(STATIC_WASMVM_VERSION)', but fetchd" >&2; \
+	  echo "       v0.15.1 is pinned to '$(WASMVM_VERSION)'." >&2; \
+	  exit 1; \
+	fi
+	@echo "--> Verifying static wasmvm library checksum"
+	@if [ "$$(sha256sum $(STATIC_WASMVM_LIB) | cut -d' ' -f1)" != "$(WASMVM_SHA256_$(UNAME_M))" ]; then \
+	  echo "ERROR: SHA256 mismatch for $(STATIC_WASMVM_LIB)" >&2; \
+	  echo "       expected: $(WASMVM_SHA256_$(UNAME_M))" >&2; \
+	  echo "       actual:   $$(sha256sum $(STATIC_WASMVM_LIB) | cut -d' ' -f1)" >&2; \
+	  exit 1; \
+	fi
+	@echo "    OK"
+
+install-static-v0.15.1: verify-static-wasmvm-lib-v0.15.1 install-static
+
+.PHONY: install-static build-static verify-static-wasmvm-lib-v0.15.1 install-static-v0.15.1
 
 ########################################
 ### Tools & dependencies

@@ -2,6 +2,15 @@ name: Build and push images
 on:
   push:
     tags:
+      # Run for every tag push EXCEPT the v0.15.1 release tag (that release's
+      # images are built/pushed manually via
+      # build-production-image-with-push-and-pull.sh).
+      # Tag patterns are anchored full-string matches, so 'v0.15.1' matches
+      # ONLY the exact tag (v0.15.1-rc0 etc. still trigger this workflow).
+      # NOTE: for future releases, extend the negated pattern (e.g. a
+      # '!v[0-9]*.[0-9]*.[0-9]*' pattern would exclude ALL plain semver
+      # release tags, but also any tag with a suffix like -rc0).
+      - '!v0.15.1'
       - '*'
 
 jobs:
