@@ -11,14 +11,43 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          # Fetch full history including tags so that `git describe --tags`
+          # (used for VERSION in the Makefile) works inside the docker build.
+          fetch-depth: 0
       - name: Build Docker container
+        env:
+          # Token with read access to the private go module dependencies
+          # (e.g. github.com/fetchai/priv_wasmd_sec). Must be set as a repo/org
+          # secret; the default GITHUB_TOKEN cannot read other private repos.
+          GH_PRIVATE_DEP_TOKEN: ${{ secrets.GH_PRIVATE_DEP_TOKEN }}
         run: |
+          if [ -z "$GH_PRIVATE_DEP_TOKEN" ]; then
+            echo "::error::GH_PRIVATE_DEP_TOKEN secret is not set. Add a fine-grained PAT with read access to the private go module deps as a repo/org secret." >&2
+            exit 1
+          fi
+          # Fail fast with a clear diagnosis if the token cannot read the
+          # private dep repos (bad scope, expired, not SSO-authorized, ...).
+          for repo in priv_wasmd_sec priv_wasmvm_sec; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_PRIVATE_DEP_TOKEN" \
+              "https://api.github.com/repos/fetchai/$repo") || code="curl_error"
+            if [ "$code" != "200" ]; then
+              echo "::error::GH_PRIVATE_DEP_TOKEN cannot access fetchai/$repo (API status: $code). Check the token's repository access/permissions (fine-grained: Contents=Read-only on the repo; classic: 'repo' scope + SSO authorization)." >&2
+              exit 1
+            fi
+          done
+          umask 077
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "$GH_PRIVATE_DEP_TOKEN" \
+            > "$RUNNER_TEMP/netrc"
           docker build \
             --no-cache \
             --progress plain \
+            --secret id=netrc,src="$RUNNER_TEMP/netrc" \
             --tag fetch_cosmos_wasmd:$GITHUB_SHA \
             --file ./ci.Dockerfile \
             ./
+          rm -f "$RUNNER_TEMP/netrc"
       - name: Run make test
         run: |
           docker run --rm fetch_cosmos_wasmd:$GITHUB_SHA \

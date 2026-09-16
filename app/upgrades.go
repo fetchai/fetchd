@@ -13,16 +13,12 @@ import (
 	circuittypes "cosmossdk.io/x/circuit/types"
 	"cosmossdk.io/x/nft"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
-	"github.com/CosmWasm/wasmd/app/upgrades"
-	"github.com/CosmWasm/wasmd/app/upgrades/noop"
-	v060 "github.com/CosmWasm/wasmd/app/upgrades/v060"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
-	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
 
 	//minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
@@ -35,14 +31,67 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	"github.com/fetchai/fetchd/app/ica_migration"
 	"github.com/fetchai/fetchd/app/traces"
+	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
 	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 )
 
-// ---- Match this to the plan name that is already stored on disk and halted the chain.
-const UpgradeNameV053 = "v0.15.0"
+// ============================================================================
+// UPGRADE PLAN NAMES
+// ============================================================================
 
-// List ALL new/renamed/deleted KV stores at this upgrade height.
-var v053StoreUpgrades = storetypes.StoreUpgrades{
+// UpgradeNameV0_15_0 is the plan name of the PREVIOUS upgrade ("v0.15.0").
+// It is already applied on-chain; its handler is kept only so that this
+// binary can still correctly execute that upgrade if it is ever pending.
+const UpgradeNameV0_15_0 = "v0.15.0"
+
+// UpgradeNameV0_15_1 is the plan name of the CURRENT UPCOMING upgrade.
+const UpgradeNameV0_15_1 = "v0.15.1"
+
+// RegisterUpgradeHandlers registers the software upgrade handlers.
+//
+// The code is split into two clearly separated sections below:
+// one for the previous upgrade (v0.15.0) and one for the upcoming
+// upgrade (v0.15.1).
+func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
+	app.registerV0_15_0UpgradeHandler(cfg)
+	app.registerV0_15_1UpgradeHandler(cfg)
+	app.setStoreLoaderForPendingV0_15_0Upgrade()
+}
+
+// ============================================================================
+// PREVIOUS UPGRADE: v0.15.0  ("v0.15.0")
+// ============================================================================
+//
+// Everything in this section belongs exclusively to the previous v0.15.0
+// upgrade. It is kept ONLY so that this binary can still perform that
+// upgrade if its plan is pending on some node (or during a re-run of it).
+//
+// >>> CLEANUP CHECKLIST — for the upgrade AFTER v0.15.1: <<<
+// Once v0.15.1 has been applied on-chain, the v0.15.0 plan can never be
+// pending again, and this whole section can be deleted. That means, in the
+// NEXT release (the one after the v0.15.1 release):
+//
+//   1. Delete the entire "PREVIOUS UPGRADE: v0.15.0" section below
+//      (registerV0_15_0UpgradeHandler, v0_15_0StoreUpgrades,
+//       setStoreLoaderForPendingV0_15_0Upgrade,
+//       migrateConsensusParamsFromParamsStore, parseI64).
+//   2. Delete the registerV0_15_0UpgradeHandler and
+//      setStoreLoaderForPendingV0_15_0Upgrade calls in
+//      RegisterUpgradeHandlers above.
+//   3. Remove the now-unused imports (fmt, json, strconv, strings, time,
+//      math, storetypes, circuittypes, nft, tmproto, sdk, module's
+//      Configurator stays if still needed, consensusparamtypes,
+//      epochstypes, group, paramstypes, protocolpooltypes, stakingtypes,
+//      liquidtypes, ica* / ibc* types, ica_migration, traces, tokenfactory
+//      imports — let the compiler/gopls prune them).
+//   4. At that point, keep the (still registered) empty v0.15.1 handler
+//      as the "previous upgrade" handler for one more release, per the
+//      convention of retaining the previous upgrade's handler.
+// ============================================================================
+
+// v0_15_0StoreUpgrades lists all new/renamed/deleted KV stores at the
+// v0.15.0 upgrade height.
+var v0_15_0StoreUpgrades = storetypes.StoreUpgrades{
 	Added: []string{
 		protocolpooltypes.StoreKey,
 		circuittypes.StoreKey,
@@ -63,34 +112,12 @@ var v053StoreUpgrades = storetypes.StoreUpgrades{
 	},
 }
 
-// Keep your existing wasmd upgrades
-var Upgrades = []upgrades.Upgrade{v060.Upgrade}
-
-func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
-	if len(Upgrades) == 0 {
-		Upgrades = append(Upgrades, noop.NewUpgrade(app.Version()))
-	}
-
-	keepers := upgrades.AppKeepers{
-		AccountKeeper:         &app.AccountKeeper,
-		ConsensusParamsKeeper: &app.ConsensusParamsKeeper,
-		IBCKeeper:             app.IBCKeeper,
-		Codec:                 app.appCodec,
-		GetStoreKey:           app.GetKey,
-	}
-	app.GetStoreKeys()
-
-	// 1) Existing wasmd handlers
-	for _, upgrade := range Upgrades {
-		app.UpgradeKeeper.SetUpgradeHandler(
-			upgrade.UpgradeName,
-			upgrade.CreateUpgradeHandler(app.mm, cfg, &keepers),
-		)
-	}
-
-	// 2) The v0.53 handler that runs per-module Migrators
+// registerV0_15_0UpgradeHandler registers the v0.15.0 upgrade handler,
+// which runs the per-module Migrators and the custom state migrations of
+// the v0.15.0 upgrade.
+func (app *App) registerV0_15_0UpgradeHandler(cfg module.Configurator) {
 	app.UpgradeKeeper.SetUpgradeHandler(
-		UpgradeNameV053,
+		UpgradeNameV0_15_0,
 		func(ctx context.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -224,8 +251,20 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 			return res, err
 		},
 	)
+}
 
-	// 3) Load the correct store shape at the upgrade height
+// setStoreLoaderForPendingV0_15_0Upgrade installs the custom store loader
+// needed by the v0.15.0 upgrade (it mounts new KV stores).
+//
+// This must run during app construction — before LoadLatestVersion — and
+// therefore CANNOT live inside the upgrade handler. It is a no-op unless
+// the v0.15.0 plan is currently pending on disk (no upgrade-info.json file
+// or a different plan name => default store loader is used).
+//
+// NOTE: this reads the pending plan from disk on every startup, but only
+// actually overrides the store loader for the v0.15.0 plan. It belongs to
+// the v0.15.0 section and is part of the cleanup checklist above.
+func (app *App) setStoreLoaderForPendingV0_15_0Upgrade() {
 	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
 	if err != nil {
 		panic(fmt.Sprintf("failed to read upgrade info from disk %s", err))
@@ -234,20 +273,15 @@ func (app *App) RegisterUpgradeHandlers(cfg module.Configurator) {
 		return
 	}
 
-	// Try wasmd-defined upgrades first
-	for _, u := range Upgrades {
-		if upgradeInfo.Name == u.UpgradeName {
-			app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &u.StoreUpgrades))
-			return
-		}
-	}
-
-	// Then our v0.53 plan
-	if upgradeInfo.Name == UpgradeNameV053 {
-		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &v053StoreUpgrades))
+	// The v0.15.0 plan needs the new stores mounted.
+	if upgradeInfo.Name == UpgradeNameV0_15_0 {
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &v0_15_0StoreUpgrades))
 	}
 }
 
+// migrateConsensusParamsFromParamsStore migrates the consensus params from
+// the legacy x/params store into the x/consensus module (part of the
+// v0.15.0 upgrade).
 func migrateConsensusParamsFromParamsStore(app *App, ctx sdk.Context) error {
 	paramsStore := ctx.KVStore(app.GetKey(paramstypes.StoreKey))
 
@@ -313,6 +347,33 @@ func migrateConsensusParamsFromParamsStore(app *App, ctx sdk.Context) error {
 	return nil
 }
 
+// parseI64 is a helper of migrateConsensusParamsFromParamsStore (v0.15.0).
 func parseI64(s string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+}
+
+// ============================================================================
+// CURRENT UPCOMING UPGRADE: v0.15.1  ("v0.15.1")
+// ============================================================================
+//
+// The v0.15.1 upgrade requires no state migrations and no store shape
+// changes (no added/renamed/deleted KV stores), hence:
+//   - the handler below is empty (no-op), and
+//   - no custom store loader is set up for it (the default one is used).
+//
+// Once v0.15.1 has been applied on-chain, keep this empty handler
+// registered for one more release (as the "previous upgrade" handler),
+// then it can be removed alongside the v0.15.0 cleanup described above.
+// ============================================================================
+
+// registerV0_15_1UpgradeHandler registers the empty (no-op) v0.15.1
+// upgrade handler.
+func (app *App) registerV0_15_1UpgradeHandler(cfg module.Configurator) {
+	app.UpgradeKeeper.SetUpgradeHandler(
+		UpgradeNameV0_15_1,
+		func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+			// No state migrations or store changes needed for this upgrade.
+			return fromVM, nil
+		},
+	)
 }

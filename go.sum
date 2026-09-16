@@ -657,10 +657,6 @@ github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/CosmWasm/wasmd v0.61.11 h1:p7kAJACHHexQQSdoFgCvxa1pkbZotDEeAZCsyJhvFrE=
-github.com/CosmWasm/wasmd v0.61.11/go.mod h1:pfuEzkWBQ24nVfMrMBNGHh5Gmr/RBk4kIdQGiIIV68A=
-github.com/CosmWasm/wasmvm/v3 v3.0.4 h1:nccZU7jzH3bSMnHzXE7JjpSfeXayv6IUcpugdRVX5uc=
-github.com/CosmWasm/wasmvm/v3 v3.0.4/go.mod h1:oknpb1bFERvvKcY7vHRp1F/Y/z66xVrsl7n9uWkOAlM=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/datadog-go v4.8.3+incompatible h1:fNGaYSuObuQb5nzeTQqowRAd9bpDIRRV4/gUtIBjh8Q=
 github.com/DataDog/datadog-go v4.8.3+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
@@ -940,6 +936,10 @@ github.com/fetchai/cosmos-sdk v0.20.0 h1:55YcldC89mXkTC/5jMWirmkVeIQAIvg+ro9pSg1
 github.com/fetchai/cosmos-sdk v0.20.0/go.mod h1:JzUvl8EYwGynKCfnBAQ1MC5Za6Pecl9GTIxMBHo5TQg=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83 h1:9t3RKmMH/Ay+07CVfjNN7n/DQhx73HboWFG514jmVkU=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83/go.mod h1:e6faZ24J0TyOWdEv/QdE5RmQMzyCBTTz674ourTi0yU=
+github.com/fetchai/priv_wasmd_sec v0.61.15-rc.2 h1:gT6KThovHpybMKQ3+cUCCcjNVDfjUaWXXRX6duuFdtM=
+github.com/fetchai/priv_wasmd_sec v0.61.15-rc.2/go.mod h1:qBrVLabNUQBjPZVKdHZs+akf8Cz7rvE+l5oZ5A1dKOQ=
+github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.2 h1:YxCz61d571z8CQWHHbxw6Ygz7w5rHPPdq3kVQPN2BNg=
+github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.2/go.mod h1:oknpb1bFERvvKcY7vHRp1F/Y/z66xVrsl7n9uWkOAlM=
 github.com/fetchai/tokenfactory v0.1.0 h1:BY94cCNWNIL7bh86Mpe0+0WD5fbHiXZYFZM58CQqMrY=
 github.com/fetchai/tokenfactory v0.1.0/go.mod h1:6oaM728KRoZdncFhltJsYx8DtY1UaErb85T1gKTh9R0=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=

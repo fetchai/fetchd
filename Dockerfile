@@ -10,11 +10,30 @@ WORKDIR /cosmwasm
 
 COPY . .
 
-RUN make install
+# Optional Go runtime setting, empty by default. Set via --build-arg only where
+# needed, e.g. GODEBUG=asyncpreempt=0 when building linux/amd64 under CPU
+# emulation (QEMU/Rosetta on Apple Silicon), where emulated signal delivery
+# can crash the go toolchain (SIGSEGV in runtime.suspendG). On native builds
+# (Linux CI) leave it unset. The ARG value is exposed as an environment
+# variable to the RUN steps below; no ENV needed.
+ARG GODEBUG=""
 
+# GitHub token for private repos (GOPRIVATE) is mounted from the host at build
+# time; it is never baked into the image layers. Passed via buildx/bake as
+# secret id=netrc (a .netrc file readable by git over HTTPS).
+RUN --mount=type=secret,id=netrc,target=/root/.netrc make install
 
 RUN GOPATH="$(go env GOPATH)"
-RUN ARCH=`uname -m` && ln -s $GOPATH/pkg/mod/github.com/\!cosm\!wasm/wasmvm/v*/internal/api/libwasmvm.${ARCH}.so /usr/lib/libwasmvm.${ARCH}.so
+# Resolve the wasmvm module's actual cache directory via go list -m, so this
+# works regardless of any `replace` directives in go.mod (e.g. the private
+# github.com/fetchai/priv_wasmvm_sec replacement) or if they are later dropped.
+RUN ARCH=$(uname -m) && \
+    WASMVM_DIR=$(go list -m -f '{{.Dir}}' github.com/CosmWasm/wasmvm/v3) && \
+    ln -s "${WASMVM_DIR}/internal/api/libwasmvm.${ARCH}.so" /usr/lib/libwasmvm.${ARCH}.so && \
+    test -e /usr/lib/libwasmvm.${ARCH}.so || \
+    { echo "ERROR: /usr/lib/libwasmvm.${ARCH}.so is a dangling symlink;" >&2; \
+      echo "       go list could not resolve github.com/CosmWasm/wasmvm/v3 —" >&2; \
+      echo "       check go.mod and GOPRIVATE settings." >&2; exit 1; }
 
 # ##################################
 

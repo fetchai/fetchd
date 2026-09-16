@@ -1,0 +1,12 @@
+# Excluded from the Docker build context for ALL Dockerfiles in this repo.
+#
+# .modcache is the Go proxy-layout module cache consumed by musl.Dockerfile
+# (see its header). It is ~5 GB, so it must never be part of `COPY . .` image
+# layers; instead it is passed to the build as a *named build context*
+# (--build-context modcache=.modcache, or automatically via the musl-hub
+# target in docker-bake.hcl) and bind-mounted only where the build needs it.
+# It is git-ignored (see .gitignore) and populated by:
+#   ./build-production-image.sh musl
+# or manually:
+#   cp -R "$(go env GOMODCACHE)/cache/download/." .modcache/
+.modcache
