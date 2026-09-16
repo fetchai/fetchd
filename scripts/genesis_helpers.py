@@ -77,14 +77,15 @@ def ensure_account(genesis, address):
             return
 
     # Add new account to auth
-    last_account_number = int(
-        genesis["app_state"]["auth"]["accounts"][-1]["account_number"]
+    max_account_number = max(
+        int(a.get("account_number", a.get("base_account", {}).get("account_number", 0)))
+        for a in genesis["app_state"]["auth"]["accounts"]
     )
 
     # Ensure unique account number
     new_account = {
         "@type": "/cosmos.auth.v1beta1.BaseAccount",
-        "account_number": str(last_account_number + 1),
+        "account_number": str(max_account_number + 1),
         "address": address,
         "pub_key": None,
         "sequence": "0",
@@ -103,10 +104,17 @@ def set_balance(genesis, address, new_balance, denom):
     account_found = False
     for balance in genesis["app_state"]["bank"]["balances"]:
         if balance["address"] == address:
-            for amount in balance["coins"]:
+            for amount in list(balance["coins"]):
                 if amount["denom"] == denom:
-                    amount["amount"] = str(new_balance)
                     account_found = True
+                    if new_balance == 0:
+                        # SDK >=0.50 bank genesis validation rejects zero-amount coins
+                        balance["coins"].remove(amount)
+                    else:
+                        amount["amount"] = str(new_balance)
+
+    if new_balance == 0:
+        return
 
     if not account_found:
         new_balance_entry = {
@@ -178,14 +186,32 @@ def jail_validators(genesis, validator_operator_address: None):
 
 
 def remove_max_wasm_code_size(genesis):
-    if "max_wasm_code_size" in genesis["app_state"]["wasm"]["params"]:
+    wasm = genesis["app_state"]["wasm"]
+    if wasm is None:
+        # wasm is held as raw bytes (see load_genesis). The field has not existed since
+        # wasmd v0.20, so there is nothing to strip from a current export.
+        return
+    if "max_wasm_code_size" in wasm["params"]:
         print("Removing max_wasm_code_size...")
         del genesis["app_state"]["wasm"]["params"]["max_wasm_code_size"]
 
 
+def _parse_duration_seconds(d: str) -> float:
+    return float(d.rstrip("s"))
+
+
 def set_voting_period(genesis, voting_period):
     print(f"Setting voting period to {voting_period}...")
-    genesis["app_state"]["gov"]["voting_params"]["voting_period"] = voting_period
+    params = genesis["app_state"]["gov"]["params"]
+    params["voting_period"] = voting_period
+
+    # SDK >=0.50: expedited_voting_period must be strictly less than voting_period
+    expedited = params.get("expedited_voting_period")
+    if expedited is not None:
+        if _parse_duration_seconds(expedited) >= _parse_duration_seconds(voting_period):
+            new_expedited = f"{_parse_duration_seconds(voting_period) / 2}s"
+            print(f"Setting expedited voting period to {new_expedited}...")
+            params["expedited_voting_period"] = new_expedited
 
 
 def update_chain_id(genesis, chain_id):
@@ -198,8 +224,103 @@ def load_json_file(path) -> dict:
         return json.load(export_file)
 
 
+# On a mainnet export the wasm module is ~94% of the file (2.2 GiB of code blobs and
+# contract state). Parsing it into Python objects needs >20 GiB and gets OOM-killed, yet
+# nothing in this script reads it. So it is carried as raw bytes, outside the object graph,
+# and spliced back verbatim on write.
+WASM_PLACEHOLDER = "@@FETCHD_WASM_BLOB@@"
+
+
+class WasmBlob:
+    """The wasm module's JSON value, held as raw bytes."""
+
+    def __init__(self, raw: bytes):
+        self.raw = raw
+
+    def replace(self, src: str, dest: str):
+        # bech32 addresses are ASCII, so a byte-level replace matches what a replace on
+        # the decoded text would have done.
+        self.raw = self.raw.replace(src.encode(), dest.encode())
+
+
+def load_genesis(path):
+    """Load a genesis file, keeping the wasm module out of the parsed structure.
+
+    Returns (genesis, wasm), where wasm is a WasmBlob or None if the file has no wasm
+    module. When wasm is split out, genesis["app_state"]["wasm"] is None.
+    """
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    marker = b'"wasm":'
+    start = raw.find(marker)
+    if start == -1:
+        return json.loads(raw), None
+    start += len(marker)
+    while start < len(raw) and raw[start:start + 1].isspace():
+        start += 1
+
+    # wasm is exported last within app_state, so its value ends where app_state does:
+    # ...<wasm>},"consensus":{... . Walk back over the separators rather than assuming a
+    # fixed offset, so this also works on output we wrote ourselves.
+    cons = raw.rfind(b'"consensus":')
+    if cons == -1:
+        return json.loads(raw), None
+
+    def _skip_space_back(k):
+        while k >= 0 and raw[k:k + 1].isspace():
+            k -= 1
+        return k
+
+    k = _skip_space_back(cons - 1)
+    if raw[k:k + 1] != b",":
+        raise RuntimeError(f"unexpected layout before 'consensus' in {path}")
+    k = _skip_space_back(k - 1)
+    if raw[k:k + 1] != b"}":
+        raise RuntimeError(f"unexpected layout before 'consensus' in {path}")
+    end = k
+
+    # Verify the span rather than trusting key ordering: if the remainder parses and the
+    # wasm slot is exactly our placeholder, the split landed on the right boundaries.
+    candidate = raw[:start] + json.dumps(WASM_PLACEHOLDER).encode() + raw[end:]
+    try:
+        genesis = json.loads(candidate)
+    except ValueError as e:
+        raise RuntimeError(
+            f"could not split the wasm module out of {path} ({e}); the export's key "
+            "ordering may have changed"
+        )
+    if genesis.get("app_state", {}).get("wasm") != WASM_PLACEHOLDER:
+        raise RuntimeError(f"could not split the wasm module out of {path}")
+
+    wasm = WasmBlob(raw[start:end])
+    genesis["app_state"]["wasm"] = None
+    print(f"Split out wasm module ({len(wasm.raw) / 2**20:.0f} MiB) to keep it unparsed")
+    return genesis, wasm
+
+
+def dump_genesis(genesis, wasm, path):
+    """Write a genesis loaded by load_genesis, splicing the wasm bytes back in."""
+    if wasm is None:
+        with open(path, "w") as f:
+            json.dump(genesis, f, separators=(",", ":"))
+        return
+
+    genesis["app_state"]["wasm"] = WASM_PLACEHOLDER
+    text = json.dumps(genesis, separators=(",", ":"))
+    token = json.dumps(WASM_PLACEHOLDER)
+    if text.count(token) != 1:
+        raise RuntimeError("wasm placeholder is not unique; refusing to write")
+
+    i = text.index(token)
+    with open(path, "wb") as f:
+        f.write(text[:i].encode())
+        f.write(wasm.raw)
+        f.write(text[i + len(token):].encode())
+
+
 def get_validator_info(genesis, validator_pubkey):
-    for val in genesis["validators"]:
+    for val in genesis["consensus"]["validators"]:
         if val["pub_key"]["value"] == validator_pubkey:
             return val
 
@@ -230,12 +351,13 @@ def replace_validator_with_info(
     dest_validator_pubkey,
     dest_validator_hexaddr,
     dest_validator_operator_address,
+    wasm=None,
 ):
     src_validator_pubkey = val_staking_info["consensus_pubkey"]["key"]
     src_operator_addr = val_staking_info["operator_address"]
     print(f"Replacing validator {src_operator_addr}")
 
-    # Update genesis["validators"] data
+    # Update genesis["consensus"]["validators"] data
     val_info = get_validator_info(genesis, src_validator_pubkey)
     val_info["pub_key"]["value"] = dest_validator_pubkey
     val_info["address"] = dest_validator_hexaddr
@@ -243,18 +365,22 @@ def replace_validator_with_info(
     # Update staking module data
     val_staking_info["consensus_pubkey"]["key"] = dest_validator_pubkey
 
-    # Search and replace addresses
-    genesis_dump = json.dumps(genesis)
-
-    genesis_dump = re.sub(
+    # Search and replace addresses. bech32 has no regex metacharacters, so a plain
+    # replace is equivalent to the re.sub this used to do.
+    genesis_dump = json.dumps(genesis, separators=(",", ":"))
+    genesis_dump = genesis_dump.replace(
         src_operator_addr,
         dest_validator_operator_address,
-        genesis_dump,
     )
 
     # Replace genesis
     genesis.clear()
     genesis.update(json.loads(genesis_dump))
+
+    # The operator address can also appear in contract state, which is not in the parsed
+    # structure, so apply the same replacement to the raw wasm bytes.
+    if wasm is not None:
+        wasm.replace(src_operator_addr, dest_validator_operator_address)
 
 
 def get_local_key_data(home_path, validator_key_name) -> dict:
@@ -330,7 +456,7 @@ def replace_validator_slashing(genesis, source_addr, dest_addr):
         print("Validator not found in slashing")
 
     # Brute force replacement of all remaining occurrences
-    genesis_dump = json.dumps(genesis)
+    genesis_dump = json.dumps(genesis, separators=(",", ":"))
     genesis_dump = re.sub(source_addr, dest_addr, genesis_dump)
 
     # Replace genesis
