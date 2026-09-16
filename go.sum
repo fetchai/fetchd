@@ -936,10 +936,10 @@ github.com/fetchai/cosmos-sdk v0.20.0 h1:55YcldC89mXkTC/5jMWirmkVeIQAIvg+ro9pSg1
 github.com/fetchai/cosmos-sdk v0.20.0/go.mod h1:JzUvl8EYwGynKCfnBAQ1MC5Za6Pecl9GTIxMBHo5TQg=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83 h1:9t3RKmMH/Ay+07CVfjNN7n/DQhx73HboWFG514jmVkU=
 github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83/go.mod h1:e6faZ24J0TyOWdEv/QdE5RmQMzyCBTTz674ourTi0yU=
-github.com/fetchai/priv_wasmd_sec v0.61.15-rc.2 h1:gT6KThovHpybMKQ3+cUCCcjNVDfjUaWXXRX6duuFdtM=
-github.com/fetchai/priv_wasmd_sec v0.61.15-rc.2/go.mod h1:qBrVLabNUQBjPZVKdHZs+akf8Cz7rvE+l5oZ5A1dKOQ=
-github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.2 h1:YxCz61d571z8CQWHHbxw6Ygz7w5rHPPdq3kVQPN2BNg=
-github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.2/go.mod h1:oknpb1bFERvvKcY7vHRp1F/Y/z66xVrsl7n9uWkOAlM=
+github.com/fetchai/priv_wasmd_sec v0.61.15-rc.3 h1:XaLDnMJZK3BPf/AFuOwqi3EensAmCtfIgqjG55oFzi4=
+github.com/fetchai/priv_wasmd_sec v0.61.15-rc.3/go.mod h1:/UlEpIShs5Auek+tWM9HpdFDAylAWOOPb4ElROb9GdA=
+github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.3 h1:YOVNQPy4E1yVQoQY5jnzmBMbG0H3eTI8iDUXZPKKX50=
+github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.3/go.mod h1:oknpb1bFERvvKcY7vHRp1F/Y/z66xVrsl7n9uWkOAlM=
 github.com/fetchai/tokenfactory v0.1.0 h1:BY94cCNWNIL7bh86Mpe0+0WD5fbHiXZYFZM58CQqMrY=
 github.com/fetchai/tokenfactory v0.1.0/go.mod h1:6oaM728KRoZdncFhltJsYx8DtY1UaErb85T1gKTh9R0=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=

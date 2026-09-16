@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/CosmWasm/wasmd v0.61.11
-	github.com/CosmWasm/wasmvm/v3 v3.0.8-rc.2 // indirect
+	github.com/CosmWasm/wasmvm/v3 v3.0.8-rc.3 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5 // indirect
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/gogoproto v1.7.2
@@ -274,6 +274,6 @@ replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202
 
 replace (
 	// Using rather Fetch.ai own private *clones* of the CosmWasm repositories:
-	github.com/CosmWasm/wasmd => github.com/fetchai/priv_wasmd_sec v0.61.15-rc.2 // git commit: 9220bb5678286bd418093e8b8d13fe0761bd3916
-	github.com/CosmWasm/wasmvm/v3 => github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.2 // git commit: 08323d45269cd6a3fd27863e1ffa65d30593dbf7
+	github.com/CosmWasm/wasmd => github.com/fetchai/priv_wasmd_sec v0.61.15-rc.3 // git commit: ab17af8e72692541e5eb1b57c2d5480ed8084300
+	github.com/CosmWasm/wasmvm/v3 => github.com/fetchai/priv_wasmvm_sec/v3 v3.0.8-rc.3 // git commit: d89faf180d3fb5de09b4ba59099844cc0a7a2632
 )
