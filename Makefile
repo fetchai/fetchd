@@ -168,9 +168,9 @@ build-static: static-wasmvm-lib
 # before building. The checksums are for github.com/fetchai/priv_wasmvm_sec/v3
 # v3.0.8-rc.2 (the go.mod replace target of github.com/CosmWasm/wasmvm/v3);
 # update them whenever the wasmvm pin changes.
-verify-static-wasmvm-lib-v0.15.1: WASMVM_VERSION := v3.0.8-rc.2
-verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_x86_64 := 6863af60cebf04d094bc3bcf22a2777e1e1b4f1295d54e3b9a1082a3b359de8a
-verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_aarch64 := 46f4d0913331096f2926f28d5d0f4405eb700f571be229cf8774d942619370a4
+verify-static-wasmvm-lib-v0.15.1: WASMVM_VERSION := v3.0.8-rc.3
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_x86_64 := ab1a878ed3beecc5f3821b1fb1f73a5254443e3ba9bca53964a50a122ee77497
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_aarch64 := cc9175235d1e0051002c33a94027a63a008b14dcc13ae483685e511d59754235
 verify-static-wasmvm-lib-v0.15.1: static-wasmvm-lib
 	@echo "--> Verifying wasmvm version pin for fetchd v0.15.1"
 	@if [ "$(WASMVM_VERSION)" != "$(STATIC_WASMVM_VERSION)" ]; then \
