@@ -71,3 +71,4 @@ The easiest way to get started with a simple network is to run the [docker-compo
 3. [Discord Server](https://discord.gg/fetchai)
 4. [Blog](https://fetch.ai/blog)
 5. [Community Telegram Group](https://t.me/fetch_ai)
+6. [RPC Latency Benchmark](https://openchainbench.com/benchmarks/fetchhub-rpc) — independent p50/p90/p99 monitoring of public FetchHub-4 RPC endpoints from 3 global regions
