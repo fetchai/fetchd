@@ -1,0 +1,5 @@
+# Regenerables: los módulos straight-line (~5 MB) se reconstruyen con:
+#   python3 build_straight.py
+straight_*.wasm
+trivial_execute.wasm
+__pycache__/

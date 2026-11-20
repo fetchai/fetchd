@@ -1,0 +1,135 @@
+=== fetchd go.mod:247-279 (replace directives) ===
+
+	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	// dgrijalva/jwt-go is deprecated and doesn't receive security updates.
+	// See: https://github.com/cosmos/cosmos-sdk/issues/13134
+	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.2
+	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
+	// See: https://github.com/cosmos/cosmos-sdk/issues/10409
+	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.8.1
+	github.com/strangelove-ventures/tokenfactory => github.com/fetchai/tokenfactory v0.1.0
+	// pin version! 126854af5e6d has issues with the store so that queries fail
+	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+)
+
+retract (
+	// see https://github.com/CosmWasm/wasmd/issues/1713
+	v0.44.0
+	// see https://github.com/CosmWasm/wasmd/issues/1713
+	v0.43.0
+	// see https://github.com/CosmWasm/wasmd/issues/1651
+	v0.42.0
+)
+
+replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+
+replace github.com/cosmos/cosmos-sdk => github.com/fetchai/cosmos-sdk v0.20.0
+
+replace cosmossdk.io/api => github.com/fetchai/cosmos-sdk/api v0.0.0-20260511202058-5a24a3348e83
+
+
+
+=== fetchd Makefile:166-192 (release pin) ===
+# Release-pinned static build for v0.15.1: asserts the exact wasmvm version
+# resolved from go.mod and the SHA256 of the *decompressed* static archive
+# before building. The checksums are for github.com/fetchai/priv_wasmvm_sec/v3
+# v3.0.8-rc.2 (the go.mod replace target of github.com/CosmWasm/wasmvm/v3);
+# update them whenever the wasmvm pin changes.
+verify-static-wasmvm-lib-v0.15.1: WASMVM_VERSION := v3.0.8-rc.3
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_x86_64 := ab1a878ed3beecc5f3821b1fb1f73a5254443e3ba9bca53964a50a122ee77497
+verify-static-wasmvm-lib-v0.15.1: WASMVM_SHA256_aarch64 := cc9175235d1e0051002c33a94027a63a008b14dcc13ae483685e511d59754235
+verify-static-wasmvm-lib-v0.15.1: static-wasmvm-lib
+	@echo "--> Verifying wasmvm version pin for fetchd v0.15.1"
+	@if [ "$(WASMVM_VERSION)" != "$(STATIC_WASMVM_VERSION)" ]; then \
+	  echo "ERROR: wasmvm module version is '$(STATIC_WASMVM_VERSION)', but fetchd" >&2; \
+	  echo "       v0.15.1 is pinned to '$(WASMVM_VERSION)'." >&2; \
+	  exit 1; \
+	fi
+	@echo "--> Verifying static wasmvm library checksum"
+	@if [ "$$(sha256sum $(STATIC_WASMVM_LIB) | cut -d' ' -f1)" != "$(WASMVM_SHA256_$(UNAME_M))" ]; then \
+	  echo "ERROR: SHA256 mismatch for $(STATIC_WASMVM_LIB)" >&2; \
+	  echo "       expected: $(WASMVM_SHA256_$(UNAME_M))" >&2; \
+	  echo "       actual:   $$(sha256sum $(STATIC_WASMVM_LIB) | cut -d' ' -f1)" >&2; \
+	  exit 1; \
+	fi
+	@echo "    OK"
+
+install-static-v0.15.1: verify-static-wasmvm-lib-v0.15.1 install-static
+
+.PHONY: install-static build-static verify-static-wasmvm-lib-v0.15.1 install-static-v0.15.1
+
+=== priv_wasmvm_sec@d89faf1 libwasmvm/Cargo.toml:1-75 (deps) ===
+[package]
+name = "wasmvm"
+version = "3.0.8-rc.3"
+publish = false
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2021"
+description = "Go bindings for cosmwasm contracts"
+repository = "https://github.com/CosmWasm/wasmvm"
+license = "Apache-2.0"
+readme = "README.md"
+exclude = [".gitignore"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# the example is to allow us to compile a muslc static lib with the same codebase as we compile the
+# normal dynamic libs (best workaround I could find to override crate-type on the command line)
+[[example]]
+name = "wasmvmstatic"
+path = "src/examples/wasmvmstatic.rs"
+crate-type = ["staticlib"]
+
+[features]
+default = []
+# This feature requires Rust nightly because it depends on the unstable backtrace feature.
+backtraces = []
+
+[dependencies]
+cosmwasm-std = { version = "=3.0.10-rc.3", features = [
+  "staking",
+  "stargate",
+  "iterator",
+  "ibc2",
+] }
+cosmwasm-vm = { version = "=3.0.10-rc.3", features = [
+  "staking",
+  "stargate",
+  "iterator",
+  "ibc2",
+] }
+errno = "0.3.8"
+rmp-serde = "1.3.0"
+serde = { version = "1.0.103", features = ["derive"] }
+serde_json = "1.0.91"
+thiserror = "1.0.38"
+hex = "0.4.3"
+time = { version = "0.3.36", features = ["formatting"] }
+
+[dev-dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+tempfile = "3.4.0"
+
+[build-dependencies]
+cbindgen = "0.27.0"
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = true
+lto = false
+debug-assertions = false
+codegen-units = 16
+panic = 'unwind'
+incremental = true
+overflow-checks = true
+
+# Every cosmwasm crate, direct or transitive, must come from the private fork.
+[patch.crates-io]
+cosmwasm-core = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
+cosmwasm-crypto = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
+cosmwasm-derive = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
+cosmwasm-std = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
+cosmwasm-vm = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
+cosmwasm-vm-derive = { git = "https://github.com/CosmWasm/priv_cosmwasm.git", tag = "v3.0.10-rc.3" }
